@@ -1,0 +1,32 @@
+{
+  "baseline": "iPhone 16e",
+  "offsetToBaseline": {
+    "iPad Pro (12.9-inch) (6th generation)": {
+      "acne": -10.660011291503906,
+      "texture": -30.627450980392148,
+      "redness": 18.628660202026367,
+      "age_spot": -6.485403060913086,
+      "oiliness": -4.407615661621094,
+      "pore": -87.05301666259766,
+      "radiance": -4.935172200202942
+    },
+    "iPhone XS": {
+      "acne": -6.182521820068359,
+      "texture": -23.133333333333326,
+      "redness": 4.07489013671875,
+      "age_spot": -6.669364929199219,
+      "oiliness": -14.709646224975586,
+      "pore": -48.08106231689453,
+      "radiance": -9.915605187416077
+    },
+    "iPhone 16e": {
+      "acne": 0,
+      "texture": 0,
+      "redness": 0,
+      "age_spot": 0,
+      "oiliness": 0,
+      "pore": 0,
+      "radiance": 0
+    }
+  }
+}
