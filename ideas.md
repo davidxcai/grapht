@@ -1,3 +1,21 @@
+# Todo
+
+## important and priority
+
+we still haven't tested a full end-to-end run of this
+
+## privacy
+
+by default, the trials are private. but if the user wants to share the trial, but also not leak their identity, they can choose to censor the face slightly so that the eyes are obscured. it'll just be a blurred bar. profiles are also private by default unless you choose to make it public. this is going to be a feature added later on, and is not part of the mvp.
+
+## community trending
+
+i want to have another category shown in the community page where it shows trending products where it's basically noting a high amount of recent usage in people's routines.
+
+it features just the products itself, and clicking on it would take you to the product details page.
+
+# Done
+
 ## time since applying
 
 for each trial, i'd like to add a feature where it also tells us how long after your routine application you took your picture.
@@ -47,10 +65,6 @@ you can also browse by skin type as well as concerns so that you can see what ot
 everyone's trials will have views if they set them to public. there will be a comment section as well for each trial. the trial's user can choose to enable/disable comments.
 
 i want to emphasize that this is not a popularity or beauty contest. so the only thing you'll see is the number of views on the trial. maybe later on we can think about showing the number of 'saves'.
-
-## privacy
-
-by default, the trials are private. but if the user wants to share the trial, but also not leak their identity, they can choose to censor the face slightly so that the eyes are obscured. it'll just be a blurred bar. profiles are also private by default unless you choose to make it public. this is going to be a feature added later on, and is not part of the mvp.
 
 ## profile
 

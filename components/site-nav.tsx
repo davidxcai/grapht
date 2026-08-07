@@ -117,6 +117,7 @@ export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
             aria-expanded={open}
             aria-controls="site-nav-menu"
             onClick={() => setOpen((v) => !v)}
+            nativeButton={true}
           >
             {open ? <X className="size-5" aria-hidden /> : <Menu className="size-5" aria-hidden />}
           </Button>
