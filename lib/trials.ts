@@ -14,6 +14,14 @@ import type { RoutineSnapshot } from '@/lib/routines';
 export type TrialStatus = 'active' | 'completed';
 
 /**
+ * Who can read this trial. `private` is the default everywhere — in the form, in
+ * the column default, and in the backfill — so a trial is never published by
+ * omission. `public` opens the whole trial to the community, running or
+ * finished; the user can move it either way at any time.
+ */
+export type TrialVisibility = 'private' | 'public';
+
+/**
  * One line of the baseline routine.
  *
  * A bare string is a product typed straight into the trial. A `RoutineSnapshot`
@@ -29,6 +37,15 @@ export interface Intervention {
   name: string;
   startedOn: string;
   targets: string[];
+  /** How much per use ("2 pumps", "0.5 mg"). Display only — never the maths. */
+  dosage?: string | null;
+}
+
+/** An extra angle attached to one day's capture. Never analysed, so it costs
+ *  no units and carries no scores — qualitative context only. */
+export interface ExtraPhoto {
+  id: string;
+  url: string;
 }
 
 export interface Capture {
@@ -50,6 +67,10 @@ export interface Capture {
   blobUrl?: string | null;
   /** Fixture captures, under gitignored `public/captures/`. */
   photoUrl?: string | null;
+  /** The user's note on this photo — context the picture can't carry. */
+  note?: string | null;
+  /** Additional angles for this day, below the analysed photo. */
+  extraPhotos?: ExtraPhoto[];
 }
 
 /**
@@ -69,10 +90,17 @@ export type Frequency =
   | { kind: 'weekdays'; days: number[] }
   | { kind: 'none' };
 
+/**
+ * Which routine this trial sits on — morning and night are separate logs
+ * (docs/app-ui.md, "One routine, and what that costs"). Defaults to `'am'`.
+ */
+export type TimeOfDay = 'am' | 'pm';
+
 export interface Trial {
   id: string;
   name: string;
   status: TrialStatus;
+  visibility: TrialVisibility;
   window: {
     startDate: string;
     /** Null is open-ended. A date here is a marker to count toward, never a
@@ -80,12 +108,72 @@ export interface Trial {
     endDate: string | null;
     endDateSource: 'clinician' | 'product-claim' | 'user-chosen' | null;
   };
+  timeOfDay: TimeOfDay;
   frequency: Frequency;
   routine: {
     baseline: BaselineEntry[];
     interventions: Intervention[];
   };
   captures: Capture[];
+  /** "Applied products" check-ins, ISO instants, oldest first. Server-stamped. */
+  applications?: string[];
+  /** Whether readers of a public trial may comment. The owner's switch. */
+  commentsEnabled?: boolean;
+  /** Signed-in non-owners who opened this trial while public. */
+  viewCount?: number;
+  /** The Gemini-written retrospective, once the owner asks for one. */
+  summary?: { text: string; model: string; generatedAt: string } | null;
+  /** The owner's own words on the finished trial. */
+  userReview?: string | null;
+}
+
+/** How long after applying products a photo was taken. */
+export interface TimeSinceApplied {
+  hours: number;
+  /**
+   * True when no check-in landed in the 24h before this capture and the gap is
+   * projected from the last check-in's clock time — the "you forgot to press
+   * the button" fallback, and it says so rather than passing as measured.
+   */
+  assumed: boolean;
+}
+
+const MS_PER_HOUR = 3_600_000;
+
+/**
+ * Hours between the routine application and a capture.
+ *
+ * The nearest check-in at or before the capture wins. If it is more than 24
+ * hours old the user likely forgot to check in, so the gap is computed against
+ * that check-in's clock time on the most recent day before the capture — the
+ * ideas.md rule: pressed at 10pm once, a 7am photo two days later still reads
+ * as 9 hours, flagged as assumed. No check-ins at all means nothing to report.
+ */
+export function timeSinceApplied(
+  applications: string[] | undefined,
+  capturedAt: string,
+): TimeSinceApplied | null {
+  const at = Date.parse(capturedAt);
+  const before = (applications ?? [])
+    .map((a) => Date.parse(a))
+    .filter((t) => Number.isFinite(t) && t <= at)
+    .sort((a, b) => a - b);
+  const last = before[before.length - 1];
+  if (last === undefined) return null;
+
+  const gap = (at - last) / MS_PER_HOUR;
+  if (gap <= 24) return { hours: gap, assumed: false };
+
+  // Project the last check-in's clock time forward to the last occurrence
+  // before the capture.
+  const projected = last + Math.floor((at - last) / (24 * MS_PER_HOUR)) * 24 * MS_PER_HOUR;
+  return { hours: (at - projected) / MS_PER_HOUR, assumed: true };
+}
+
+/** "8 h", "3.5 h" — halves are the finest anyone can honestly claim here. */
+export function hoursLabel(hours: number): string {
+  const rounded = Math.round(hours * 2) / 2;
+  return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)} h`;
 }
 
 /** What the dashboard card renders. Everything else waits for the detail page. */
@@ -158,4 +246,13 @@ export function baselineTargets(trial: Trial): string[] {
   return orderConcerns(
     trial.routine.baseline.flatMap((entry) => (typeof entry === 'string' ? [] : entry.coverage)),
   );
+}
+
+/**
+ * The union of every intervention's `targets[]` — what the trial can actually
+ * attribute a change to, as opposed to `baselineTargets()`, which it can only
+ * confound. This is the dashboard card's "what it tracks" (docs/app-ui.md §3).
+ */
+export function interventionTargets(trial: Trial): string[] {
+  return orderConcerns(trial.routine.interventions.flatMap((i) => i.targets));
 }

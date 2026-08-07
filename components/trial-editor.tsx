@@ -2,22 +2,41 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { ImageUp, Loader2, Plus, X } from "lucide-react";
+import {
+    Camera,
+    ImageUp,
+    Loader2,
+    Lock,
+    Moon,
+    Pencil,
+    Plus,
+    Sun,
+    Users,
+    X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { CameraCapture } from "@/components/camera-capture";
+import { Choice } from "@/components/choice";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { ConcernChips } from "@/components/concern-chips";
 import { ConcernPicker } from "@/components/concern-picker";
-import { MultiSelect } from "@/components/multi-select";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { orderConcerns } from "@/lib/concerns";
-import { cn } from "@/lib/utils";
 import { suggestConcerns, type Suggestion } from "@/app/routines/actions";
 import { startTrial } from "@/app/trials/actions";
 import type { Provenance, RankedConcern } from "@/lib/routines";
-import type { Frequency } from "@/lib/trials";
+import type { Frequency, TimeOfDay, TrialVisibility } from "@/lib/trials";
 
 export interface RoutineOption {
     id: string;
@@ -30,6 +49,7 @@ interface Draft {
     key: string;
     brand: string;
     name: string;
+    dosage: string;
     targets: string[];
     ranked: RankedConcern[];
     classifier: { model: string; promptVersion: string } | null;
@@ -55,6 +75,7 @@ const blank = (): Draft => ({
     key: `tracked-${(seq += 1)}`,
     brand: "",
     name: "",
+    dosage: "",
     targets: [],
     ranked: [],
     classifier: null,
@@ -65,80 +86,46 @@ const blank = (): Draft => ({
 });
 
 /** 30 days is the pre-filled default — see docs/app-ui.md §4, "Duration". */
-const DURATIONS = [14, 30, 60, 90];
+const DURATIONS = [14, 30, 60];
 
-type DurationMode = "preset" | "claim" | "custom" | "open";
+type DurationMode = "preset" | "claim" | "custom";
 
-type FrequencyPreset =
-    | "daily"
-    | "other-day"
-    | "weekly"
-    | "weekdays"
-    | "every-n"
-    | "none";
+type DurationUnit = "days" | "weeks" | "months" | "years";
+
+const DURATION_UNITS: { id: DurationUnit; label: string; days: number }[] = [
+    { id: "days", label: "days", days: 1 },
+    { id: "weeks", label: "weeks", days: 7 },
+    { id: "months", label: "months", days: 30 },
+    { id: "years", label: "years", days: 365 },
+];
+
+type FrequencyPreset = "daily" | "other-day" | "custom";
 
 const FREQUENCIES: { id: FrequencyPreset; label: string }[] = [
     { id: "daily", label: "Daily" },
-    { id: "other-day", label: "Every other day" },
-    { id: "weekly", label: "Weekly" },
-    { id: "weekdays", label: "Certain days" },
-    { id: "every-n", label: "Every N days" },
-    { id: "none", label: "Whenever" },
+    { id: "other-day", label: "Every Other Day" },
+    { id: "custom", label: "Custom" },
 ];
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const TIMES_OF_DAY: { id: TimeOfDay; label: string; icon: typeof Sun }[] = [
+    { id: "am", label: "AM", icon: Sun },
+    { id: "pm", label: "PM", icon: Moon },
+];
 
-/** A pill in a single-select row. Same shape as a concern chip, on purpose. */
-function Choice({
-    on,
-    children,
-    onClick,
-}: {
-    on: boolean;
-    children: React.ReactNode;
-    onClick: () => void;
-}) {
-    return (
-        <button
-            type="button"
-            aria-pressed={on}
-            onClick={onClick}
-            className={cn(
-                "rounded-full border px-3 py-1.5 text-xs transition-colors",
-                "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-                on
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-input text-muted-foreground hover:bg-accent hover:text-foreground",
-            )}
-        >
-            {children}
-        </button>
-    );
-}
+/** Private is first and is the default; publishing is never the fallback. */
+const VISIBILITIES: {
+    id: TrialVisibility;
+    label: string;
+    icon: typeof Sun;
+}[] = [
+    { id: "private", label: "Private", icon: Lock },
+    { id: "public", label: "Public", icon: Users },
+];
 
-/** A saved routine, selectable, showing what a routine card shows. */
-function RoutineChoice({
-    routine,
-    on,
-    onClick,
-}: {
-    routine: RoutineOption;
-    on: boolean;
-    onClick: () => void;
-}) {
+/** The chosen routine, showing what a routine card shows. */
+function RoutineSummary({ routine }: { routine: RoutineOption }) {
     return (
-        <button
-            type="button"
-            aria-pressed={on}
-            onClick={onClick}
-            className={cn(
-                "flex w-full flex-col gap-3 rounded-xl bg-card p-4 text-left text-sm text-card-foreground",
-                "ring-1 transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-                on
-                    ? "ring-primary bg-accent/40"
-                    : "ring-foreground/10 hover:bg-accent/30",
-            )}
-        >
+        <div className="flex w-full flex-col gap-3 rounded-xl bg-card p-4 text-sm text-card-foreground ring-1 ring-foreground/10">
             <div className="flex items-center justify-between gap-3">
                 <h3 className="truncate text-sm font-medium">{routine.name}</h3>
                 <span className="shrink-0 text-xs text-muted-foreground">
@@ -160,6 +147,56 @@ function RoutineChoice({
                     empty="No metrics tagged"
                 />
             </div>
+        </div>
+    );
+}
+
+/** Click the title, or its pencil, to rename inline. Blank falls back to "New Trial". */
+function TitleEditor({
+    value,
+    onChange,
+}: {
+    value: string;
+    onChange: (next: string) => void;
+}) {
+    const [editing, setEditing] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (editing) inputRef.current?.focus();
+    }, [editing]);
+
+    if (editing) {
+        return (
+            <Input
+                ref={inputRef}
+                value={value}
+                placeholder="New Trial"
+                aria-label="Trial title"
+                className="h-9 max-w-sm text-lg font-semibold"
+                onChange={(e) => onChange(e.target.value)}
+                onBlur={() => setEditing(false)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === "Escape") {
+                        e.preventDefault();
+                        setEditing(false);
+                    }
+                }}
+            />
+        );
+    }
+
+    return (
+        <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="group flex items-center gap-1.5 text-lg font-semibold"
+        >
+            {value.trim() || "New Trial"}
+            <Pencil
+                className="size-3.5 text-muted-foreground opacity-60 transition-opacity group-hover:opacity-100"
+                aria-hidden
+            />
         </button>
     );
 }
@@ -177,19 +214,23 @@ export function TrialEditor({
     const [name, setName] = useState("");
     const [nameTouched, setNameTouched] = useState(false);
 
+    const [withRoutine, setWithRoutine] = useState(false);
     const [routineId, setRoutineId] = useState<string | null>(null);
+    const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("am");
+    const [visibility, setVisibility] = useState<TrialVisibility>("private");
 
     const [durationMode, setDurationMode] = useState<DurationMode>("preset");
-    const [presetDays, setPresetDays] = useState(30);
+    const [presetDays, setPresetDays] = useState(14);
     const [customDays, setCustomDays] = useState("45");
+    const [customUnit, setCustomUnit] = useState<DurationUnit>("days");
     const [claimDays, setClaimDays] = useState<number | null>(null);
 
     const [frequency, setFrequency] = useState<FrequencyPreset>("daily");
     const [everyN, setEveryN] = useState("3");
-    const [days, setDays] = useState<number[]>([1, 3, 5]);
 
     const [photo, setPhoto] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
+    const [cameraOpen, setCameraOpen] = useState(false);
     const fileInput = useRef<HTMLInputElement>(null);
 
     const [error, setError] = useState<string | null>(null);
@@ -251,20 +292,11 @@ export function TrialEditor({
         switch (frequency) {
             case "other-day":
                 return { kind: "every-n-days", n: 2 };
-            case "weekly":
-                return { kind: "every-n-days", n: 7 };
-            case "every-n":
+            case "custom":
                 return {
                     kind: "every-n-days",
                     n: Math.max(2, Number(everyN) || 3),
                 };
-            case "weekdays":
-                return {
-                    kind: "weekdays",
-                    days: [...days].sort((a, b) => a - b),
-                };
-            case "none":
-                return { kind: "none" };
             default:
                 return { kind: "daily" };
         }
@@ -272,18 +304,19 @@ export function TrialEditor({
 
     function durationDays(): number | null {
         switch (durationMode) {
-            case "open":
-                return null;
             case "claim":
                 return claimDays;
-            case "custom":
-                return Math.max(1, Number(customDays) || 30);
+            case "custom": {
+                const unitDays =
+                    DURATION_UNITS.find((u) => u.id === customUnit)?.days ?? 1;
+                return Math.max(1, Number(customDays) || 30) * unitDays;
+            }
             default:
                 return presetDays;
         }
     }
 
-    /** Null is open-ended. The date is a marker, never a lock. */
+    /** The date is a marker, never a lock — see docs/app-ui.md §4, "Duration". */
     function endDate(): string | null {
         const days = durationDays();
         if (days === null) return null;
@@ -310,6 +343,7 @@ export function TrialEditor({
                         .map((i) => ({
                             brand: i.brand.trim() || null,
                             name: i.name.trim(),
+                            dosage: i.dosage.trim() || null,
                             targets: i.targets,
                             ranked: i.ranked,
                             provenance: provenanceOf(i),
@@ -322,6 +356,8 @@ export function TrialEditor({
                         durationMode === "claim"
                             ? "product-claim"
                             : "user-chosen",
+                    timeOfDay,
+                    visibility,
                     frequency: frequencyValue(),
                     device: navigator.userAgent,
                 },
@@ -341,21 +377,35 @@ export function TrialEditor({
     const chosenRoutine = routines.find((r) => r.id === routineId) ?? null;
 
     return (
-        <div className="mt-8 space-y-8">
+        <div className="space-y-8">
             {/* ---- tracked products ---- */}
             <section className="space-y-3">
-                <div className="space-y-2">
-                    <Label htmlFor="trial-name">New Log</Label>
-                    <Input
-                        id="trial-name"
-                        value={name}
-                        placeholder="New Log"
-                        onChange={(e) => {
-                            setName(e.target.value);
-                            setNameTouched(true);
-                        }}
-                    />
+                <TitleEditor
+                    value={name}
+                    onChange={(next) => {
+                        setName(next);
+                        setNameTouched(true);
+                    }}
+                />
+
+                <div className="space-y-4 my-6">
+                    <Label>Time of day</Label>
+                    <div className="flex gap-1.5">
+                        {TIMES_OF_DAY.map((t) => (
+                            <Choice
+                                key={t.id}
+                                on={timeOfDay === t.id}
+                                onClick={() => setTimeOfDay(t.id)}
+                                className="flex flex-1 items-center justify-center gap-1.5 py-2"
+                            >
+                                <t.icon className="size-3.5" />
+                                {t.label}
+                            </Choice>
+                        ))}
+                    </div>
                 </div>
+                <Separator />
+
                 <h2 className="text-sm font-medium">Product(s)</h2>
 
                 {items.map((item) => (
@@ -403,6 +453,19 @@ export function TrialEditor({
                             )}
                         </div>
 
+                        {/* Free text on purpose: "2 pumps", "pea-sized", "20 mg"
+                            are all legitimate and no unit picker fits them all. */}
+                        <Input
+                            value={item.dosage}
+                            placeholder="Amount per use (optional), e.g. 2 pumps"
+                            aria-label="Amount per use"
+                            onChange={(e) =>
+                                patch(item.key, {
+                                    dosage: e.target.value,
+                                })
+                            }
+                        />
+
                         <ConcernPicker
                             targets={item.targets}
                             ranked={item.ranked}
@@ -429,37 +492,79 @@ export function TrialEditor({
 
             {/* ---- baseline routine ---- */}
             <section className="space-y-3">
-                <h2 className="text-sm font-medium">Current Routine</h2>
+                <div className="flex items-center justify-between">
+                    <Label
+                        htmlFor="add-routine"
+                        className="text-sm font-medium"
+                    >
+                        Use Routine
+                    </Label>
+                    <Switch
+                        id="add-routine"
+                        checked={withRoutine}
+                        onCheckedChange={(on: boolean) => {
+                            setWithRoutine(on);
+                            if (!on) setRoutineId(null);
+                        }}
+                    />
+                </div>
 
-                {routinesError ? (
-                    <p className="text-xs text-muted-foreground">
-                        Saved routines are unavailable — {routinesError}
-                    </p>
-                ) : routines.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                        No saved routines yet.
-                    </p>
-                ) : (
-                    routines.map((r) => (
-                        <RoutineChoice
-                            key={r.id}
-                            routine={r}
-                            on={routineId === r.id}
-                            onClick={() =>
-                                setRoutineId(routineId === r.id ? null : r.id)
-                            }
-                        />
-                    ))
-                )}
+                {withRoutine &&
+                    (routinesError ? (
+                        <p className="text-xs text-muted-foreground">
+                            Saved routines are unavailable — {routinesError}
+                        </p>
+                    ) : routines.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                            No saved routines yet.
+                        </p>
+                    ) : (
+                        <>
+                            <Select
+                                value={routineId}
+                                onValueChange={(next: unknown) =>
+                                    setRoutineId((next as string) ?? null)
+                                }
+                            >
+                                <SelectTrigger
+                                    aria-label="Routine"
+                                    className="h-9 w-full"
+                                >
+                                    <SelectValue placeholder="Choose a routine">
+                                        {(value: string | null) =>
+                                            routines.find((r) => r.id === value)
+                                                ?.name ?? "Choose a routine"
+                                        }
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent
+                                    align="start"
+                                    alignItemWithTrigger={false}
+                                >
+                                    {routines.map((r) => (
+                                        <SelectItem key={r.id} value={r.id}>
+                                            {r.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            {chosenRoutine && (
+                                <RoutineSummary routine={chosenRoutine} />
+                            )}
+                        </>
+                    ))}
             </section>
 
             <Separator />
 
             {/* ---- duration ---- */}
             <section className="space-y-3">
-                <h2 className="text-sm font-medium">How long</h2>
+                <h2 className="text-sm font-medium">
+                    How long are we tracking?
+                </h2>
 
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex gap-1.5">
                     {DURATIONS.map((d) => (
                         <Choice
                             key={d}
@@ -468,6 +573,7 @@ export function TrialEditor({
                                 setDurationMode("preset");
                                 setPresetDays(d);
                             }}
+                            className="flex-1 justify-center text-center"
                         >
                             {d} days
                         </Choice>
@@ -477,6 +583,7 @@ export function TrialEditor({
                         <Choice
                             on={durationMode === "claim"}
                             onClick={() => setDurationMode("claim")}
+                            className="flex-1 justify-center text-center"
                         >
                             {claimDays} days — the label&rsquo;s claim
                         </Choice>
@@ -485,15 +592,9 @@ export function TrialEditor({
                     <Choice
                         on={durationMode === "custom"}
                         onClick={() => setDurationMode("custom")}
+                        className="flex-1 justify-center text-center"
                     >
                         Custom
-                    </Choice>
-
-                    <Choice
-                        on={durationMode === "open"}
-                        onClick={() => setDurationMode("open")}
-                    >
-                        Open-ended
                     </Choice>
                 </div>
 
@@ -504,11 +605,33 @@ export function TrialEditor({
                             min={1}
                             inputMode="numeric"
                             value={customDays}
-                            aria-label="Duration in days"
-                            className="max-w-24"
+                            aria-label="Duration"
+                            className="flex-1"
                             onChange={(e) => setCustomDays(e.target.value)}
                         />
-                        days
+                        <Select
+                            value={customUnit}
+                            onValueChange={(next: unknown) =>
+                                setCustomUnit(next as DurationUnit)
+                            }
+                        >
+                            <SelectTrigger
+                                aria-label="Duration unit"
+                                className="h-9 flex-1"
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent
+                                align="start"
+                                alignItemWithTrigger={false}
+                            >
+                                {DURATION_UNITS.map((u) => (
+                                    <SelectItem key={u.id} value={u.id}>
+                                        {u.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 )}
             </section>
@@ -517,24 +640,24 @@ export function TrialEditor({
 
             {/* ---- frequency ---- */}
             <section className="space-y-3">
-                <h2 className="text-sm font-medium">How often</h2>
-                <p className="text-xs text-muted-foreground">
-                    This is how often you're applying the product.
-                </p>
+                <h2 className="text-sm font-medium">
+                    How often are you applying?
+                </h2>
 
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex gap-1.5">
                     {FREQUENCIES.map((f) => (
                         <Choice
                             key={f.id}
                             on={frequency === f.id}
                             onClick={() => setFrequency(f.id)}
+                            className="flex-1 justify-center text-center"
                         >
                             {f.label}
                         </Choice>
                     ))}
                 </div>
 
-                {frequency === "every-n" && (
+                {frequency === "custom" && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         Every
                         <Input
@@ -548,25 +671,6 @@ export function TrialEditor({
                         />
                         days
                     </div>
-                )}
-
-                {frequency === "weekdays" && (
-                    <MultiSelect
-                        value={days.map(String)}
-                        options={WEEKDAYS.map((label, index) => ({
-                            value: String(index),
-                            label,
-                        }))}
-                        placeholder="Choose days"
-                        summary={(v) =>
-                            v
-                                .map(Number)
-                                .sort((a, b) => a - b)
-                                .map((d) => WEEKDAYS[d])
-                                .join(", ")
-                        }
-                        onChange={(next) => setDays(next.map(Number))}
-                    />
                 )}
             </section>
 
@@ -582,40 +686,93 @@ export function TrialEditor({
                     accept="image/jpeg,image/png"
                     className="sr-only"
                     onChange={(e) => {
-                        setPhoto(e.target.files?.[0] ?? null);
-                        setError(null);
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (file) {
+                            setPhoto(file);
+                            setError(null);
+                            setCameraOpen(false);
+                        }
                     }}
                 />
 
-                <Card className="items-center gap-3 p-5">
-                    {preview ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- a local
-                        // object URL, not a remote asset the Image loader could optimise.
-                        <img
-                            src={preview}
-                            alt="Your baseline capture"
-                            className="max-h-72 w-auto rounded-md object-contain"
-                        />
-                    ) : (
-                        <div className="flex flex-col items-center gap-1 py-6 text-center">
-                            <ImageUp
-                                className="size-6 text-muted-foreground"
-                                aria-hidden
+                {cameraOpen ? (
+                    <CameraCapture
+                        onCapture={(file) => {
+                            setPhoto(file);
+                            setError(null);
+                            setCameraOpen(false);
+                        }}
+                        onCancel={() => setCameraOpen(false)}
+                        onUpload={() => fileInput.current?.click()}
+                    />
+                ) : (
+                    <Card className="items-center gap-3 p-5">
+                        {preview ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- a local
+                            // object URL, not a remote asset the Image loader could optimise.
+                            <img
+                                src={preview}
+                                alt="Your baseline capture"
+                                className="max-h-72 w-auto rounded-md object-contain"
                             />
-                            <p className="text-sm text-muted-foreground">
-                                No photo yet
-                            </p>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="flex flex-col items-center gap-1 py-6 text-center">
+                                <ImageUp
+                                    className="size-6 text-muted-foreground"
+                                    aria-hidden
+                                />
+                                <p className="text-sm text-muted-foreground">
+                                    No photo yet
+                                </p>
+                            </div>
+                        )}
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInput.current?.click()}
-                    >
-                        {photo ? "Choose a different photo" : "Add your photo"}
-                    </Button>
-                </Card>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                size="sm"
+                                onClick={() => setCameraOpen(true)}
+                            >
+                                <Camera aria-hidden />
+                                Open camera
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fileInput.current?.click()}
+                            >
+                                Upload photo
+                            </Button>
+                        </div>
+                    </Card>
+                )}
+            </section>
+
+            <Separator />
+
+            {/* ---- visibility ---- */}
+            <section className="space-y-3">
+                <h2 className="text-sm font-medium">Who can see this?</h2>
+
+                <div className="flex gap-1.5">
+                    {VISIBILITIES.map((v) => (
+                        <Choice
+                            key={v.id}
+                            on={visibility === v.id}
+                            onClick={() => setVisibility(v.id)}
+                            className="flex flex-1 items-center justify-center gap-1.5 py-2"
+                        >
+                            <v.icon className="size-3.5" />
+                            {v.label}
+                        </Choice>
+                    ))}
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                    {visibility === "public"
+                        ? "The community can watch this trial as it runs. You can make it private again at any time."
+                        : "Only you can see this trial. You can share it with the community at any time."}
+                </p>
             </section>
 
             <Separator />
@@ -628,9 +785,9 @@ export function TrialEditor({
                     </p>
                 )}
 
-                <Button onClick={save} disabled={saving}>
+                <Button className="w-full" onClick={save} disabled={saving}>
                     {saving && <Loader2 className="animate-spin" aria-hidden />}
-                    {saving ? "Analysing your photo…" : "Save & Start trial"}
+                    {saving ? "Analysing your photo…" : "Save"}
                 </Button>
             </section>
         </div>

@@ -1,5 +1,5 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
-import type { NextFetchEvent, NextRequest } from 'next/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server';
 
 /**
  * `middleware.ts` was renamed to `proxy.ts` in Next 16; the export must be the
@@ -12,7 +12,32 @@ import type { NextFetchEvent, NextRequest } from 'next/server';
  * here rather than importing the flag from `lib/auth.ts`, because proxy runs
  * separately from render code and must not rely on shared modules.
  */
-const handler = clerkMiddleware();
+
+/**
+ * Screens that cannot render anything for a signed-out visitor. Everything else
+ * is public, and deliberately so: `/` and `/trials/[id]` carry the reference
+ * series, which is a published sample that reads without an account.
+ *
+ * This is an optimistic check and not the security boundary. It reads the
+ * session cookie and redirects, nothing more — ownership is enforced in
+ * `lib/routines.ts` and `lib/trial-store.ts`, where every query is scoped to an
+ * owner passed in by the caller, and again in each server action. A proxy alone
+ * would protect the navigation to a page and none of the writes behind it.
+ */
+const requiresAccount = createRouteMatcher([
+  '/trials/new',
+  '/routines/new',
+  '/routines/(.*)',
+  '/welcome',
+  '/profile',
+]);
+
+const handler = clerkMiddleware(async (auth, request) => {
+  if (!requiresAccount(request)) return;
+
+  const { userId } = await auth();
+  if (!userId) return NextResponse.redirect(new URL('/login', request.url));
+});
 
 export default function proxy(request: NextRequest, event: NextFetchEvent) {
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) return;

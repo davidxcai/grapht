@@ -9,6 +9,7 @@ import {
   type RoutineItemInput,
 } from '@/lib/routines';
 import { classifyProduct, productIdentity } from '@/lib/product-classifier';
+import { currentUserId } from '@/lib/auth';
 
 export interface SaveRoutineInput {
   id?: string;
@@ -23,7 +24,15 @@ export type ActionResult<T = undefined> =
 /** Postgres unique-violation, i.e. a routine of this name already exists. */
 const UNIQUE_VIOLATION = '23505';
 
+/**
+ * Every action here resolves the caller itself rather than trusting the page
+ * that rendered the form. The proxy redirects a signed-out *navigation*; an
+ * action is reachable directly, so it is its own last line of defence.
+ */
 export async function saveRoutine(input: SaveRoutineInput): Promise<ActionResult<{ id: string }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to save a routine.' };
+
   const name = input.name?.trim();
   if (!name) return { ok: false, error: 'Give the routine a name.' };
 
@@ -32,10 +41,15 @@ export async function saveRoutine(input: SaveRoutineInput): Promise<ActionResult
 
   try {
     let id = input.id;
-    if (id) await updateRoutine(id, name, items);
-    else id = await createRoutine(name, items);
+    if (id) {
+      const updated = await updateRoutine(userId, id, name, items);
+      if (!updated) return { ok: false, error: 'That routine no longer exists.' };
+    } else {
+      id = await createRoutine(userId, name, items);
+    }
 
     revalidatePath('/');
+    revalidatePath('/dashboard');
     revalidatePath('/routines');
     return { ok: true, data: { id } };
   } catch (error) {
@@ -52,9 +66,13 @@ export async function saveRoutine(input: SaveRoutineInput): Promise<ActionResult
 }
 
 export async function removeRoutine(id: string): Promise<ActionResult> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to delete a routine.' };
+
   try {
-    await deleteRoutine(id);
+    await deleteRoutine(userId, id);
     revalidatePath('/');
+    revalidatePath('/dashboard');
     revalidatePath('/routines');
     return { ok: true };
   } catch (error) {

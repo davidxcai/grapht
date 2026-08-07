@@ -45,9 +45,13 @@ export interface Routine {
   updatedAt: string;
 }
 
-/** No accounts yet (docs/app-ui.md §2 is designed, not built). */
-const LOCAL_USER = 'local';
-
+/**
+ * Every function here takes the owner as its first argument rather than reading
+ * it from the request. This is the data access layer, and it is where ownership
+ * is actually enforced — the proxy only redirects. Passing it explicitly means a
+ * query that forgot to scope cannot compile, which is the guarantee worth having
+ * when the rows are someone's face measurements.
+ */
 export interface RoutineItemInput {
   brand?: string | null;
   name: string;
@@ -88,17 +92,17 @@ function toItem(row: Record<string, unknown>): RoutineItem {
   };
 }
 
-export async function listRoutines(): Promise<Routine[]> {
+export async function listRoutines(userId: string): Promise<Routine[]> {
   const sql = getSql();
   const [routineRows, itemRows] = await Promise.all([
-    sql`select * from routines where user_id = ${LOCAL_USER}
+    sql`select * from routines where user_id = ${userId}
         order by position asc, created_at asc`,
     sql.query(
       `select ${ITEM_COLUMNS} from routine_items i
        join routines r on r.id = i.routine_id
        where r.user_id = $1
        order by i.position asc, i.created_at asc`,
-      [LOCAL_USER],
+      [userId],
     ),
   ]);
 
@@ -120,10 +124,12 @@ export async function listRoutines(): Promise<Routine[]> {
   }));
 }
 
-export async function getRoutine(id: string): Promise<Routine | null> {
+/** Null covers "no such routine" and "not yours" alike — the caller renders the
+ *  same 404 for both, which is the only answer that leaks nothing. */
+export async function getRoutine(userId: string, id: string): Promise<Routine | null> {
   const sql = getSql();
   const rows = await sql`select * from routines
-                         where id = ${id} and user_id = ${LOCAL_USER}`;
+                         where id = ${id} and user_id = ${userId}`;
   const row = (rows as Record<string, unknown>[])[0];
   if (!row) return null;
 
@@ -173,36 +179,53 @@ function itemInserts(routineId: string, items: RoutineItemInput[]) {
   });
 }
 
-export async function createRoutine(name: string, items: RoutineItemInput[]): Promise<string> {
+export async function createRoutine(
+  userId: string,
+  name: string,
+  items: RoutineItemInput[],
+): Promise<string> {
   const sql = getSql();
   const id = randomUUID();
   await sql.transaction([
     sql`insert into routines (id, user_id, name, position)
-        values (${id}, ${LOCAL_USER}, ${name.trim()},
+        values (${id}, ${userId}, ${name.trim()},
                 coalesce((select max(position) + 1 from routines
-                          where user_id = ${LOCAL_USER}), 0))`,
+                          where user_id = ${userId}), 0))`,
     ...itemInserts(id, items),
   ]);
   return id;
 }
 
+/**
+ * Returns false when the update matched no routine — someone else's id, or
+ * none. The item rows are keyed on `routine_id` and cannot carry the owner
+ * themselves, so the ownership test has to be read back rather than assumed:
+ * without the check, the delete-and-reinsert below would happily rewrite a
+ * stranger's routine while the `update` above quietly changed nothing.
+ */
 export async function updateRoutine(
+  userId: string,
   id: string,
   name: string,
   items: RoutineItemInput[],
-): Promise<void> {
+): Promise<boolean> {
   const sql = getSql();
+  const owned = (await sql`select 1 from routines
+                            where id = ${id} and user_id = ${userId}`) as unknown[];
+  if (owned.length === 0) return false;
+
   await sql.transaction([
     sql`update routines set name = ${name.trim()}, updated_at = now()
-        where id = ${id} and user_id = ${LOCAL_USER}`,
+        where id = ${id} and user_id = ${userId}`,
     sql`delete from routine_items where routine_id = ${id}`,
     ...itemInserts(id, items),
   ]);
+  return true;
 }
 
-export async function deleteRoutine(id: string): Promise<void> {
+export async function deleteRoutine(userId: string, id: string): Promise<void> {
   const sql = getSql();
-  await sql`delete from routines where id = ${id} and user_id = ${LOCAL_USER}`;
+  await sql`delete from routines where id = ${id} and user_id = ${userId}`;
 }
 
 /* ---------- coverage and freezing ---------- */

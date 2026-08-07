@@ -59,7 +59,7 @@ export function TrialRing({
 
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-xl font-semibold tabular-nums leading-none tracking-tight">
-          {totalDays === null ? dayNumber : `${dayNumber}/${totalDays}`}
+          {completed || totalDays === null ? dayNumber : `${dayNumber}/${totalDays}`}
         </span>
         <span className="mt-1 text-[11px] text-muted-foreground">Days</span>
       </div>

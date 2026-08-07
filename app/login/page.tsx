@@ -10,7 +10,7 @@ export const metadata = { title: 'Log in · Grapht' };
 export default async function LoginPage() {
   if (clerkConfigured) {
     const { userId } = await auth();
-    if (userId) redirect('/');
+    if (userId) redirect('/dashboard');
   }
 
   return (

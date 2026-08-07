@@ -30,9 +30,9 @@ const STATEMENTS = [
      create type target_provenance as enum (${PROVENANCE_ENUM});
    exception when duplicate_object then null; end $$`,
 
-  // `user_id` has no auth behind it yet — sign-up is designed, not built
-  // (docs/app-ui.md §2). It defaults to 'local' so routines are already scoped
-  // when accounts land, rather than needing a migration then.
+  // `user_id` is the Clerk user id. The 'local' default is what a build with no
+  // Clerk keys writes, so the keyless demo path stays writable; the first
+  // account to finish sign-up claims those rows (lib/profile-store.ts).
   `create table if not exists routines (
      id          uuid primary key default gen_random_uuid(),
      user_id     text not null default 'local',

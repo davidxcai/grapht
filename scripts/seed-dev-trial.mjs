@@ -2,6 +2,7 @@
  * Seed a *stored* trial for exercising daily capture. Free — Neon only.
  *
  *   node --env-file=.env.local scripts/seed-dev-trial.mjs
+ *   node --env-file=.env.local scripts/seed-dev-trial.mjs --user user_abc123
  *   node --env-file=.env.local scripts/seed-dev-trial.mjs --clean
  *
  * Costs no YouCam units and makes no Gemini call. Nothing here is analysed;
@@ -45,6 +46,33 @@ if (process.argv.includes('--clean')) {
   process.exit(0);
 }
 
+/**
+ * Who the seeded trial belongs to. A trial filed under the wrong owner is
+ * invisible in the app, which looks exactly like the seed having failed.
+ *
+ * `--user` wins. Otherwise the single account, if there is exactly one — the
+ * ordinary case on a dev database. With none, `'local'` reproduces what this
+ * script wrote before accounts existed, and the first account to finish sign-up
+ * will claim it.
+ */
+async function resolveOwner() {
+  const flag = process.argv.indexOf('--user');
+  if (flag !== -1 && process.argv[flag + 1]) return process.argv[flag + 1];
+
+  // No `profiles` table means migrate-profiles.mjs hasn't run, which is the
+  // same situation as no accounts.
+  const accounts = await sql`select user_id from profiles limit 2`.catch(() => []);
+  if (accounts.length === 1) return accounts[0].user_id;
+
+  if (accounts.length > 1) {
+    console.error('More than one account exists — pass --user <clerk user id>.');
+    process.exit(1);
+  }
+  return 'local';
+}
+
+const owner = await resolveOwner();
+
 // The reference trial's five captures — real measured scores, in order.
 const fixture = JSON.parse(
   readFileSync(resolve(process.cwd(), 'fixtures/trials.json'), 'utf8'),
@@ -66,9 +94,10 @@ const captures = OFFSETS.map((daysAgo, i) => ({
 await sql`delete from trials where name = ${NAME}`;
 
 const [trial] = await sql`
-  insert into trials (name, start_date, end_date, end_date_source)
+  insert into trials (name, user_id, start_date, end_date, end_date_source)
   values (
     ${NAME},
+    ${owner},
     current_date - ${OFFSETS[0]}::int,
     current_date + ${WINDOW_DAYS - OFFSETS[0] - 1}::int,
     'user-chosen'
@@ -89,6 +118,6 @@ for (const capture of captures) {
   );
 }
 
-console.log(`seeded "${NAME}" — ${captures.length} captures, none today`);
+console.log(`seeded "${NAME}" — ${captures.length} captures, none today, owner ${owner}`);
 console.log(`  http://localhost:3000/trials/${trial.id}`);
 console.log('  remove with: --clean');

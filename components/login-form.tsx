@@ -34,7 +34,7 @@ export function LoginForm() {
            * session on the server, and a client navigation would leave the
            * navbar showing the signed-out links until the next reload.
            */
-          window.location.href = decorateUrl('/');
+          window.location.href = decorateUrl('/dashboard');
         },
       });
       return;

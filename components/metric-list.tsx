@@ -7,11 +7,17 @@ import { cn } from '@/lib/utils';
 /**
  * Every metric, with its change since day one and a sparkline.
  *
- * The numbers are always visible. What the wobble check controls is the
- * *direction* — the arrow, the colour, and the word — never whether the user is
- * allowed to see their own measurement. Withholding the data until it clears
- * some bar would make the summary the only thing of value, and the daily log is
- * the product (CLAUDE.md).
+ * The numbers are always visible, and that includes the change itself: 62 → 71
+ * prints as +9, because a row that shows both endpoints and then calls their
+ * difference "no change" reads as a bug rather than as caution. "No change" is
+ * reserved for a delta that rounds to zero — the scores are whole numbers, so
+ * anything smaller than a point is below what the display can express anyway.
+ *
+ * Colour follows the printed number and nothing else: up is green, down is red,
+ * and grey belongs to the zero row alone. A +9 rendered in the same grey as a
+ * "no change" row reads as a rendering fault, not as caution. Whether a move
+ * clears this user's own scatter is a narration question, and the wobble check
+ * (`directionOf`) still owns it everywhere narration happens.
  */
 
 const TONE: Record<Direction, string> = {
@@ -20,11 +26,10 @@ const TONE: Record<Direction, string> = {
   flat: 'text-muted-foreground',
 };
 
-const ICON: Record<Direction, typeof ArrowUpRight> = {
-  improved: ArrowUpRight,
-  declined: ArrowDownRight,
-  flat: Minus,
-};
+function toneOf(rounded: number): Direction {
+  if (rounded === 0) return 'flat';
+  return rounded > 0 ? 'improved' : 'declined';
+}
 
 function Sparkline({ points }: { points: { day: number; value: number }[] }) {
   if (points.length < 2) return <div className="h-8 w-20" />;
@@ -54,8 +59,11 @@ function Sparkline({ points }: { points: { day: number; value: number }[] }) {
 }
 
 function MetricRow({ metric }: { metric: MetricChange }) {
-  const Icon = ICON[metric.direction];
-  const rounded = Math.round(metric.change);
+  // Round first, then read the sign off the rounded value, so the arrow can
+  // never point somewhere the printed number doesn't go.
+  const rounded = Math.round(metric.latest) - Math.round(metric.first);
+  const Icon = rounded === 0 ? Minus : rounded > 0 ? ArrowUpRight : ArrowDownRight;
+  const tone = TONE[toneOf(rounded)];
 
   return (
     <li className="flex items-center gap-4 py-3">
@@ -67,16 +75,14 @@ function MetricRow({ metric }: { metric: MetricChange }) {
         </p>
       </div>
 
-      <div className={cn('shrink-0', TONE[metric.direction])}>
+      <div className={cn('shrink-0', tone)}>
         <Sparkline points={metric.series} />
       </div>
 
-      <div className={cn('flex w-28 shrink-0 items-center justify-end gap-1.5', TONE[metric.direction])}>
+      <div className={cn('flex w-28 shrink-0 items-center justify-end gap-1.5', tone)}>
         <Icon className="size-4" aria-hidden />
         <span className="text-sm font-medium tabular-nums">
-          {metric.direction === 'flat'
-            ? 'no change'
-            : `${rounded > 0 ? '+' : '−'}${Math.abs(rounded)}`}
+          {rounded === 0 ? 'no change' : `${rounded > 0 ? '+' : '−'}${Math.abs(rounded)}`}
         </span>
       </div>
     </li>

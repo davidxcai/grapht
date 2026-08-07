@@ -214,11 +214,22 @@ thing it replaces.
 
 Defaults: **metrics-only, photos opt-in per trial.** Never the reverse.
 
+### Community — amended 2026-08-07, built
+
+Previously out of scope; promoted by `ideas.md` and built deliberately.
+Public browsing of ongoing and completed trials (`/community`), comments the
+owner can switch off, saves, a product index derived from published trials
+(`/products`), and fuzzy search over trials, products and people (`/search`).
+Views are the only count — no likes, because a dramatic before/after would
+out-score an honest "no measurable change" and sort the feed against the
+premise. Trials stay default-private, published per trial.
+
+Cost, stated: publishing currently shares the whole trial, photos included,
+rather than metrics-first with photos as a separate opt-in. The eye-bar face
+censoring from ideas.md is deferred with it.
+
 ### Out of scope for now
 
-- **Community feed.** The concept is real — there are large skincare communities
-  that would use this, and it works from day one because the app is useful
-  solo. Not being built in this cycle.
 - **Browser extension.** Surfacing quantitative trials on any retail product
   page is the right long-term bet, because it puts the data at the moment of
   purchase. It is a slide, not a build.

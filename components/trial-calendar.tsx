@@ -84,8 +84,8 @@ export function TrialCalendar({ startDate, loggedDays, endDate }: Props) {
 
   return (
     <div>
-      <p className="pb-2 text-xs text-muted-foreground">
-        {longDate(start)} – {endDate ? longDate(parseDay(endDate)) : 'ongoing'}
+      <p className="pb-2 text-lg text-muted-foreground">
+        {endDate ? `${longDate(start)} – ${longDate(parseDay(endDate))}` : `Since ${longDate(start)}`}
       </p>
 
       <div className="rounded-xl border p-4">
@@ -145,6 +145,7 @@ export function TrialCalendar({ startDate, loggedDays, endDate }: Props) {
             const key = iso(date);
             const inTrial = key >= startDate && key <= endIso;
             const hasCapture = logged.has(key);
+            const isFinalDay = endDate !== null && key === endDate;
 
             return (
               <div key={key} className="flex flex-col items-center gap-1 py-1">
@@ -161,7 +162,9 @@ export function TrialCalendar({ startDate, loggedDays, endDate }: Props) {
                 <span
                   className={cn(
                     'size-1.5 rounded-full',
-                    hasCapture ? 'bg-[var(--progress)]' : 'bg-transparent',
+                    isFinalDay && 'bg-[var(--complete)]',
+                    !isFinalDay && hasCapture && 'bg-[var(--progress)]',
+                    !isFinalDay && !hasCapture && 'bg-transparent',
                   )}
                   aria-hidden
                 />

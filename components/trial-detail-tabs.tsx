@@ -4,27 +4,30 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrialCalendar } from '@/components/trial-calendar';
 import { TrialPhotos } from '@/components/trial-photos';
 import { MetricList } from '@/components/metric-list';
+import { TrialDetails } from '@/components/trial-details';
+import { TrialSummary } from '@/components/trial-summary';
 import { EndTrialButton } from '@/components/end-trial-button';
-import { concernLabel } from '@/lib/concerns';
-import { interventionLabel, type Trial } from '@/lib/trials';
+import type { Trial } from '@/lib/trials';
 import type { LogRecord, MetricChange } from '@/lib/trial-detail';
 
 /**
- * The trial detail page: photos, progress, summary.
+ * The trial detail page: photos, details, progress, summary.
  *
  * Photos leads because the photo is what the user came to see and the thing they
- * can judge for themselves. Progress carries the measurements. Summary is empty
- * until the trial is ended, and says so rather than hiding.
+ * can judge for themselves. Details is how the trial was set up. Progress carries
+ * the measurements. Summary is empty until the trial is ended, and says so rather
+ * than hiding.
  */
 
 interface Props {
   trial: Trial;
   changes: MetricChange[];
   record: LogRecord;
-  baselineNames: string[];
+  /** False for the reference series, which has no row to edit. */
+  canEdit: boolean;
 }
 
-export function TrialDetailTabs({ trial, changes, record, baselineNames }: Props) {
+export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
   const isCompleted = trial.status === 'completed';
   const isOpenEnded = trial.window.endDate === null;
   const loggedDays = record.days.filter((d) => d.captures.length > 0).map((d) => d.date);
@@ -35,8 +38,9 @@ export function TrialDetailTabs({ trial, changes, record, baselineNames }: Props
 
   return (
     <Tabs defaultValue="photos" className="mt-6">
-      <TabsList>
+      <TabsList className="w-full sm:w-fit">
         <TabsTrigger value="photos">Photos</TabsTrigger>
+        <TabsTrigger value="details">Details</TabsTrigger>
         <TabsTrigger value="progress">Progress</TabsTrigger>
         <TabsTrigger value="summary">Summary</TabsTrigger>
       </TabsList>
@@ -53,9 +57,16 @@ export function TrialDetailTabs({ trial, changes, record, baselineNames }: Props
           startDate={trial.window.startDate}
           totalDays={record.totalDays}
           dayNumber={record.dayNumber}
-          canCapture={!isCompleted}
+          canCapture={!isCompleted && canEdit}
           loggedToday={record.loggedToday}
+          canEdit={canEdit}
+          applications={trial.applications ?? []}
         />
+      </TabsContent>
+
+      {/* --------------------------------------------------------- details */}
+      <TabsContent value="details" className="mt-5">
+        <TrialDetails trial={trial} canEdit={canEdit} />
       </TabsContent>
 
       {/* -------------------------------------------------------- progress */}
@@ -84,50 +95,17 @@ export function TrialDetailTabs({ trial, changes, record, baselineNames }: Props
           <>
             <MetricList
               metrics={tracked}
-              title="What you're tracking"
+              title="Tracked"
               caption="Change since day 1."
             />
             <MetricList
               metrics={untracked}
-              title="Everything else"
-              caption="Measured on every photo whether or not you're tracking it — this is where a side effect would show up."
+              title="Untracked"
             />
           </>
         )}
 
-        <section>
-          <h3 className="text-sm font-medium">Products</h3>
-          <ul className="mt-2 space-y-1">
-            {trial.routine.interventions.map((i) => (
-              <li key={i.name} className="text-sm">
-                {interventionLabel(i)}
-                {i.targets.length > 0 && (
-                  <span className="text-muted-foreground">
-                    {' '}
-                    · {i.targets.map(concernLabel).join(', ')}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          {baselineNames.length > 0 && (
-            <>
-              <p className="mt-4 text-xs text-muted-foreground">
-                Already in your routine, and not being tested:
-              </p>
-              <ul className="mt-1 space-y-1">
-                {baselineNames.map((name) => (
-                  <li key={name} className="text-sm text-muted-foreground">
-                    {name}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-
-        {!isCompleted && (
+        {!isCompleted && canEdit && (
           <div className="border-t pt-6">
             <EndTrialButton trialId={trial.id} daysLogged={record.daysLogged} />
           </div>
@@ -137,11 +115,7 @@ export function TrialDetailTabs({ trial, changes, record, baselineNames }: Props
       {/* --------------------------------------------------------- summary */}
       <TabsContent value="summary" className="mt-5">
         {isCompleted ? (
-          <div className="rounded-lg border border-dashed px-6 py-14 text-center">
-            <p className="text-sm text-muted-foreground">
-              Summaries aren&rsquo;t built yet — the numbers are all on the Progress tab.
-            </p>
-          </div>
+          <TrialSummary trial={trial} canEdit={canEdit} />
         ) : (
           <div className="rounded-lg border border-dashed px-6 py-14 text-center">
             <p className="text-sm text-muted-foreground">

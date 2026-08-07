@@ -33,7 +33,7 @@ export function SignupForm() {
     await signUp.finalize({
       navigate: ({ decorateUrl }) => {
         /** Full load — the root layout reads the session on the server. */
-        window.location.href = decorateUrl('/');
+        window.location.href = decorateUrl('/dashboard');
       },
     });
   }

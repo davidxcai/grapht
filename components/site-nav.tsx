@@ -10,22 +10,19 @@ import { cn } from '@/lib/utils';
 
 type NavLink = { href: string; label: string };
 
-/**
- * `/` is the dashboard today, which is why both sets point at it. The two sets
- * are mutually exclusive, so the duplicate href never renders twice — split them
- * when a real marketing home page exists.
- */
+/** `/` is the marketing front door; the daily surface lives at /dashboard. */
 const SIGNED_OUT: NavLink[] = [
   { href: '/', label: 'Home' },
-  { href: '/about', label: 'About' },
   { href: '/community', label: 'Community' },
+  { href: '/search', label: 'Search' },
   { href: '/login', label: 'Login' },
   { href: '/signup', label: 'Sign up' },
 ];
 
 const SIGNED_IN: NavLink[] = [
-  { href: '/', label: 'Dashboard' },
+  { href: '/dashboard', label: 'Dashboard' },
   { href: '/community', label: 'Community' },
+  { href: '/search', label: 'Search' },
   { href: '/profile', label: 'Profile' },
   { href: '/logout', label: 'Log out' },
 ];
@@ -82,7 +79,7 @@ export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
   return (
     <>
       <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-2xl items-center justify-between gap-4 px-5">
+        <div className="mx-auto flex h-14 w-full max-w-4xl items-center justify-between gap-4 px-5">
           <Link
             href="/"
             className="rounded-sm text-base font-semibold tracking-tight outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -139,7 +136,7 @@ export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
           open ? 'opacity-100' : 'pointer-events-none opacity-0',
         )}
       >
-        <nav className="mx-auto flex w-full max-w-2xl flex-col px-5 py-2">
+        <nav className="mx-auto flex w-full max-w-4xl flex-col px-5 py-2">
           {links.map((link, i) => (
             <Link
               key={link.href}

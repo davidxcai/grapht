@@ -86,20 +86,26 @@ npm run build
 Next.js 16 (App Router) + Tailwind v4 + shadcn/ui. It reads
 `fixtures/trials.json` and needs no key, no network, and no photos.
 
-**Anything you create yourself** — saved routines and saved trials — needs a
-database, and capture photos need a blob store. Both are Vercel-provisioned:
+**Anything you create yourself** — your account, saved routines and saved trials
+— needs a database, and capture photos need a blob store. Accounts are Clerk,
+also from the Marketplace. All three are Vercel-provisioned:
 
 ```bash
 vercel link
 vercel integration add neon --plan free_v3
+vercel integration add clerk                             # accounts
 vercel blob create-store <name> --access private --yes   # face photos: private
 vercel env pull .env.local --yes
 node --env-file=.env.local scripts/migrate-routines.mjs   # idempotent
 node --env-file=.env.local scripts/migrate-trials.mjs     # idempotent
+node --env-file=.env.local scripts/migrate-profiles.mjs   # idempotent
 ```
 
 Skip this and the demo still works: the 20-photo reference series replays from
-the committed fixture, and the routines tab reports itself unavailable.
+the committed fixture, the routines tab reports itself unavailable, and every
+screen reads signed out. A build with no Clerk keys writes as one implicit local
+owner, exactly as it did before accounts existed, so the demo path stays
+writable rather than read-only.
 Creating a trial needs both the database and `YOUCAM_API_KEY`, since its first
 capture is analysed on save. `GEMINI_API_KEY` is likewise
 optional — without it, you tick a product's concerns yourself instead of asking
@@ -264,12 +270,15 @@ Three things are load-bearing and easy to get wrong:
 | `lib/trials.ts` | Trial types, fixture loader, day/streak derivation |
 | `lib/trial-store.ts` | Saved trials in Neon, and the fixture ∪ database union |
 | `lib/routines.ts` | Saved routines — queries, coverage, and the trial snapshot |
+| `lib/auth.ts` | Who is asking. Clerk session → the owner every query is scoped to |
+| `lib/profile-store.ts` | Username, skin type, birthday — and the one-time claim of pre-account rows |
 | `lib/capture.ts` | A live capture: 14 concerns in HD, then private Vercel Blob |
 | `lib/concerns.ts` | Display labels for the 14 concerns. Labels only, never keys |
 | `fixtures/trials.json` | Seeded trials. Committed, and carries no pixels |
 | `scripts/seed-trials.mjs` | Rebuilds that fixture from `data/manifest.json` |
 | `scripts/migrate-routines.mjs` | Creates the routine tables. Idempotent |
 | `scripts/migrate-trials.mjs` | Creates the trial tables. Idempotent |
+| `scripts/migrate-profiles.mjs` | Creates the profile table. Idempotent |
 
 **`src/` is the pipeline library, not the Next.js source directory.** The app
 deliberately lives in `app/` at the repo root so Next never claims `src/`. The

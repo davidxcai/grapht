@@ -10,7 +10,7 @@ export const metadata = { title: 'Sign up · Grapht' };
 export default async function SignupPage() {
   if (clerkConfigured) {
     const { userId } = await auth();
-    if (userId) redirect('/');
+    if (userId) redirect('/dashboard');
   }
 
   return (

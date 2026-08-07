@@ -6,11 +6,13 @@ code in this repository.
 ## Repository state
 
 The data pipeline and YouCam API integration work. Attribution and product
-picking are built and tested. In the web app the dashboard, saved routines,
-trial creation, the trial detail page, and daily capture are built — trial
+picking are built and tested. In the web app the dashboard (`/dashboard`),
+saved routines, trial creation, the trial detail page, daily capture, accounts,
+the Gemini trial summary, and the community surfaces (marketing home at `/`,
+`/community`, `/products`, `/search`, comments, saves, views) are built — trial
 creation and daily capture both analyse a live capture, so they are the only
-screens that spend units. Summary generation and the capture quality gate are
-not built.
+screens that spend units; extra per-day photos upload straight to Blob and cost
+nothing. The capture quality gate is not built.
 
 The fixture now carries **scores as well as timestamps**, so the detail page
 renders with no `data/` directory. Seven of the fourteen concerns per capture are
@@ -27,6 +29,7 @@ node scripts/seed-trials.mjs             # rebuild fixtures/trials.json, free
 vercel env pull .env.local --yes                          # Neon credentials
 node --env-file=.env.local scripts/migrate-routines.mjs   # routine tables, idempotent
 node --env-file=.env.local scripts/migrate-trials.mjs     # trial tables, idempotent
+node --env-file=.env.local scripts/migrate-profiles.mjs   # profile table, idempotent
 node --env-file=.env.local scripts/seed-dev-trial.mjs     # stored trial, backdated, free
 node --env-file=.env.local scripts/seed-dev-trial.mjs --clean
 
@@ -65,6 +68,23 @@ routines and saved trials live in Neon Postgres (`lib/routines.ts`,
 `lib/trial-store.ts`, `DATABASE_URL` in `.env.local`, tables from
 `scripts/migrate-routines.mjs` and `scripts/migrate-trials.mjs`). Capture photos
 live in a private Vercel Blob store (`BLOB_READ_WRITE_TOKEN`).
+
+**Accounts are Clerk; ownership is enforced in the data layer.** Credentials,
+Google and the avatar are Clerk's (`lib/auth.ts`); the username, skin type and
+birthday are ours (`lib/profile-store.ts`, `scripts/migrate-profiles.mjs`), and
+that row existing is how the app knows sign-up finished. Every function in
+`lib/routines.ts`, `lib/trial-store.ts` and `lib/profile-store.ts` **takes the
+owner as an argument** rather than reading the session — an unscoped query
+should be a type error, not a leak. `proxy.ts` only redirects; it is not the
+boundary, and neither is the page that rendered a form, which is why each server
+action resolves the caller itself. `currentUserId()` returns `'local'` when
+Clerk is unconfigured, so a keyless build behaves exactly as it did before
+accounts existed and the demo path stays writable; the first account to finish
+sign-up claims those rows, once, and never again.
+
+A signed-out visitor reads the fixture and writes nothing. Keep it that way:
+`/` and `/trials/[id]` are public because the reference series is a published
+sample, and a trial that isn't yours 404s rather than admitting it exists.
 
 `loadTrials()` unions the stored trials with the fixture and **catches the
 database failure rather than throwing** — the same deliberate degradation

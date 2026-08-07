@@ -4,6 +4,7 @@ import { Geist } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { SiteNav } from "@/components/site-nav";
+import { SiteFooter } from "@/components/site-footer";
 import { clerkConfigured, getSession } from "@/lib/auth";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -18,9 +19,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const document = (
     <html lang="en" className={cn("dark", "font-sans", geist.variable)}>
-      <body className="antialiased">
+      <body className="flex min-h-screen flex-col antialiased">
         <SiteNav signedIn={session !== null} />
-        {children}
+        <div className="flex-1">{children}</div>
+        <SiteFooter />
       </body>
     </html>
   );

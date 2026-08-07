@@ -11,14 +11,15 @@ this is wrong.
 
 | § | Surface | Status |
 |---|---|---|
-| 2 | Sign-up | **resolved** |
+| 2 | Sign-up | **resolved and built** |
 | 3 | Dashboard | **resolved, built** |
 | 3.1 | Routines | **resolved, built** |
 | 4 | New trial | **resolved, built** |
 | 5 | In-trial / daily capture | **resolved and built**; quality gate not built |
-| 6 | Trial end and summary | ending built; the summary itself not built |
-| 7 | Share and privacy | not discussed |
-| 8 | Community | not discussed, **conflicts with PRODUCT.md §7** |
+| 6 | Trial end and summary | **built**, including the Gemini summary |
+| 7 | Share and privacy | per-trial visibility built; face censoring deferred |
+| 8 | Community | **built 2026-08-07**; PRODUCT.md §7 amended to match |
+| 9 | Marketing home and search | **built 2026-08-07** |
 
 ---
 
@@ -34,13 +35,25 @@ camera.
 
 ## 2. Sign-up
 
-**Status: resolved, 2026-08-05.**
+**Status: resolved 2026-08-05, built 2026-08-06.** `app/login`, `app/signup`,
+`app/welcome`, `app/profile`, `components/profile-form.tsx`, `lib/auth.ts`,
+`lib/profile-store.ts`.
 
 **username** (unique), **email**, **password**, **skin type**, **birthday**, and
 an **optional profile picture**.
 
 - Auth is email + password — no email delivery in the loop, which matters when
   demoing.
+- Split in two: Clerk takes the credentials, then `/welcome` collects the rest.
+  Google arrives with no password and no chance to have filled a form, so one
+  post-account step is the only version of this that isn't written twice. The
+  profile row existing *is* the "finished signing up" flag.
+- Clerk owns email, password, Google and the picture; Neon owns the rest. The
+  picture is Clerk's `setProfileImage()`, so a Google account brings one with it.
+- Ownership is enforced in the data layer, where every query takes the owner as
+  an argument — the proxy only redirects. A build with no Clerk keys writes as
+  one implicit local owner, which is what keeps the keyless demo writable; the
+  first real account claims those rows.
 - Skin type is oily / dry / combination / normal / sensitive. Fitzpatrick is
   more clinically precise but most users don't know their number, and it answers
   a UV question this product isn't asking.
@@ -75,7 +88,8 @@ One card, used in both tabs:
 
 - radial progress ring, `4 / 10 Days` at its centre — or plain `4 Days` on an
   open-ended trial, where the missing denominator *is* the signal
-- the user's own name for the trial
+- the user's own name for the trial, with an AM/PM badge beside it — which
+  routine slot (`timeOfDay`) the trial sits on
 - what it tracks
 - a small icon for today's log state — logged / not yet
 - a `Completed` badge, in the completed tab
@@ -93,8 +107,12 @@ Empty states are one line each: *no trials in progress*, *no trials completed
 yet*.
 
 "What it tracks" is the **interventions**, signed `+` / `−` so removals read as
-removals — not the target concerns, which are vocabulary the user didn't choose
-and can't act on from here. Targets live on the detail page.
+removals, plus the concerns their `targets[]` union to, as flat neutral chips
+(`ConcernChips`, the same component `RoutineCard` uses for coverage). This is
+the trial's own attributable set, not the baseline's — never render
+`baselineTargets()` here, since a confounded metric and a tracked one look
+identical as chips otherwise. No colour by concern, per the accent-colour rule
+below.
 
 One accent colour, `--progress`, carries the ring, the calendar's capture dots,
 and the `Completed` badge — everything about *where a trial is*, and nothing
@@ -192,12 +210,13 @@ than one trial references it.
 
 One screen, saved in one action, landing on the trial detail page:
 
-name → tracked product(s) → the routine it sits on → metrics to track →
-duration and frequency → first photo.
+name → time of day → tracked product(s) → the routine it sits on → metrics to
+track → duration and frequency → first photo.
 
 | Step | Model |
 |---|---|
 | name | `name` — free text, pre-filled from the first tracked product |
+| time of day | `timeOfDay` — AM or PM, defaults to AM; which routine slot this trial sits on |
 | tracked products | `interventions[]`, always `direction: 'add'` |
 | the routine it sits on | `routine.baseline[]` — **one** saved routine (§3.1), frozen by `snapshotRoutine()` |
 | metrics to track | per-product `targets[]`, ≤3 pre-ticked, frozen at creation |
@@ -223,7 +242,7 @@ Carried in from the model, non-negotiable:
 
 **Pre-filled at 30 days.** A blank field asks the user to guess at something
 they have no basis for; 30 days is a defensible default and reads as sufficient
-because it usually is. Also offered: other fixed lengths, and open-ended. If the
+because it usually is. Also offered: 14 and 60 days, and a custom length. If the
 classifier returned a `durationClaimDays` from the label, that length is offered
 too and sets `endDateSource: 'product-claim'`.
 
@@ -260,7 +279,9 @@ it. A removal trial therefore needs a saved routine, which is the thing it is a
 removal *from*.
 
 Morning and night are separate logs; naming both here would attach a routine to
-a trial that isn't testing it.
+a trial that isn't testing it. The AM/PM choice is the field that keeps them
+separate — it renders as a badge beside the trial name, on the card and on the
+detail page, and never changes after creation.
 
 The cost, stated because it is real: the baseline is never attributed, so naming
 both routines would not dirty anything — it would *widen the confounded set*,
@@ -319,12 +340,14 @@ conservative day-to-day figure, which a burst can't measure anyway.
 **Status: resolved and built, 2026-08-06.** `app/trials/[id]/page.tsx`,
 `components/trial-detail-tabs.tsx`, `components/trial-photos.tsx`,
 `components/trial-calendar.tsx`, `components/metric-list.tsx`,
+`components/trial-gauge.tsx`, `components/trial-details.tsx`,
+`components/trial-products.tsx`,
 `components/end-trial-button.tsx`, `lib/trial-detail.ts`. Daily capture lives in
 `components/trial-photos.tsx` and `components/camera-capture.tsx`, with
 `logCapture()` in `app/trials/actions.ts`. The quality gate
 (`capture-quality.md`) is still unbuilt.
 
-Three tabs: **Photos**, **Progress**, **Summary**.
+Four tabs: **Photos**, **Details**, **Progress**, **Summary**.
 
 **Photos leads**, because the photograph is the thing the user came to see and
 the only part they can judge unaided. Opens on the most recent capture.
@@ -395,7 +418,17 @@ through the app analyses a photo and that trial is then logged for the day. It
 sets `captured_at` directly, which only a dev script may ever do.
 
 **Progress** carries the calendar, all fourteen metrics split into what you're
-tracking and everything else, the products, and **End trial**.
+tracking and everything else, and **End trial**.
+
+**Details** carries the tracked products, the baseline routine under its frozen
+name, and the setup rows. The products sat above the tabs first and were wrong
+there: fixed to the page, they pushed the photo down on every tab to restate
+something only the setup tab is asking about.
+
+The routine reads as a routine card — frozen name, product count, and what it
+**covers** — so it is the same object here as on the dashboard. The section is
+present even when the trial has no routine, saying so: an absent panel reads as
+a bug, where "nothing" is a fact about the trial.
 
 ### The headline number is today minus day one
 
@@ -450,8 +483,13 @@ in `closeTrial()` is what enforces it: a second call matches no rows.
 
 ### The day counter
 
-`Day 4 of 30` when a duration was set,
-plain `Day 4` when it wasn't.
+A half ring above the trial name (`components/trial-gauge.tsx`), reading `4/30`
+over `days` when a duration was set and plain `4` when it wasn't — the missing
+denominator is the whole signal on an open-ended trial, and the arc stays bare
+track rather than filling toward an invented horizon.
+
+It fills on **elapsed** days, not logged ones, for the same reason the
+dashboard's ring does: an arc that stalls on a missed day is a supervisor.
 
 **No backdating.** Captures are timestamped server-side at upload and can't be
 assigned to a previous day. The compliance record is a published artifact, and
@@ -473,19 +511,39 @@ data.
 Open: whether a photo taken 11:58pm and uploaded 12:03am counts as yesterday (a
 local day boundary with a grace window isn't the same as backdating).
 
+### Added 2026-08-07, from ideas.md
+
+- **"Applied products" check-in** — a button under the trial title, one press,
+  server-stamped like `captured_at` and for the same reason. Each photo shows
+  hours since the last press; with no press in the prior 24h the gap is
+  projected from the last press's clock time and labelled "going by your usual
+  time" rather than passing as measured. The pressed state holds 12 hours.
+- **Dosage** — free-text amount per use on each intervention, frozen with it.
+  Display and summary framing only; never the maths.
+- **Photo notes** — per-capture, editable and removable, shown on the photo
+  above the day. The one editable part of a capture: it is the user's words,
+  not a measurement.
+- **Extra photos** — additional angles attached to a day's capture, stacked
+  under the roll. Never analysed, so they cost no units and carry no scores.
+
 ---
 
 ## 6. Trial end and summary
 
-**Status: ending is built; the summary is not.** The Summary tab exists and is
-always visible — hiding it would shift the layout when a trial closes — and
-states why it is empty:
+**Status: built 2026-08-07** (`lib/summary.ts`, `components/trial-summary.tsx`).
+On a completed trial the owner asks for the summary; Gemini writes it from a
+gated prompt — a metric inside its wobble reaches the model as "no measurable
+change" with no delta or direction to narrate — and the user's own review sits
+beneath it, editable. Regeneration is allowed: the window is closed, so the
+numbers it describes cannot drift. On a running trial the tab is always visible
+— hiding it would shift the layout when a trial closes — and states why it is
+empty:
 
 - **running, fixed duration** — `3 more days until complete.`
 - **running, past its end date** — end it whenever you're ready
 - **running, open-ended** — `No summary until you stop this trial. It runs as
   long as you want it to.`
-- **ended** — the summary belongs here; not built yet
+- **ended** — the summary, and the review beneath it
 
 An open-ended trial is not excluded from having a summary. It has no *scheduled*
 completion, so there is nothing to count down to, but stopping one produces
@@ -503,39 +561,50 @@ The gate is upstream of the LLM, not inside it — a metric that didn't clear it
 detection bar reaches the model as *unchanged*, with no delta or direction to
 narrate.
 
-Open: the photo/metric browser; whether the narrative is regenerable, and
-whether regenerating until you like the answer is a problem.
+Regenerable, resolved: the inputs are frozen when the trial closes, so
+regenerating can only rephrase, never re-litigate. Open: the photo/metric
+browser.
 
 ---
 
 ## 7. Share and privacy
 
-**Status: not discussed.**
+**Status: per-trial visibility built.** Default private, publishable and
+unpublishable at any time, running or finished. A published trial carries the
+whole record — routine, duration, days logged, and currently the photos too;
+the metrics-first, photos-opt-in split and the eye-bar face censoring
+(ideas.md) are deferred. Profiles stay private; only the @username of a
+publisher is shown.
 
-Per-trial at summary time: keep private, or publish. Default private, photos a
-separate opt-in from metrics, never the reverse. A published trial carries the
-whole routine, duration, compliance, and error bars — not a product name and a
-star rating.
-
-Open: whether publishing is reversible; what happens on account deletion.
+Open: photos as a separate opt-in; face censoring; what happens on account
+deletion.
 
 ---
 
 ## 8. Community
 
-**Status: not discussed. Conflicts with the design of record** — `PRODUCT.md` §7
-lists the community feed as out of scope for this cycle. Building it means
-amending that doc on purpose, not diverging from it quietly.
+**Status: built 2026-08-07**, with `PRODUCT.md` §7 amended on purpose.
+`app/community`, `app/products`, `lib/community.ts`,
+`components/community-trial-card.tsx`, `components/trial-comments.tsx`.
 
-Browse others' trials by product, search products to try next, view photos and
-compliance, heart/like.
+Public trials browse in two tabs (ongoing / completed), filtered by product
+text, the owner's skin type, and tracked concern. A published trial page shows
+its owner's @username and view count, takes comments (the owner's switch), and
+can be saved — saves land on a dashboard tab. The product index is derived
+entirely from published trials: a product exists because someone trialled it,
+and its page is the trials themselves.
 
-Open, and load-bearing:
+Two of the old open items are resolved by construction: **no likes** — views
+are the only count, so a feed can't be sorted against the premise — and
+**aggregation stops at listing**; nothing averages outcomes across faces.
+Moderation stays open, and matters, given the content is faces.
 
-- **Likes are a popularity signal on a measurement artifact.** A dramatic
-  before/after out-hearts a well-run trial that honestly returned "no measurable
-  change" — and the second is the more valuable document. Sorting by hearts
-  optimises the feed against the premise of the app.
-- Aggregating across trials of the same product is the obvious next step and the
-  easiest place to fabricate confidence.
-- Moderation, given the content is faces.
+## 9. Marketing home and search
+
+**Status: built 2026-08-07.** `/` is the front door — hero, the sample trial's
+real acne series as the graphic (retrospective, like everything else), how it
+works, the problem statement, recent completed trials, community pitch. The
+dashboard moved to `/dashboard` (sign-in required; the keyless build's implicit
+local owner passes). `/search` is one box over the public corpus — trials,
+products, people, tabbed with counts, fuzzy (`lib/fuzzy.ts`, in-memory; an
+index when the corpus outgrows it).

@@ -49,7 +49,7 @@ export function GoogleButton({ mode }: { mode: 'signIn' | 'signUp' }) {
      *  while sign-up takes a plain string. */
     const params = {
       strategy: 'oauth_google',
-      redirectUrl: '/',
+      redirectUrl: '/dashboard',
       redirectCallbackUrl: '/sso-callback',
     } as const;
 

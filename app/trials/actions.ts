@@ -1,17 +1,31 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
+
 import { revalidatePath } from 'next/cache';
+import { del, put } from '@vercel/blob';
 
 import { analyzeAndStore, checkImage, RESOLUTION } from '@/lib/capture';
 import {
   addCapture,
+  addCapturePhoto,
+  captureOwnedBy,
   closeTrial,
   createTrial,
+  deleteCapturePhoto,
   getTrialHeader,
   isFixtureTrial,
+  loadTrials,
+  logApplication,
+  setCaptureNote,
+  setSummary,
+  setUserReview,
+  updateTrialSettings,
   type InterventionInput,
 } from '@/lib/trial-store';
 import { getRoutine, snapshotRoutine } from '@/lib/routines';
+import { writeSummary } from '@/lib/summary';
+import { currentUserId } from '@/lib/auth';
 import type { BaselineEntry, Frequency, Trial } from '@/lib/trials';
 import type { ActionResult } from '@/app/routines/actions';
 
@@ -21,6 +35,8 @@ export interface NewTrialInput {
   routineId: string | null;
   endDate: string | null;
   endDateSource: Trial['window']['endDateSource'];
+  timeOfDay: Trial['timeOfDay'];
+  visibility: Trial['visibility'];
   frequency: Frequency;
   device: string | null;
 }
@@ -38,16 +54,22 @@ function slugify(name: string): string {
 /**
  * Create a trial from the form, with its baseline capture.
  *
- * Order matters and is deliberate: validate, freeze the baseline, analyse the
- * photo, then write. The analysis is the only step that spends YouCam units and
- * the only one that can fail for a reason the user can act on, so nothing is
- * persisted until it succeeds — and because failed tasks are free, a rejected
- * photo costs nothing but a retry.
+ * Order matters and is deliberate: check the caller, validate, freeze the
+ * baseline, analyse the photo, then write. The analysis is the only step that
+ * spends YouCam units and the only one that can fail for a reason the user can
+ * act on, so nothing is persisted until it succeeds — and because failed tasks
+ * are free, a rejected photo costs nothing but a retry.
+ *
+ * The sign-in test is first for the same reason everything cheap is: a trial
+ * with no owner to file it under must be refused while refusing is still free.
  */
 export async function startTrial(
   input: NewTrialInput,
   photo: File,
 ): Promise<ActionResult<{ id: string }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to start a trial.' };
+
   const name = input.name?.trim();
   if (!name) return { ok: false, error: 'Give the trial a name.' };
 
@@ -75,7 +97,7 @@ export async function startTrial(
   let baseline: BaselineEntry[] = [];
   if (input.routineId) {
     try {
-      const routine = await getRoutine(input.routineId);
+      const routine = await getRoutine(userId, input.routineId);
       if (!routine) return { ok: false, error: 'That routine no longer exists.' };
       baseline = [snapshotRoutine(routine)];
     } catch (error) {
@@ -91,11 +113,15 @@ export async function startTrial(
   }
 
   try {
-    const id = await createTrial({
+    const id = await createTrial(userId, {
       name,
       startDate: today(),
       endDate: input.endDate,
       endDateSource: input.endDate ? (input.endDateSource ?? 'user-chosen') : null,
+      timeOfDay: input.timeOfDay,
+      // Anything other than an explicit 'public' is private. Publishing is the
+      // one choice here that can't be taken back from whoever already read it.
+      visibility: input.visibility === 'public' ? 'public' : 'private',
       frequency: input.frequency,
       baseline,
       interventions,
@@ -111,6 +137,7 @@ export async function startTrial(
     });
 
     revalidatePath('/');
+    revalidatePath('/dashboard');
     return { ok: true, data: { id } };
   } catch (error) {
     // The units are already spent at this point, so say so rather than letting
@@ -127,15 +154,20 @@ export async function startTrial(
  *
  * Same order as `startTrial()`, for the same reason: everything that can be
  * refused for free is refused before the analysis, because the analysis is the
- * only step that spends YouCam units. A fixture id, an ended trial and an
- * unusable file are all caught here, at no cost. Failed tasks are free, so even
- * a photo the API rejects costs nothing but a retake.
+ * only step that spends YouCam units. A signed-out caller, a fixture id, a trial
+ * belonging to somebody else, an ended trial and an unusable file are all caught
+ * here, at no cost. Failed tasks are free, so even a photo the API rejects costs
+ * nothing but a retake.
  */
 export async function logCapture(
   trialId: string,
   photo: File,
   device: string | null,
+  note?: string | null,
 ): Promise<ActionResult<{ id: string }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to add a photo.' };
+
   if (isFixtureTrial(trialId)) {
     return { ok: false, error: 'This is the built-in sample trial, so its photos are fixed.' };
   }
@@ -146,7 +178,7 @@ export async function logCapture(
 
   let header;
   try {
-    header = await getTrialHeader(trialId);
+    header = await getTrialHeader(userId, trialId);
   } catch (error) {
     return { ok: false, error: `Could not read that trial — ${(error as Error).message}` };
   }
@@ -163,7 +195,7 @@ export async function logCapture(
   }
 
   try {
-    const id = await addCapture(trialId, {
+    const id = await addCapture(userId, trialId, {
       device,
       resolution: RESOLUTION,
       blobUrl: capture.blobUrl,
@@ -172,6 +204,13 @@ export async function logCapture(
       zones: capture.zones,
       skinAge: capture.skinAge,
     });
+
+    // The note rides along when one was written at upload. Its failure is not
+    // the capture's failure — the units are spent and the row is in.
+    const trimmedNote = note?.trim();
+    if (id && trimmedNote) {
+      await setCaptureNote(userId, trialId, id, trimmedNote).catch(() => {});
+    }
 
     // The write is guarded on `status = 'active'`, so no row means the trial was
     // ended between the check above and here. The units are gone either way and
@@ -184,6 +223,7 @@ export async function logCapture(
     }
 
     revalidatePath('/');
+    revalidatePath('/dashboard');
     revalidatePath(`/trials/${trialId}`);
     return { ok: true, data: { id } };
   } catch (error) {
@@ -211,8 +251,11 @@ export async function logCapture(
  * silently doing nothing.
  */
 export async function endTrial(id: string): Promise<ActionResult<{ id: string }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to end a trial.' };
+
   try {
-    const updated = await closeTrial(id);
+    const updated = await closeTrial(userId, id);
     if (!updated) {
       return {
         ok: false,
@@ -220,10 +263,300 @@ export async function endTrial(id: string): Promise<ActionResult<{ id: string }>
       };
     }
     revalidatePath('/');
+    revalidatePath('/dashboard');
     revalidatePath(`/trials/${id}`);
     return { ok: true, data: { id } };
   } catch (error) {
     return { ok: false, error: `Could not end this trial — ${(error as Error).message}` };
+  }
+}
+
+export interface TrialSettingsUpdate {
+  name: string;
+  endDate: string | null;
+  endDateSource: Trial['window']['endDateSource'];
+  timeOfDay: Trial['timeOfDay'];
+  visibility: Trial['visibility'];
+  frequency: Frequency;
+  commentsEnabled: boolean;
+}
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * A server action is a public endpoint, so the `Frequency` union is re-checked
+ * here rather than trusted from the form. Null is "not a schedule this app
+ * knows" and the caller refuses the whole save.
+ */
+function parseFrequency(value: Frequency): Frequency | null {
+  switch (value?.kind) {
+    case 'daily':
+    case 'none':
+      return { kind: value.kind };
+    case 'every-n-days': {
+      const n = Math.round(Number(value.n));
+      return Number.isFinite(n) && n >= 2 ? { kind: 'every-n-days', n } : null;
+    }
+    case 'weekdays': {
+      const days = [...new Set((value.days ?? []).map(Number))].filter(
+        (d) => Number.isInteger(d) && d >= 0 && d <= 6,
+      );
+      return { kind: 'weekdays', days };
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Edit a trial's settings — its name, how long it runs for, how often the user
+ * means to log, morning or night, and who can see it.
+ *
+ * What isn't here is the point: the tracked products and their `targets[]` never
+ * appear, because they freeze at creation. Moving them afterwards would rewrite
+ * the attribution of photos already taken without a single new measurement
+ * behind it (CLAUDE.md rule 9). The start date is fixed for the same reason the
+ * captures are — the window has to match what was actually logged.
+ *
+ * On an ended trial the store keeps everything but the name and visibility, so
+ * the settings a finished window no longer has any use for can't be moved.
+ */
+export async function saveTrialSettings(
+  id: string,
+  input: TrialSettingsUpdate,
+): Promise<ActionResult<{ id: string }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to edit a trial.' };
+
+  if (isFixtureTrial(id)) {
+    return { ok: false, error: 'This is the built-in sample trial, so its settings are fixed.' };
+  }
+
+  const name = input.name?.trim();
+  if (!name) return { ok: false, error: 'Give the trial a name.' };
+
+  const frequency = parseFrequency(input.frequency);
+  if (!frequency) return { ok: false, error: "That's not a logging schedule this app knows." };
+
+  const endDate = input.endDate?.trim() || null;
+  if (endDate && !DAY.test(endDate)) return { ok: false, error: 'That end date is not a real date.' };
+
+  let header;
+  try {
+    header = await getTrialHeader(userId, id);
+  } catch (error) {
+    return { ok: false, error: `Could not read that trial — ${(error as Error).message}` };
+  }
+  if (!header) return { ok: false, error: 'That trial no longer exists.' };
+  if (endDate && endDate < header.startDate) {
+    return { ok: false, error: 'The end date cannot be before the trial started.' };
+  }
+
+  try {
+    const saved = await updateTrialSettings(userId, id, {
+      name,
+      endDate,
+      endDateSource: endDate ? (input.endDateSource ?? 'user-chosen') : null,
+      timeOfDay: input.timeOfDay === 'pm' ? 'pm' : 'am',
+      // Same rule as creation: anything other than an explicit 'public' is
+      // private, so a trial is never published by omission.
+      visibility: input.visibility === 'public' ? 'public' : 'private',
+      frequency,
+      commentsEnabled: input.commentsEnabled !== false,
+    });
+    if (!saved) return { ok: false, error: 'That trial no longer exists.' };
+
+    revalidatePath('/');
+    revalidatePath('/dashboard');
+    revalidatePath(`/trials/${id}`);
+    return { ok: true, data: { id } };
+  } catch (error) {
+    return { ok: false, error: `Could not save your changes — ${(error as Error).message}` };
+  }
+}
+
+/**
+ * The "applied products" check-in — one press, stamped server-side. The photo
+ * taken afterwards reports the hours in between (`timeSinceApplied`).
+ */
+export async function applyProducts(trialId: string): Promise<ActionResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to check in.' };
+
+  if (isFixtureTrial(trialId)) {
+    return { ok: false, error: 'This is the built-in sample trial.' };
+  }
+
+  try {
+    const logged = await logApplication(userId, trialId);
+    if (!logged) return { ok: false, error: 'That trial is not running.' };
+    revalidatePath(`/trials/${trialId}`);
+    return { ok: true, data: null };
+  } catch (error) {
+    return { ok: false, error: `Could not check in — ${(error as Error).message}` };
+  }
+}
+
+const MAX_NOTE = 500;
+
+/** Add, edit, or (with an empty string) remove the note on one photo. */
+export async function saveCaptureNote(
+  trialId: string,
+  captureId: string,
+  note: string,
+): Promise<ActionResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to edit a note.' };
+
+  if (isFixtureTrial(trialId)) {
+    return { ok: false, error: 'This is the built-in sample trial, so its photos are fixed.' };
+  }
+
+  const trimmed = note.trim().slice(0, MAX_NOTE) || null;
+  try {
+    const saved = await setCaptureNote(userId, trialId, captureId, trimmed);
+    if (!saved) return { ok: false, error: 'That photo no longer exists.' };
+    revalidatePath(`/trials/${trialId}`);
+    return { ok: true, data: null };
+  } catch (error) {
+    return { ok: false, error: `Could not save the note — ${(error as Error).message}` };
+  }
+}
+
+const MAX_EXTRA_PHOTOS = 8;
+
+/**
+ * Attach extra angles to one day's capture. Never analysed — these are
+ * qualitative context, cost no YouCam units, and skip straight to Blob once
+ * ownership is confirmed. The ownership read comes first so a stranger's id
+ * refuses before anything is uploaded.
+ */
+export async function addCapturePhotos(
+  trialId: string,
+  captureId: string,
+  form: FormData,
+): Promise<ActionResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to add photos.' };
+
+  if (isFixtureTrial(trialId)) {
+    return { ok: false, error: 'This is the built-in sample trial, so its photos are fixed.' };
+  }
+
+  const files = form.getAll('photos').filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) return { ok: false, error: 'Add a photo first.' };
+  if (files.length > MAX_EXTRA_PHOTOS) {
+    return { ok: false, error: `That's a lot of angles — keep it to ${MAX_EXTRA_PHOTOS} at a time.` };
+  }
+  for (const file of files) {
+    const imageError = checkImage(file);
+    if (imageError) return { ok: false, error: imageError };
+  }
+
+  try {
+    const owned = await captureOwnedBy(userId, trialId, captureId);
+    if (!owned) return { ok: false, error: 'That photo no longer exists.' };
+
+    for (const file of files) {
+      const extension = file.type === 'image/png' ? 'png' : 'jpg';
+      const blob = await put(
+        `captures/extra/${captureId}/${randomUUID()}.${extension}`,
+        Buffer.from(await file.arrayBuffer()),
+        { access: 'private', contentType: file.type },
+      );
+      const id = await addCapturePhoto(userId, captureId, {
+        blobUrl: blob.url,
+        blobPathname: blob.pathname,
+      });
+      // The capture vanished mid-upload; don't leave the blob orphaned.
+      if (!id) await del(blob.pathname).catch(() => {});
+    }
+
+    revalidatePath(`/trials/${trialId}`);
+    return { ok: true, data: null };
+  } catch (error) {
+    return { ok: false, error: `Could not add the photos — ${(error as Error).message}` };
+  }
+}
+
+export async function removeCapturePhoto(
+  trialId: string,
+  photoId: string,
+): Promise<ActionResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in first.' };
+
+  try {
+    const pathname = await deleteCapturePhoto(userId, photoId);
+    if (!pathname) return { ok: false, error: 'That photo no longer exists.' };
+    await del(pathname).catch(() => {});
+    revalidatePath(`/trials/${trialId}`);
+    return { ok: true, data: null };
+  } catch (error) {
+    return { ok: false, error: `Could not remove the photo — ${(error as Error).message}` };
+  }
+}
+
+/**
+ * Write the Gemini summary for a completed trial the caller owns.
+ *
+ * The gate is applied while assembling the prompt (`lib/summary.ts`): metrics
+ * inside their wobble reach the model as "no measurable change" with nothing
+ * to narrate. Regenerating overwrites — the numbers it describes cannot have
+ * changed, since the trial is closed.
+ */
+export async function generateSummary(trialId: string): Promise<ActionResult<{ text: string }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in first.' };
+
+  if (isFixtureTrial(trialId)) {
+    return { ok: false, error: 'This is the built-in sample trial.' };
+  }
+
+  let trial;
+  try {
+    const { trials } = await loadTrials(userId);
+    trial = trials.find((t) => t.id === trialId);
+  } catch (error) {
+    return { ok: false, error: `Could not read that trial — ${(error as Error).message}` };
+  }
+  if (!trial) return { ok: false, error: 'That trial no longer exists.' };
+  if (trial.status !== 'completed') {
+    return { ok: false, error: 'The summary is written when the trial ends.' };
+  }
+
+  try {
+    const summary = await writeSummary(trial);
+    const saved = await setSummary(userId, trialId, summary);
+    if (!saved) return { ok: false, error: 'That trial no longer exists.' };
+    revalidatePath(`/trials/${trialId}`);
+    return { ok: true, data: { text: summary.text } };
+  } catch (error) {
+    return { ok: false, error: `The summary could not be written — ${(error as Error).message}` };
+  }
+}
+
+const MAX_REVIEW = 4000;
+
+/** The user's own words on a finished trial — the qualitative layer. */
+export async function saveUserReview(
+  trialId: string,
+  review: string,
+): Promise<ActionResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in first.' };
+
+  if (isFixtureTrial(trialId)) {
+    return { ok: false, error: 'This is the built-in sample trial.' };
+  }
+
+  try {
+    const saved = await setUserReview(userId, trialId, review.trim().slice(0, MAX_REVIEW) || null);
+    if (!saved) return { ok: false, error: 'Your words are saved when the trial has ended.' };
+    revalidatePath(`/trials/${trialId}`);
+    return { ok: true, data: null };
+  } catch (error) {
+    return { ok: false, error: `Could not save — ${(error as Error).message}` };
   }
 }
 

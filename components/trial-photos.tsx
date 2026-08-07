@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Camera, Loader2 } from 'lucide-react';
 
 import { CameraCapture } from '@/components/camera-capture';
+import { CaptureExtras } from '@/components/capture-extras';
 import { Button } from '@/components/ui/button';
 import {
   Carousel,
@@ -16,7 +17,7 @@ import {
 import { logCapture } from '@/app/trials/actions';
 import { concernLabel } from '@/lib/concerns';
 import { readingAtCapture, type MetricChange, type Reading } from '@/lib/trial-detail';
-import type { Capture } from '@/lib/trials';
+import { hoursLabel, timeSinceApplied, type Capture } from '@/lib/trials';
 import { cn } from '@/lib/utils';
 
 /**
@@ -62,6 +63,10 @@ interface Props {
   /** An active trial offers a today slot; an ended one is a closed record. */
   canCapture: boolean;
   loggedToday: boolean;
+  /** The owner may edit notes and extra photos; a community reader may not. */
+  canEdit: boolean;
+  /** "Applied products" check-ins, for the hours-since line on each photo. */
+  applications: string[];
 }
 
 type Slot = { kind: 'capture'; capture: Capture } | { kind: 'today' };
@@ -98,6 +103,8 @@ export function TrialPhotos({
   dayNumber,
   canCapture,
   loggedToday,
+  canEdit,
+  applications,
 }: Props) {
   const showToday = canCapture && !loggedToday;
 
@@ -135,6 +142,7 @@ export function TrialPhotos({
   /* ---------------------------------------------------------- capturing */
 
   const [mode, setMode] = useState<'roll' | 'camera' | 'review'>('roll');
+  const [noteDraft, setNoteDraft] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -160,6 +168,7 @@ export function TrialPhotos({
 
   const cancel = () => {
     setPhoto(null);
+    setNoteDraft('');
     setMode('roll');
   };
 
@@ -172,7 +181,7 @@ export function TrialPhotos({
     if (!photo) return;
     setError(null);
     startTransition(async () => {
-      const result = await logCapture(trialId, photo, navigator.userAgent);
+      const result = await logCapture(trialId, photo, navigator.userAgent, noteDraft);
       if (result.ok) {
         cancel();
         router.refresh();
@@ -222,6 +231,18 @@ export function TrialPhotos({
           <img src={preview} alt="Today's photo, before you keep it" className="w-full" />
         </div>
 
+        {/* The note is optional and rides along with the capture — context a
+            picture can't carry, editable later from the roll. */}
+        <textarea
+          value={noteDraft}
+          onChange={(e) => setNoteDraft(e.target.value)}
+          rows={2}
+          maxLength={500}
+          placeholder="Add a note (optional) — sunburn, travel, a bad night…"
+          aria-label="Note for today's photo"
+          className="mt-3 w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        />
+
         {error && (
           <p role="alert" className="mt-3 text-sm text-destructive">
             {error}
@@ -258,6 +279,14 @@ export function TrialPhotos({
   const currentDay =
     current.kind === 'today' ? dayNumber : dayOf(startDate, current.capture.capturedAt);
 
+  // Hours between the last "applied products" press and this photo — the
+  // check-in feature's whole payoff. "assumed" marks the forgot-to-press
+  // fallback, projected from the last press's clock time.
+  const sinceApplied =
+    current.kind === 'capture'
+      ? timeSinceApplied(applications, current.capture.capturedAt)
+      : null;
+
   // Only the tracked metrics go on the photo. All fourteen are collected and all
   // fourteen are on Progress; three is what fits over a face. Today's empty
   // frame gets none — nothing has been measured yet.
@@ -287,7 +316,7 @@ export function TrialPhotos({
                 <CarouselItem key="today" className="pl-0">
                   <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 px-6 text-center">
                     <Camera className="size-6 text-muted-foreground" aria-hidden />
-                    <p className="text-sm text-muted-foreground">No photo for today.</p>
+                    <p className="text-sm text-muted-foreground">Log today&apos;s photo</p>
                     <div className="mt-1 flex items-center gap-2">
                       <Button onClick={() => setMode('camera')}>Open camera</Button>
                       <Button variant="outline" onClick={() => fileInput.current?.click()}>
@@ -361,6 +390,14 @@ export function TrialPhotos({
               : 'bg-gradient-to-t from-black/70 to-transparent',
           )}
         >
+          {/* The note sits at the bottom of the picture, right above the day —
+              the photo's own caption, not the app's. */}
+          {current.kind === 'capture' && current.capture.note && (
+            <p className="mx-auto mb-1 max-w-prose text-sm italic text-white/85">
+              {current.capture.note}
+            </p>
+          )}
+
           <p
             className={cn(
               'text-base font-semibold',
@@ -370,6 +407,13 @@ export function TrialPhotos({
             Day {currentDay}
             {totalDays !== null && ` / ${totalDays}`}
           </p>
+
+          {sinceApplied && (
+            <p className="text-xs text-white/70">
+              {hoursLabel(sinceApplied.hours)} after applying
+              {sinceApplied.assumed && ' (going by your usual time)'}
+            </p>
+          )}
 
           {/* The dot is 8px; the button around it is not, or the roll can only be
               driven by dragging. */}
@@ -419,6 +463,12 @@ export function TrialPhotos({
               year: 'numeric',
             })}
       </p>
+
+      {/* The day's note and extra angles, for whichever frame is showing. The
+          fixture has neither and canEdit is false there, so it renders nothing. */}
+      {current.kind === 'capture' && (
+        <CaptureExtras trialId={trialId} capture={current.capture} canEdit={canEdit} />
+      )}
     </div>
   );
 }

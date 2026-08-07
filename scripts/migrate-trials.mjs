@@ -28,6 +28,18 @@ const STATEMENTS = [
      create type end_date_source as enum ('clinician', 'product-claim', 'user-chosen');
    exception when duplicate_object then null; end $$`,
 
+  // Which routine this trial sits on — morning and night are separate logs
+  // (docs/app-ui.md, "One routine, and what that costs"). Defaults to 'am'.
+  `do $$ begin
+     create type trial_time_of_day as enum ('am', 'pm');
+   exception when duplicate_object then null; end $$`,
+
+  // Whether the community can watch this trial. Private is the default and the
+  // column default, so a trial is never published by omission.
+  `do $$ begin
+     create type trial_visibility as enum ('private', 'public');
+   exception when duplicate_object then null; end $$`,
+
   // `end_date` is nullable on purpose: the window is a marker, not a lock
   // (docs/trial-model.md). A trial ends when the user ends it, which is what
   // `ended_at` records — passing `end_date` changes nothing on its own.
@@ -44,12 +56,24 @@ const STATEMENTS = [
      start_date      date not null,
      end_date        date,
      end_date_source end_date_source,
+     time_of_day     trial_time_of_day not null default 'am',
+     visibility      trial_visibility not null default 'private',
      frequency       jsonb not null default '{"kind":"daily"}',
      baseline        jsonb not null default '[]',
      ended_at        timestamptz,
      created_at      timestamptz not null default now(),
      updated_at      timestamptz not null default now()
    )`,
+
+  // Runs against tables created before `time_of_day` existed; a no-op once the
+  // column is there.
+  `alter table trials
+     add column if not exists time_of_day trial_time_of_day not null default 'am'`,
+
+  // Existing rows were created before the toggle existed and become private,
+  // which is the only safe way to backfill it.
+  `alter table trials
+     add column if not exists visibility trial_visibility not null default 'private'`,
 
   `create index if not exists trials_user_idx
      on trials (user_id, created_at desc)`,
@@ -103,6 +127,85 @@ const STATEMENTS = [
 
   `create index if not exists trial_captures_trial_idx
      on trial_captures (trial_id, captured_at)`,
+
+  // How much of the product goes on per use ("2 pumps", "0.5 mg"). Display and
+  // summary framing only — it never enters the measurement path.
+  `alter table trial_interventions
+     add column if not exists dosage text`,
+
+  // The user's own words on one photo — context a picture can't carry
+  // ("sunburned", "slept badly"). Editable, unlike the capture itself.
+  `alter table trial_captures
+     add column if not exists note text`,
+
+  // Whether readers of a public trial may comment. The owner's switch.
+  `alter table trials
+     add column if not exists comments_enabled boolean not null default true`,
+
+  // How many signed-in non-owners have opened a public trial. The only
+  // popularity signal the community shows, deliberately (ideas.md): no likes,
+  // no hearts, nothing to optimise a feed against the product's premise.
+  `alter table trials
+     add column if not exists view_count integer not null default 0`,
+
+  // The narrative layer, written by Gemini when the user asks for it after the
+  // trial ends, plus the user's own review. The gate is applied before the
+  // model ever sees a number (docs/app-ui.md §6).
+  `alter table trials
+     add column if not exists summary text`,
+  `alter table trials
+     add column if not exists summary_model text`,
+  `alter table trials
+     add column if not exists summary_generated_at timestamptz`,
+  `alter table trials
+     add column if not exists user_review text`,
+
+  // "Applied products" check-ins. Each press is a row; a capture reports the
+  // hours since the most recent one before it. Timestamps are server-side for
+  // the same reason captured_at is.
+  `create table if not exists trial_applications (
+     id          uuid primary key default gen_random_uuid(),
+     trial_id    uuid not null references trials(id) on delete cascade,
+     applied_at  timestamptz not null default now()
+   )`,
+
+  `create index if not exists trial_applications_trial_idx
+     on trial_applications (trial_id, applied_at)`,
+
+  // Extra photos attached to one day's capture — different angles the analysis
+  // API doesn't support. Never analysed, so they cost no units; qualitative
+  // context only.
+  `create table if not exists trial_capture_photos (
+     id            uuid primary key default gen_random_uuid(),
+     capture_id    uuid not null references trial_captures(id) on delete cascade,
+     position      integer not null default 0,
+     blob_url      text not null,
+     blob_pathname text not null,
+     created_at    timestamptz not null default now()
+   )`,
+
+  `create index if not exists trial_capture_photos_capture_idx
+     on trial_capture_photos (capture_id, position)`,
+
+  // Comments on public trials. Body only — no votes, no threads.
+  `create table if not exists trial_comments (
+     id          uuid primary key default gen_random_uuid(),
+     trial_id    uuid not null references trials(id) on delete cascade,
+     user_id     text not null,
+     body        text not null,
+     created_at  timestamptz not null default now()
+   )`,
+
+  `create index if not exists trial_comments_trial_idx
+     on trial_comments (trial_id, created_at)`,
+
+  // A reader bookmarking someone else's public trial.
+  `create table if not exists trial_saves (
+     user_id     text not null,
+     trial_id    uuid not null references trials(id) on delete cascade,
+     created_at  timestamptz not null default now(),
+     primary key (user_id, trial_id)
+   )`,
 ];
 
 const url = process.env.DATABASE_URL;

@@ -50,7 +50,7 @@ export function EndTrialButton({ trialId, daysLogged }: { trialId: string; daysL
   return (
     <div>
       <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogTrigger render={<Button variant="outline" className="w-full" />}>
+        <AlertDialogTrigger render={<Button variant="destructive" className="w-full" />}>
           End trial
         </AlertDialogTrigger>
         <AlertDialogContent>

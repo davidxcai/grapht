@@ -13,9 +13,13 @@ import type { Provenance, RankedConcern } from '@/lib/routines';
  * `fixtures/trials.json` and is read by `getFixtureTrials()`; `loadTrials()`
  * unions the two so a missing DATABASE_URL costs saved trials and leaves the
  * demo path whole.
+ *
+ * Everything that touches Neon takes the owner as its first argument, for the
+ * reason spelled out in lib/routines.ts: this is where ownership is enforced,
+ * and an unscoped query should be a type error rather than a leak. The fixture
+ * belongs to nobody and is readable signed out — it is a published sample, and
+ * the demo has to run with no keys at all (BRIEF.md).
  */
-
-const LOCAL_USER = 'local';
 
 /**
  * The committed reference series. Read straight off disk — no key, no network,
@@ -34,6 +38,9 @@ export function getFixtureTrials(): Trial[] {
   return raw.map((t) => ({
     ...t,
     frequency: t.frequency ?? { kind: 'daily' },
+    timeOfDay: t.timeOfDay ?? 'am',
+    // The reference series is a published sample and already reads signed out.
+    visibility: t.visibility ?? 'public',
     window: { ...t.window, endDate: t.window.endDate ?? null },
   }));
 }
@@ -62,7 +69,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 const INTERVENTION_COLUMNS = `v.id, v.trial_id, v.position, v.direction, v.brand, v.name,
    v.started_on, v.targets::text[] as targets, v.ranked, v.provenance,
-   v.classifier, v.product_key`;
+   v.classifier, v.product_key, v.dosage`;
 
 function asDay(value: unknown): string {
   if (value instanceof Date) {
@@ -79,6 +86,7 @@ function toIntervention(row: Record<string, unknown>): Intervention {
     name: row.name as string,
     startedOn: asDay(row.started_on),
     targets: (row.targets as string[]) ?? [],
+    dosage: (row.dosage as string | null) ?? null,
   };
 }
 
@@ -89,71 +97,183 @@ function toCapture(row: Record<string, unknown>): Capture {
     device: (row.device as string | null) ?? '',
     concerns: (row.concerns as Capture['concerns']) ?? null,
     blobUrl: (row.blob_url as string | null) ?? null,
+    note: (row.note as string | null) ?? null,
+    extraPhotos: [],
   };
 }
 
-export async function listStoredTrials(): Promise<Trial[]> {
-  const sql = getSql();
-  const [trialRows, interventionRows, captureRows] = await Promise.all([
-    sql`select * from trials where user_id = ${LOCAL_USER} order by created_at desc`,
-    sql.query(
-      `select ${INTERVENTION_COLUMNS} from trial_interventions v
-       join trials t on t.id = v.trial_id
-       where t.user_id = $1
-       order by v.position asc`,
-      [LOCAL_USER],
-    ),
-    sql.query(
-      `select c.* from trial_captures c
-       join trials t on t.id = c.trial_id
-       where t.user_id = $1
-       order by c.captured_at asc`,
-      [LOCAL_USER],
-    ),
-  ]);
-
-  const interventions = new Map<string, Intervention[]>();
-  for (const row of interventionRows as Record<string, unknown>[]) {
-    const key = row.trial_id as string;
-    interventions.set(key, [...(interventions.get(key) ?? []), toIntervention(row)]);
-  }
-
-  const captures = new Map<string, Capture[]>();
-  for (const row of captureRows as Record<string, unknown>[]) {
-    const key = row.trial_id as string;
-    captures.set(key, [...(captures.get(key) ?? []), toCapture(row)]);
-  }
-
-  return (trialRows as Record<string, unknown>[]).map((t) => ({
+function toTrial(
+  t: Record<string, unknown>,
+  interventions: Intervention[],
+  captures: Capture[],
+  applications: string[],
+): Trial {
+  return {
     id: t.id as string,
     name: t.name as string,
     status: t.status as Trial['status'],
+    visibility: (t.visibility as Trial['visibility']) ?? 'private',
     window: {
       startDate: asDay(t.start_date),
       endDate: t.end_date ? asDay(t.end_date) : null,
       endDateSource: (t.end_date_source as Trial['window']['endDateSource']) ?? null,
     },
+    timeOfDay: (t.time_of_day as Trial['timeOfDay']) ?? 'am',
     frequency: t.frequency as Frequency,
     routine: {
       baseline: (t.baseline as BaselineEntry[]) ?? [],
-      interventions: interventions.get(t.id as string) ?? [],
+      interventions,
     },
-    captures: captures.get(t.id as string) ?? [],
-  }));
+    captures,
+    applications,
+    commentsEnabled: (t.comments_enabled as boolean) ?? true,
+    viewCount: (t.view_count as number) ?? 0,
+    summary: t.summary
+      ? {
+          text: t.summary as string,
+          model: (t.summary_model as string | null) ?? '',
+          generatedAt: t.summary_generated_at
+            ? new Date(t.summary_generated_at as string).toISOString()
+            : '',
+        }
+      : null,
+    userReview: (t.user_review as string | null) ?? null,
+  };
 }
 
 /**
- * Every trial the app knows about: saved ones first, then the reference series.
+ * Assemble whole trials from rows already scoped to their owner (or to the
+ * public set). Shared by the owner list and the community reads so a trial is
+ * the same object however it was reached.
+ */
+export function assembleTrials(
+  trialRows: Record<string, unknown>[],
+  interventionRows: Record<string, unknown>[],
+  captureRows: Record<string, unknown>[],
+  applicationRows: Record<string, unknown>[],
+  extraPhotoRows: Record<string, unknown>[],
+): Trial[] {
+  const interventions = new Map<string, Intervention[]>();
+  for (const row of interventionRows) {
+    const key = row.trial_id as string;
+    interventions.set(key, [...(interventions.get(key) ?? []), toIntervention(row)]);
+  }
+
+  const captures = new Map<string, Capture[]>();
+  const byCapture = new Map<string, Capture>();
+  for (const row of captureRows) {
+    const key = row.trial_id as string;
+    const capture = toCapture(row);
+    captures.set(key, [...(captures.get(key) ?? []), capture]);
+    byCapture.set(capture.id, capture);
+  }
+
+  for (const row of extraPhotoRows) {
+    const capture = byCapture.get(row.capture_id as string);
+    capture?.extraPhotos?.push({ id: row.id as string, url: row.blob_url as string });
+  }
+
+  const applications = new Map<string, string[]>();
+  for (const row of applicationRows) {
+    const key = row.trial_id as string;
+    applications.set(key, [
+      ...(applications.get(key) ?? []),
+      new Date(row.applied_at as string).toISOString(),
+    ]);
+  }
+
+  return trialRows.map((t) =>
+    toTrial(
+      t,
+      interventions.get(t.id as string) ?? [],
+      captures.get(t.id as string) ?? [],
+      applications.get(t.id as string) ?? [],
+    ),
+  );
+}
+
+/** The five row sets behind `assembleTrials()`, scoped by an arbitrary trial filter. */
+async function fetchTrialRows(
+  where: string,
+  params: unknown[],
+): Promise<
+  [
+    Record<string, unknown>[],
+    Record<string, unknown>[],
+    Record<string, unknown>[],
+    Record<string, unknown>[],
+    Record<string, unknown>[],
+  ]
+> {
+  const sql = getSql();
+  return Promise.all([
+    sql.query(`select t.* from trials t where ${where} order by t.created_at desc`, params),
+    sql.query(
+      `select ${INTERVENTION_COLUMNS} from trial_interventions v
+       join trials t on t.id = v.trial_id
+       where ${where}
+       order by v.position asc`,
+      params,
+    ),
+    sql.query(
+      `select c.* from trial_captures c
+       join trials t on t.id = c.trial_id
+       where ${where}
+       order by c.captured_at asc`,
+      params,
+    ),
+    sql.query(
+      `select a.* from trial_applications a
+       join trials t on t.id = a.trial_id
+       where ${where}
+       order by a.applied_at asc`,
+      params,
+    ),
+    sql.query(
+      `select p.* from trial_capture_photos p
+       join trial_captures c on c.id = p.capture_id
+       join trials t on t.id = c.trial_id
+       where ${where}
+       order by p.position asc, p.created_at asc`,
+      params,
+    ),
+  ]) as Promise<
+    [
+      Record<string, unknown>[],
+      Record<string, unknown>[],
+      Record<string, unknown>[],
+      Record<string, unknown>[],
+      Record<string, unknown>[],
+    ]
+  >;
+}
+
+export async function listStoredTrials(userId: string): Promise<Trial[]> {
+  const rows = await fetchTrialRows('t.user_id = $1', [userId]);
+  return assembleTrials(...rows);
+}
+
+/**
+ * Every trial this reader may see: their own first, then the reference series.
+ *
+ * A null `userId` is the signed-out visitor, and they get the fixture alone —
+ * no database round trip, because there is no owner to scope it to. That is the
+ * whole demo path: the reference series is a published sample and reads without
+ * an account.
  *
  * The database failure is caught rather than thrown, exactly as `listRoutines()`
  * is on the dashboard. A missing or unreachable `DATABASE_URL` must never cost
  * the fixture — running end-to-end with no key and no network is a hackathon
  * requirement (BRIEF.md), not a nicety.
  */
-export async function loadTrials(): Promise<{ trials: Trial[]; storeError: string | null }> {
+export async function loadTrials(
+  userId: string | null,
+): Promise<{ trials: Trial[]; storeError: string | null }> {
   const fixture = getFixtureTrials();
+  if (!userId) return { trials: fixture, storeError: null };
+
   try {
-    return { trials: [...(await listStoredTrials()), ...fixture], storeError: null };
+    return { trials: [...(await listStoredTrials(userId)), ...fixture], storeError: null };
   } catch (error) {
     return { trials: fixture, storeError: (error as Error).message };
   }
@@ -165,6 +285,7 @@ export interface InterventionInput {
   brand?: string | null;
   name: string;
   targets: string[];
+  dosage?: string | null;
   ranked?: RankedConcern[];
   provenance?: Provenance;
   classifier?: { model: string; promptVersion: string } | null;
@@ -187,6 +308,8 @@ export interface CreateTrialInput {
   startDate: string;
   endDate: string | null;
   endDateSource: Trial['window']['endDateSource'];
+  timeOfDay: Trial['timeOfDay'];
+  visibility: Trial['visibility'];
   frequency: Frequency;
   baseline: BaselineEntry[];
   interventions: InterventionInput[];
@@ -196,43 +319,113 @@ export interface CreateTrialInput {
 /**
  * Mark a trial finished, with today as its end date.
  *
- * Returns false when no row was updated — which means the id belongs to the
- * committed fixture rather than to something the user created. The fixture is
- * read-only by construction, and the caller says so rather than reporting a
- * success that changed nothing.
+ * Returns false when no row was updated: the id belongs to the committed
+ * fixture, or to someone else, or the trial is already finished. The caller says
+ * so rather than reporting a success that changed nothing. The fixture is
+ * read-only by construction.
  *
  * The `status = 'active'` guard is what makes ending irreversible: a second call
  * matches no rows, so an already-ended trial can never be re-ended or have its
  * end date moved (`docs/trial-model.md`).
  */
-export async function closeTrial(id: string): Promise<boolean> {
+export async function closeTrial(userId: string, id: string): Promise<boolean> {
   const sql = getSql();
   const rows = (await sql`
     update trials
        set status = 'completed', end_date = current_date
-     where id = ${id} and user_id = ${LOCAL_USER} and status = 'active'
+     where id = ${id} and user_id = ${userId} and status = 'active'
      returning id`) as Record<string, unknown>[];
   return rows.length > 0;
 }
 
 /**
  * Just enough of a stored trial to decide whether a capture may be taken, read
- * before the photo is analysed.
+ * before the photo is analysed — and to check an edited end date against the
+ * day the trial actually started.
  *
- * Null covers both "no such trial" and "that id is the fixture." Neither can
- * accept a capture, and the caller must learn it while a rejection still costs
- * nothing.
+ * Null covers "no such trial", "that id is the fixture", and "that trial is
+ * someone else's". None can accept a capture, and the caller must learn it while
+ * a rejection still costs nothing.
  */
 export async function getTrialHeader(
+  userId: string,
   id: string,
-): Promise<{ name: string; status: Trial['status'] } | null> {
+): Promise<{ name: string; status: Trial['status']; startDate: string } | null> {
   if (!UUID.test(id)) return null;
   const sql = getSql();
   const rows = (await sql`
-    select name, status from trials
-     where id = ${id} and user_id = ${LOCAL_USER}`) as Record<string, unknown>[];
+    select name, status, start_date from trials
+     where id = ${id} and user_id = ${userId}`) as Record<string, unknown>[];
   const row = rows[0];
-  return row ? { name: row.name as string, status: row.status as Trial['status'] } : null;
+  return row
+    ? {
+        name: row.name as string,
+        status: row.status as Trial['status'],
+        startDate: asDay(row.start_date),
+      }
+    : null;
+}
+
+/**
+ * The settings an edit is allowed to move.
+ *
+ * Products, their `targets[]`, the start date and the captures are absent on
+ * purpose. Targets freeze at trial creation: rewriting them later would rewrite
+ * attribution for photos already taken, with no new measurement behind it
+ * (CLAUDE.md rule 9, `docs/trial-model.md`).
+ */
+export interface TrialSettingsInput {
+  name: string;
+  endDate: string | null;
+  endDateSource: Trial['window']['endDateSource'];
+  timeOfDay: Trial['timeOfDay'];
+  visibility: Trial['visibility'];
+  frequency: Frequency;
+  commentsEnabled: boolean;
+}
+
+/**
+ * Change a trial's settings.
+ *
+ * On a **completed** trial only the name and visibility move. The window,
+ * frequency and time of day describe logging that has already happened, and the
+ * end date in particular is what `closeTrial()` wrote when it closed — ending is
+ * irreversible precisely so a published summary can't drift out of step with its
+ * own data (`docs/app-ui.md` §5). Visibility stays editable either way, because
+ * publishing and unpublishing are the user's to do at any time, running or
+ * finished (`lib/trials.ts`, `TrialVisibility`).
+ *
+ * The `case when status = 'active'` is what enforces that, and it rides inside
+ * the write rather than sitting in a read the caller does first: a trial ended
+ * in between would otherwise have its end date moved off the day it closed.
+ *
+ * Returns false when no row matched — someone else's id, or the fixture, which
+ * has no row to update.
+ */
+export async function updateTrialSettings(
+  userId: string,
+  id: string,
+  input: TrialSettingsInput,
+): Promise<boolean> {
+  if (!UUID.test(id)) return false;
+  const sql = getSql();
+  const rows = (await sql`
+    update trials
+       set name = ${input.name.trim()},
+           visibility = ${input.visibility}::trial_visibility,
+           comments_enabled = ${input.commentsEnabled},
+           end_date = case when status = 'active'
+                        then ${input.endDate}::date else end_date end,
+           end_date_source = case when status = 'active'
+                        then ${input.endDateSource}::end_date_source else end_date_source end,
+           time_of_day = case when status = 'active'
+                        then ${input.timeOfDay}::trial_time_of_day else time_of_day end,
+           frequency = case when status = 'active'
+                        then ${JSON.stringify(input.frequency)}::jsonb else frequency end,
+           updated_at = now()
+     where id = ${id} and user_id = ${userId}
+     returning id`) as Record<string, unknown>[];
+  return rows.length > 0;
 }
 
 /**
@@ -255,6 +448,7 @@ export async function getTrialHeader(
  * (`docs/app-ui.md` §4). The UI simply stops asking once today is logged.
  */
 export async function addCapture(
+  userId: string,
   trialId: string,
   capture: CaptureInput,
 ): Promise<string | null> {
@@ -278,13 +472,149 @@ export async function addCapture(
       JSON.stringify(capture.concerns),
       JSON.stringify(capture.zones),
       capture.skinAge,
-      LOCAL_USER,
+      userId,
     ],
   )) as Record<string, unknown>[];
   return rows[0] ? (rows[0].id as string) : null;
 }
 
-export async function createTrial(input: CreateTrialInput): Promise<string> {
+/**
+ * Record an "applied products" check-in, stamped server-side like `captured_at`
+ * and for the same reason: the hours-since-applying figure on a photo is only
+ * worth showing if neither end of it can be edited after the fact.
+ *
+ * Active trials only — an ended log has no routine left to check in against.
+ */
+export async function logApplication(userId: string, trialId: string): Promise<boolean> {
+  if (!UUID.test(trialId)) return false;
+  const sql = getSql();
+  const rows = (await sql`
+    insert into trial_applications (trial_id)
+    select ${trialId}::uuid
+     where exists (
+       select 1 from trials
+        where id = ${trialId}::uuid and user_id = ${userId} and status = 'active'
+     )
+    returning id`) as Record<string, unknown>[];
+  return rows.length > 0;
+}
+
+/**
+ * Set, change, or clear (null) the note on one capture. The one part of a
+ * capture that stays editable: it is the user's own words, not a measurement.
+ */
+export async function setCaptureNote(
+  userId: string,
+  trialId: string,
+  captureId: string,
+  note: string | null,
+): Promise<boolean> {
+  if (!UUID.test(trialId) || !UUID.test(captureId)) return false;
+  const sql = getSql();
+  const rows = (await sql`
+    update trial_captures c
+       set note = ${note}
+      from trials t
+     where c.id = ${captureId}::uuid and c.trial_id = ${trialId}::uuid
+       and t.id = c.trial_id and t.user_id = ${userId}
+     returning c.id`) as Record<string, unknown>[];
+  return rows.length > 0;
+}
+
+/**
+ * Attach an already-uploaded extra photo to a capture. The blob is uploaded by
+ * the action *after* this ownership test passes, then recorded here — the same
+ * "refuse while refusing is free" ordering as the analysis path.
+ */
+export async function captureOwnedBy(
+  userId: string,
+  trialId: string,
+  captureId: string,
+): Promise<boolean> {
+  if (!UUID.test(trialId) || !UUID.test(captureId)) return false;
+  const sql = getSql();
+  const rows = (await sql`
+    select 1 from trial_captures c
+      join trials t on t.id = c.trial_id
+     where c.id = ${captureId}::uuid and c.trial_id = ${trialId}::uuid
+       and t.user_id = ${userId}`) as unknown[];
+  return rows.length > 0;
+}
+
+export async function addCapturePhoto(
+  userId: string,
+  captureId: string,
+  photo: { blobUrl: string; blobPathname: string },
+): Promise<string | null> {
+  const sql = getSql();
+  const rows = (await sql`
+    insert into trial_capture_photos (capture_id, position, blob_url, blob_pathname)
+    select ${captureId}::uuid,
+           coalesce((select max(position) + 1 from trial_capture_photos
+                      where capture_id = ${captureId}::uuid), 0),
+           ${photo.blobUrl}, ${photo.blobPathname}
+     where exists (
+       select 1 from trial_captures c
+         join trials t on t.id = c.trial_id
+        where c.id = ${captureId}::uuid and t.user_id = ${userId}
+     )
+    returning id`) as Record<string, unknown>[];
+  return rows[0] ? (rows[0].id as string) : null;
+}
+
+/** Delete one extra photo; returns its blob pathname so the caller can drop the
+ *  blob too. Null when the row isn't the caller's to delete. */
+export async function deleteCapturePhoto(userId: string, photoId: string): Promise<string | null> {
+  if (!UUID.test(photoId)) return null;
+  const sql = getSql();
+  const rows = (await sql`
+    delete from trial_capture_photos p
+     using trial_captures c, trials t
+     where p.id = ${photoId}::uuid and c.id = p.capture_id
+       and t.id = c.trial_id and t.user_id = ${userId}
+     returning p.blob_pathname`) as Record<string, unknown>[];
+  return rows[0] ? (rows[0].blob_pathname as string) : null;
+}
+
+/**
+ * Store the generated summary. Completed trials only — the summary is a
+ * retrospective on a closed window, never a mid-trial verdict.
+ */
+export async function setSummary(
+  userId: string,
+  trialId: string,
+  summary: { text: string; model: string },
+): Promise<boolean> {
+  if (!UUID.test(trialId)) return false;
+  const sql = getSql();
+  const rows = (await sql`
+    update trials
+       set summary = ${summary.text},
+           summary_model = ${summary.model},
+           summary_generated_at = now(),
+           updated_at = now()
+     where id = ${trialId} and user_id = ${userId} and status = 'completed'
+     returning id`) as Record<string, unknown>[];
+  return rows.length > 0;
+}
+
+/** The user's own words on a finished trial. Null clears them. */
+export async function setUserReview(
+  userId: string,
+  trialId: string,
+  review: string | null,
+): Promise<boolean> {
+  if (!UUID.test(trialId)) return false;
+  const sql = getSql();
+  const rows = (await sql`
+    update trials
+       set user_review = ${review}, updated_at = now()
+     where id = ${trialId} and user_id = ${userId} and status = 'completed'
+     returning id`) as Record<string, unknown>[];
+  return rows.length > 0;
+}
+
+export async function createTrial(userId: string, input: CreateTrialInput): Promise<string> {
   const sql = getSql();
   const id = randomUUID();
 
@@ -293,12 +623,15 @@ export async function createTrial(input: CreateTrialInput): Promise<string> {
   // YouCam units for a row that isn't there.
   await sql.transaction([
     sql`insert into trials
-          (id, user_id, name, start_date, end_date, end_date_source, frequency, baseline)
+          (id, user_id, name, start_date, end_date, end_date_source, time_of_day,
+           visibility, frequency, baseline)
         values (
-          ${id}, ${LOCAL_USER}, ${input.name.trim()},
+          ${id}, ${userId}, ${input.name.trim()},
           ${input.startDate}::date,
           ${input.endDate}::date,
           ${input.endDateSource}::end_date_source,
+          ${input.timeOfDay}::trial_time_of_day,
+          ${input.visibility}::trial_visibility,
           ${JSON.stringify(input.frequency)}::jsonb,
           ${JSON.stringify(input.baseline)}::jsonb
         )`,
@@ -308,7 +641,7 @@ export async function createTrial(input: CreateTrialInput): Promise<string> {
       return sql`
         insert into trial_interventions
           (id, trial_id, position, direction, brand, name, started_on,
-           targets, ranked, provenance, classifier, product_key)
+           targets, ranked, provenance, classifier, product_key, dosage)
         values (
           ${randomUUID()}, ${id}, ${position}, 'add',
           ${item.brand?.trim() || null}, ${item.name.trim()},
@@ -317,7 +650,8 @@ export async function createTrial(input: CreateTrialInput): Promise<string> {
           ${JSON.stringify(item.ranked ?? [])}::jsonb,
           ${item.provenance ?? 'user-edited'}::target_provenance,
           ${item.classifier ? JSON.stringify(item.classifier) : null}::jsonb,
-          ${item.productKey ?? null}
+          ${item.productKey ?? null},
+          ${item.dosage?.trim() || null}
         )`;
     }),
 
