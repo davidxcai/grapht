@@ -1,0 +1,37 @@
+{
+  "brands": [
+    "Belif",
+    "Klairs (Dear, Klairs)",
+    "Neogen",
+    "Dr. Jart+",
+    "Manyo Factory",
+    "Augustinus Bader",
+    "La Mer",
+    "Biologique Recherche",
+    "La Prairie",
+    "Sisley Paris"
+  ],
+  "harvester": {
+    "model": "gemini-3.6-flash",
+    "promptVersion": "2026-08-07.1"
+  },
+  "perBrand": 50,
+  "fetchedAt": "2026-08-07T15:51:06.073Z",
+  "promptFeedback": null,
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\"brands\":[{\"brand\":\"Belif\",\"products\":[{\"name\":\"The True Cream Aqua Bomb\",\"size\":\"1.68 fl oz (50 mL)\",\"barcode\":\"8801051216010\"},{\"name\":\"The True Cream Moisturizing Bomb\",\"size\":\"1.68 fl oz (50 mL)\",\"barcode\":\"8801051216034\"},{\"name\":\"Aqua Bomb Jelly Cleanser\",\"size\":\"5.41 fl oz (160 mL)\",\"barcode\":\"8801051410142\"}]},{\"brand\":\"Klairs (Dear, Klairs)\",\"products\":[{\"name\":\"Supple Preparation Unscented Toner\",\"size\":\"6.08 fl oz (180 mL)\",\"barcode\":\"8809579890145\"},{\"name\":\"Freshly Juiced Vitamin Drop\",\"size\":\"1.18 fl oz (35 mL)\",\"barcode\":\"8809115025050\"},{\"name\":\"Rich Moist Soothing Cream\",\"size\":\"2.7 fl oz (80 mL)\",\"barcode\":\"8809579890084\"},{\"name\":\"Gentle Black Deep Cleansing Oil\",\"size\":\"5.07 fl oz (150 mL)\",\"barcode\":\"8809579890060\"}]},{\"brand\":\"Neogen\",\"products\":[{\"name\":\"Dermalogy Real Ferment Micro Essence\",\"size\":\"5.07 fl oz (150 mL)\",\"barcode\":\"8809388842187\"},{\"name\":\"Dermalogy Bio-Peel Gauze Peeling Wine\",\"size\":\"30 pads / 6.76 fl oz (200 mL)\",\"barcode\":\"8809388840503\"}]},{\"brand\":\"Dr. Jart controls\",\"products\":[]},{\"brand\":\"Dr. Jart+\",\"products\":[{\"name\":\"Cicapair Tiger Grass Color Correcting Treatment SPF 30\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"8809642710108\"},{\"name\":\"Cicapair Tiger Grass Color Correcting Treatment SPF 30\",\"size\":\"0.5 fl oz (15 mL)\",\"barcode\":\"8809642712959\"},{\"name\":\"Ceramidin Cream\",\"size\":\"1.69 fl oz (50 mL)\",\"barcode\":\"8809535803875\"}]},{\"brand\":\"Manyo Factory\",\"products\":[{\"name\":\"Pure Cleansing Oil\",\"size\":\"6.76 fl oz (200 mL)\",\"barcode\":\"8809409402130\"},{\"name\":\"Bifida Biome Complex Ampoule\",\"size\":\"1.69 fl oz (50 mL)\",\"barcode\":\"8809409402505\"}]},{\"brand\":\"Augustinus Bader\",\"products\":[{\"name\":\"The Rich Cream\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"5060552900030\"},{\"name\":\"The Cream\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"5060552900016\"},{\"name\":\"The Essence\",\"size\":\"3.38 fl oz (100 mL)\",\"barcode\":\"5060552900535\"}]},{\"brand\":\"La Mer\",\"products\":[{\"name\":\"Crème de la Mer\",\"size\":\"2 oz (60 mL)\",\"barcode\":\"747930000135\"},{\"name\":\"Crème de la Mer\",\"size\":\"1 oz (30 mL)\",\"barcode\":\"747930000012\"},{\"name\":\"The Treatment Lotion\",\"size\":\"5 fl oz (150 mL)\",\"barcode\":\"747930096237\"}]},{\"brand\":\"Biologique Recherche\",\"products\":[]},{\"brand\":\"La Prairie\",\"products\":[{\"name\":\"Skin Caviar Luxe Cream\",\"size\":\"1.7 oz (50 mL)\",\"barcode\":\"7611773081498\"}]},{\"brand\":\"Sisley Paris\",\"products\":[{\"name\":\"Ecological Compound\",\"size\":\"4.2 oz (125 mL)\",\"barcode\":\"3473311141002\"},{\"name\":\"Black Rose Cream Mask\",\"size\":\"2.1 oz (60 mL)\",\"barcode\":\"3473311400000\"}]}]}",
+            "thoughtSignature": "EjQKMgERTTIPaOt3FPc5ZXIx8AbxIdscBJfukGhDI2VeOpkkFZLHH6b0OQcQGMTgjY/t16N3"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "text": "{\"brands\":[{\"brand\":\"Belif\",\"products\":[{\"name\":\"The True Cream Aqua Bomb\",\"size\":\"1.68 fl oz (50 mL)\",\"barcode\":\"8801051216010\"},{\"name\":\"The True Cream Moisturizing Bomb\",\"size\":\"1.68 fl oz (50 mL)\",\"barcode\":\"8801051216034\"},{\"name\":\"Aqua Bomb Jelly Cleanser\",\"size\":\"5.41 fl oz (160 mL)\",\"barcode\":\"8801051410142\"}]},{\"brand\":\"Klairs (Dear, Klairs)\",\"products\":[{\"name\":\"Supple Preparation Unscented Toner\",\"size\":\"6.08 fl oz (180 mL)\",\"barcode\":\"8809579890145\"},{\"name\":\"Freshly Juiced Vitamin Drop\",\"size\":\"1.18 fl oz (35 mL)\",\"barcode\":\"8809115025050\"},{\"name\":\"Rich Moist Soothing Cream\",\"size\":\"2.7 fl oz (80 mL)\",\"barcode\":\"8809579890084\"},{\"name\":\"Gentle Black Deep Cleansing Oil\",\"size\":\"5.07 fl oz (150 mL)\",\"barcode\":\"8809579890060\"}]},{\"brand\":\"Neogen\",\"products\":[{\"name\":\"Dermalogy Real Ferment Micro Essence\",\"size\":\"5.07 fl oz (150 mL)\",\"barcode\":\"8809388842187\"},{\"name\":\"Dermalogy Bio-Peel Gauze Peeling Wine\",\"size\":\"30 pads / 6.76 fl oz (200 mL)\",\"barcode\":\"8809388840503\"}]},{\"brand\":\"Dr. Jart controls\",\"products\":[]},{\"brand\":\"Dr. Jart+\",\"products\":[{\"name\":\"Cicapair Tiger Grass Color Correcting Treatment SPF 30\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"8809642710108\"},{\"name\":\"Cicapair Tiger Grass Color Correcting Treatment SPF 30\",\"size\":\"0.5 fl oz (15 mL)\",\"barcode\":\"8809642712959\"},{\"name\":\"Ceramidin Cream\",\"size\":\"1.69 fl oz (50 mL)\",\"barcode\":\"8809535803875\"}]},{\"brand\":\"Manyo Factory\",\"products\":[{\"name\":\"Pure Cleansing Oil\",\"size\":\"6.76 fl oz (200 mL)\",\"barcode\":\"8809409402130\"},{\"name\":\"Bifida Biome Complex Ampoule\",\"size\":\"1.69 fl oz (50 mL)\",\"barcode\":\"8809409402505\"}]},{\"brand\":\"Augustinus Bader\",\"products\":[{\"name\":\"The Rich Cream\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"5060552900030\"},{\"name\":\"The Cream\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"5060552900016\"},{\"name\":\"The Essence\",\"size\":\"3.38 fl oz (100 mL)\",\"barcode\":\"5060552900535\"}]},{\"brand\":\"La Mer\",\"products\":[{\"name\":\"Crème de la Mer\",\"size\":\"2 oz (60 mL)\",\"barcode\":\"747930000135\"},{\"name\":\"Crème de la Mer\",\"size\":\"1 oz (30 mL)\",\"barcode\":\"747930000012\"},{\"name\":\"The Treatment Lotion\",\"size\":\"5 fl oz (150 mL)\",\"barcode\":\"747930096237\"}]},{\"brand\":\"Biologique Recherche\",\"products\":[]},{\"brand\":\"La Prairie\",\"products\":[{\"name\":\"Skin Caviar Luxe Cream\",\"size\":\"1.7 oz (50 mL)\",\"barcode\":\"7611773081498\"}]},{\"brand\":\"Sisley Paris\",\"products\":[{\"name\":\"Ecological Compound\",\"size\":\"4.2 oz (125 mL)\",\"barcode\":\"3473311141002\"},{\"name\":\"Black Rose Cream Mask\",\"size\":\"2.1 oz (60 mL)\",\"barcode\":\"3473311400000\"}]}]}"
+}

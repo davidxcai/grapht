@@ -50,7 +50,7 @@ export default async function Products({
   if (q) products = fuzzyRank(q, products, (p) => [p.brand, p.name].filter(Boolean).join(' '));
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-5 py-10">
+    <main className="w-full px-5 py-10 lg:px-10">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
         <p className="mt-1 text-sm text-muted-foreground">

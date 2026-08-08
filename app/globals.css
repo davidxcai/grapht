@@ -52,88 +52,111 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    /* Clinical blue palette */
+    --primary-50: #ECF8FF;
+    --primary-100: #D4EFFD;
+    --primary-200: #A8DFFB;
+    --primary-300: #7CCFF9;
+    --primary-400: #88CCF1;
+    --primary-500: #5BA8D6;
+    --primary-600: #3477A3;
+    --primary-700: #2A5C84;
+    --primary-800: #1F4266;
+    --primary-900: #152D47;
+
+    --neutral-50: #F8FAFB;
+    --neutral-100: #F0F4F7;
+    --neutral-200: #E3EAEF;
+    --neutral-300: #D1DDE6;
+    --neutral-400: #A8BBC9;
+    --neutral-500: #7F93A1;
+    --neutral-600: #556B79;
+    --neutral-700: #3F4D57;
+    --neutral-800: #2C3339;
+    --neutral-900: #1A1F23;
+
+    --background: #FFFFFF;
+    --foreground: #1A1F23;
+    --card: #FFFFFF;
+    --card-foreground: #1A1F23;
+    --popover: #FFFFFF;
+    --popover-foreground: #1A1F23;
+    --primary: #3477A3;
+    --primary-foreground: #FFFFFF;
+    --secondary: #D4EFFD;
+    --secondary-foreground: #1F4266;
+    --muted: #F0F4F7;
+    --muted-foreground: #556B79;
+    --accent: #88CCF1;
+    --accent-foreground: #1F4266;
+    --destructive: #DC2626;
+    --border: #E3EAEF;
+    --input: #E3EAEF;
+    --ring: #3477A3;
+    --chart-1: #3477A3;
+    --chart-2: #88CCF1;
+    --chart-3: #5BA8D6;
+    --chart-4: #7CCFF9;
+    --chart-5: #A8DFFB;
     /* The one accent: where a trial is — ring, capture dots, Completed badge.
        Never used to encode a metric. */
-    --progress: oklch(0.58 0.19 258);
+    --progress: #3477A3;
     /* A trial that has finished: ring and Completed badge. Its own token rather
        than --improved, because a finished trial is not a good result — the two
        share a hue today and may not later. Also never encodes a metric. */
-    --complete: oklch(0.55 0.15 155);
+    --complete: #059669;
     /* Direction of change, and nothing else. A metric that moved less than the
        camera's own wobble gets neither — it stays foreground/muted, because
        "we can't tell" is a third state and must not read as a weak green. */
-    --improved: oklch(0.55 0.15 155);
-    --declined: oklch(0.58 0.19 25);
+    --improved: #059669;
+    --declined: #DC2626;
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar: #FFFFFF;
+    --sidebar-foreground: #1A1F23;
+    --sidebar-primary: #3477A3;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #D4EFFD;
+    --sidebar-accent-foreground: #1F4266;
+    --sidebar-border: #E3EAEF;
+    --sidebar-ring: #3477A3;
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --progress: oklch(0.62 0.19 258);
-    --complete: oklch(0.72 0.17 155);
-    --improved: oklch(0.72 0.17 155);
-    --declined: oklch(0.68 0.19 25);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --background: #1A1F23;
+    --foreground: #F8FAFB;
+    --card: #2C3339;
+    --card-foreground: #F8FAFB;
+    --popover: #2C3339;
+    --popover-foreground: #F8FAFB;
+    --primary: #7CCFF9;
+    --primary-foreground: #1F4266;
+    --secondary: #152D47;
+    --secondary-foreground: #F8FAFB;
+    --muted: #3F4D57;
+    --muted-foreground: #A8BBC9;
+    --accent: #7CCFF9;
+    --accent-foreground: #1F4266;
+    --destructive: #F87171;
+    --border: rgba(255, 255, 255, 0.08);
+    --input: rgba(255, 255, 255, 0.12);
+    --ring: #7CCFF9;
+    --chart-1: #7CCFF9;
+    --chart-2: #88CCF1;
+    --chart-3: #5BA8D6;
+    --chart-4: #3477A3;
+    --chart-5: #2A5C84;
+    --progress: #7CCFF9;
+    --complete: #34D399;
+    --improved: #34D399;
+    --declined: #F87171;
+    --sidebar: #2C3339;
+    --sidebar-foreground: #F8FAFB;
+    --sidebar-primary: #7CCFF9;
+    --sidebar-primary-foreground: #1F4266;
+    --sidebar-accent: #152D47;
+    --sidebar-accent-foreground: #F8FAFB;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-ring: #7CCFF9;
 }
 
 @layer base {
@@ -146,4 +169,19 @@
   html {
     @apply font-sans;
     }
+}
+
+@layer utilities {
+  /*
+    75% of a 1080p screen (1920px) is a fixed 1440px cap, not a percentage of
+    the viewport — a relative width never actually caps anything on a large or
+    ultrawide display, which is the case that matters here. The single shared
+    class exists because the header, main content and footer previously each
+    hardcoded their own width (full-width, 1440px, 896px) and drifted out of
+    sync — use this everywhere the page width is constrained, not a one-off
+    max-w-[1440px].
+  */
+  .page-width {
+    @apply mx-auto w-full max-w-[1440px];
+  }
 }

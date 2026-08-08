@@ -10,6 +10,14 @@ import {
 } from '@/lib/routines';
 import { classifyProduct, productIdentity } from '@/lib/product-classifier';
 import { currentUserId } from '@/lib/auth';
+import { searchCatalogForPicker as searchCatalog, type CatalogPickerMatch } from '@/lib/catalog';
+
+/** Top name/brand matches for the routine editor's product-name autocomplete
+ *  — same query as app/trials/actions.ts's wrapper, kept separate because
+ *  each editor is served by its own 'use server' action module. */
+export async function searchCatalogForPicker(q: string): Promise<CatalogPickerMatch[]> {
+  return searchCatalog(q);
+}
 
 export interface SaveRoutineInput {
   id?: string;
@@ -111,6 +119,10 @@ export interface Suggestion {
 export async function suggestConcerns(input: {
   brand?: string | null;
   name: string;
+  /** From a /catalog match (app/trials/actions.ts's searchCatalogForPicker) —
+   *  the real ingredient list is strictly stronger evidence for targets[]
+   *  than a typed name alone (docs/product-identity.md). */
+  inci?: string[] | null;
 }): Promise<ActionResult<Suggestion>> {
   const name = input.name?.trim();
   if (!name) return { ok: false, error: 'Enter a product name first.' };
@@ -119,12 +131,13 @@ export async function suggestConcerns(input: {
   }
 
   const brand = input.brand?.trim() || null;
+  const inci = input.inci?.length ? input.inci : null;
 
   try {
-    const result = await classifyProduct({ brand, name });
+    const result = await classifyProduct({ brand, name, inci });
     let key: string | null = null;
     try {
-      key = productIdentity({ brand, name }).key;
+      key = productIdentity({ brand, name, inci }).key;
     } catch {
       key = null;
     }

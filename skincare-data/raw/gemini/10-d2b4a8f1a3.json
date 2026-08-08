@@ -1,0 +1,37 @@
+{
+  "brands": [
+    "Differin",
+    "GlyTone",
+    "IS Clinical",
+    "Jan Marini",
+    "MDSolarSciences",
+    "Drunk Elephant",
+    "Glow Recipe",
+    "Tatcha",
+    "Sunday Riley",
+    "Youth to the People"
+  ],
+  "harvester": {
+    "model": "gemini-3.6-flash",
+    "promptVersion": "2026-08-07.1"
+  },
+  "perBrand": 50,
+  "fetchedAt": "2026-08-07T15:49:20.398Z",
+  "promptFeedback": null,
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\"brands\":[{\"brand\":\"Differin\",\"products\":[{\"name\":\"Adapalene Gel 0.1% Acne Treatment\",\"size\":\"0.5 oz (15 g)\",\"barcode\":\"302994111000\"},{\"name\":\"Adapalene Gel 0.1% Acne Treatment\",\"size\":\"1.6 oz (45 g)\",\"barcode\":\"302994112007\"},{\"name\":\"Gentle Cleanser\",\"size\":\"4 fl oz (118 mL)\",\"barcode\":\"302994101001\"},{\"name\":\"Soothing Moisturizer\",\"size\":\"4 fl oz (118 mL)\",\"barcode\":\"302994103005\"}]},{\"brand\":\"GlyTone\",\"products\":[]},{\"brand\":\"IS Clinical\",\"products\":[{\"name\":\"Cleansing Complex\",\"size\":\"6 fl oz (180 mL)\",\"barcode\":\"817244010044\"},{\"name\":\"Active Serum\",\"size\":\"1 fl oz (30 mL)\",\"barcode\":\"817244010136\"}]},{\"brand\":\"Jan Marini\",\"products\":[]},{\"brand\":\"MDSolarSciences\",\"products\":[]},{\"brand\":\"Drunk Elephant\",\"products\":[{\"name\":\"Protini Polypeptide Cream\",\"size\":\"1.69 fl oz (50 mL)\",\"barcode\":\"856556004439\"},{\"name\":\"Lala Retro Whipped Cream\",\"size\":\"1.69 fl oz (50 mL)\",\"barcode\":\"856556004170\"},{\"name\":\"Beste No. 9 Jelly Cleanser\",\"size\":\"5 fl oz (150 mL)\",\"barcode\":\"856556004415\"},{\"name\":\"T.L.C. Framboos Glycolic Night Serum\",\"size\":\"1 fl oz (30 mL)\",\"barcode\":\"856556004033\"},{\"name\":\"C-Firma Fresh Day Serum\",\"size\":\"0.94 fl oz (28 mL)\",\"barcode\":\"850020054045\"}]},{\"brand\":\"Glow Recipe\",\"products\":[{\"name\":\"Watermelon Glow Niacinamide Dew Drops\",\"size\":\"1.35 fl oz (40 mL)\",\"barcode\":\"810052960249\"},{\"name\":\"Watermelon Glow PHA + BHA Pore-Tight Toner\",\"size\":\"5.07 fl oz (150 mL)\",\"barcode\":\"850002449227\"},{\"name\":\"Plum Plump Hyaluronic Serum\",\"size\":\"1 fl oz (30 mL)\",\"barcode\":\"810052960010\"}]},{\"brand\":\"Tatcha\",\"products\":[{\"name\":\"The Water Cream\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"815235020827\"},{\"name\":\"The Dewy Skin Cream\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"815235023248\"},{\"name\":\"The Rice Wash Skin-Softening Cleanser\",\"size\":\"4.0 fl oz (120 mL)\",\"barcode\":\"815235025983\"}]},{\"brand\":\"Sunday Riley\",\"products\":[{\"name\":\"Good Genes All-In-One Lactic Acid Treatment\",\"size\":\"1 fl oz (30 mL)\",\"barcode\":\"817494014022\"},{\"name\":\"Luna Sleeping Night Oil\",\"size\":\"1 fl oz (30 mL)\",\"barcode\":\"817494014107\"},{\"name\":\"C.E.O. 15% Vitamin C Brightening Serum\",\"size\":\"1 fl oz (30 mL)\",\"barcode\":\"817494018228\"}]},{\"brand\":\"Youth to the People\",\"products\":[{\"name\":\"Superfood Cleanser\",\"size\":\"8 fl oz (237 mL)\",\"barcode\":\"854082006007\"},{\"name\":\"Superfood Air-Whip Moisture Cream\",\"size\":\"2 fl oz (59 mL)\",\"barcode\":\"854082006021\"}]}]}",
+            "thoughtSignature": "EjQKMgERTTIPJklcK15Le4Hq3peW8+xgadWal5jkVX/OudEsqdR23c68uapWQRYNO2aabn/D"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "text": "{\"brands\":[{\"brand\":\"Differin\",\"products\":[{\"name\":\"Adapalene Gel 0.1% Acne Treatment\",\"size\":\"0.5 oz (15 g)\",\"barcode\":\"302994111000\"},{\"name\":\"Adapalene Gel 0.1% Acne Treatment\",\"size\":\"1.6 oz (45 g)\",\"barcode\":\"302994112007\"},{\"name\":\"Gentle Cleanser\",\"size\":\"4 fl oz (118 mL)\",\"barcode\":\"302994101001\"},{\"name\":\"Soothing Moisturizer\",\"size\":\"4 fl oz (118 mL)\",\"barcode\":\"302994103005\"}]},{\"brand\":\"GlyTone\",\"products\":[]},{\"brand\":\"IS Clinical\",\"products\":[{\"name\":\"Cleansing Complex\",\"size\":\"6 fl oz (180 mL)\",\"barcode\":\"817244010044\"},{\"name\":\"Active Serum\",\"size\":\"1 fl oz (30 mL)\",\"barcode\":\"817244010136\"}]},{\"brand\":\"Jan Marini\",\"products\":[]},{\"brand\":\"MDSolarSciences\",\"products\":[]},{\"brand\":\"Drunk Elephant\",\"products\":[{\"name\":\"Protini Polypeptide Cream\",\"size\":\"1.69 fl oz (50 mL)\",\"barcode\":\"856556004439\"},{\"name\":\"Lala Retro Whipped Cream\",\"size\":\"1.69 fl oz (50 mL)\",\"barcode\":\"856556004170\"},{\"name\":\"Beste No. 9 Jelly Cleanser\",\"size\":\"5 fl oz (150 mL)\",\"barcode\":\"856556004415\"},{\"name\":\"T.L.C. Framboos Glycolic Night Serum\",\"size\":\"1 fl oz (30 mL)\",\"barcode\":\"856556004033\"},{\"name\":\"C-Firma Fresh Day Serum\",\"size\":\"0.94 fl oz (28 mL)\",\"barcode\":\"850020054045\"}]},{\"brand\":\"Glow Recipe\",\"products\":[{\"name\":\"Watermelon Glow Niacinamide Dew Drops\",\"size\":\"1.35 fl oz (40 mL)\",\"barcode\":\"810052960249\"},{\"name\":\"Watermelon Glow PHA + BHA Pore-Tight Toner\",\"size\":\"5.07 fl oz (150 mL)\",\"barcode\":\"850002449227\"},{\"name\":\"Plum Plump Hyaluronic Serum\",\"size\":\"1 fl oz (30 mL)\",\"barcode\":\"810052960010\"}]},{\"brand\":\"Tatcha\",\"products\":[{\"name\":\"The Water Cream\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"815235020827\"},{\"name\":\"The Dewy Skin Cream\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"815235023248\"},{\"name\":\"The Rice Wash Skin-Softening Cleanser\",\"size\":\"4.0 fl oz (120 mL)\",\"barcode\":\"815235025983\"}]},{\"brand\":\"Sunday Riley\",\"products\":[{\"name\":\"Good Genes All-In-One Lactic Acid Treatment\",\"size\":\"1 fl oz (30 mL)\",\"barcode\":\"817494014022\"},{\"name\":\"Luna Sleeping Night Oil\",\"size\":\"1 fl oz (30 mL)\",\"barcode\":\"817494014107\"},{\"name\":\"C.E.O. 15% Vitamin C Brightening Serum\",\"size\":\"1 fl oz (30 mL)\",\"barcode\":\"817494018228\"}]},{\"brand\":\"Youth to the People\",\"products\":[{\"name\":\"Superfood Cleanser\",\"size\":\"8 fl oz (237 mL)\",\"barcode\":\"854082006007\"},{\"name\":\"Superfood Air-Whip Moisture Cream\",\"size\":\"2 fl oz (59 mL)\",\"barcode\":\"854082006021\"}]}]}"
+}

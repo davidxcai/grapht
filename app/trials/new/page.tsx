@@ -21,7 +21,7 @@ async function loadOptions(userId: string): Promise<{
                 id: r.id,
                 name: r.name,
                 coverage: routineCoverage(r),
-                products: r.items.map((i) => i.name),
+                items: r.items.map((i) => ({ id: i.id, name: i.name, image: i.image })),
             })),
             error: null,
         };
@@ -35,7 +35,7 @@ export default async function NewTrial() {
     const { routines, error } = await loadOptions(userId);
 
     return (
-        <main className="mx-auto w-full max-w-4xl px-5 py-10">
+        <main className="w-full px-5 py-10 lg:px-10">
             <TrialEditor routines={routines} routinesError={error} />
         </main>
     );

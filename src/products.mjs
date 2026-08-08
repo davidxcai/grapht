@@ -99,6 +99,53 @@ export function normalizeBarcode(raw) {
   return digits.padStart(14, '0');
 }
 
+/**
+ * Does this barcode's check digit agree with its body?
+ *
+ * The last digit of every GTIN is a mod-10 checksum over the others, so this
+ * rejects roughly 90% of arbitrary digit strings for free — no network, no
+ * quota, no database. That matters for two different inputs: OCR off a photo,
+ * where a transposed digit fails arithmetic instead of silently querying the
+ * wrong product; and model-generated candidates, where an invented code is
+ * usually invented digit by digit and does not survive the sum.
+ *
+ * A pass is NOT evidence the product exists — it only means the string is a
+ * well-formed GTIN. Existence is what the INCI lookup answers.
+ */
+export function validGtin(code) {
+  const s = String(code ?? '').replace(/\D/g, '');
+  if (![8, 12, 13, 14].includes(s.length)) return false;
+  const digits = s.split('').map(Number);
+  const check = digits.pop();
+  let sum = 0;
+  // Weight 3 applies to every second digit counting back from the check digit.
+  for (let i = digits.length - 1, w = 3; i >= 0; i--, w = w === 3 ? 1 : 3) sum += digits[i] * w;
+  return (10 - (sum % 10)) % 10 === check;
+}
+
+/**
+ * Fold a brand or product name for *comparison* — never for identity.
+ *
+ * Decomposes accents and drops the combining marks, so "Avène" and "Avene"
+ * compare equal and "ESTÉE LAUDER" matches "estee lauder". Stripping the
+ * non-ASCII byte instead, which is what a bare `[^a-z0-9]` filter does, turns
+ * "Avène" into "avne" and "Estée" into "este" — near-misses that look like
+ * genuine disagreements. Both were real false mismatches in the barcode
+ * verification pass before this existed.
+ *
+ * Deliberately not used by `productKey`: this is aggressive enough that two
+ * different products could fold together, which is a wrong answer when it
+ * decides cache identity but the right answer when it decides whether two
+ * spellings of a brand name refer to the same brand.
+ */
+export function foldName(s) {
+  return String(s ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
 const slug = (s) =>
   String(s ?? '')
     .toLowerCase()

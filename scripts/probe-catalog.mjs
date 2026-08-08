@@ -25,6 +25,7 @@
 
 import { mkdir, writeFile, readFile, readdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { validGtin } from '../src/products.mjs';
 
 const UA = 'grapht/0.1 (catalog probe; contact via repo)';
 const args = process.argv.slice(2);
@@ -211,17 +212,6 @@ function findGtin(html) {
 }
 
 /** EAN-13 / UPC-A check digit. Rejects OCR slips and scraped junk alike. */
-function validGtin(code) {
-  const s = String(code).replace(/\D/g, '');
-  if (![8, 12, 13, 14].includes(s.length)) return false;
-  const digits = s.split('').map(Number);
-  const check = digits.pop();
-  let sum = 0;
-  // Weight 3 applies to every second digit counting back from the check digit.
-  for (let i = digits.length - 1, w = 3; i >= 0; i--, w = w === 3 ? 1 : 3) sum += digits[i] * w;
-  return (10 - (sum % 10)) % 10 === check;
-}
-
 /**
  * Layer 2, as measured rather than as designed.
  *

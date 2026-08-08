@@ -7,3 +7,5 @@ next-env.d.ts
 .vercel
 .env*
 public/captures/
+certificates/
+skincare-data/raw/incidecoder/

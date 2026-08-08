@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bookmark, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { toggleSave } from '@/app/community/actions';
@@ -19,7 +20,10 @@ export function SaveTrialButton({ trialId, saved }: { trialId: string; saved: bo
     startTransition(async () => {
       const result = await toggleSave(trialId);
       if (!result.ok) setError(result.error);
-      else router.refresh();
+      else {
+        toast.success(result.data.saved ? 'Saved to your list' : 'Removed from your list');
+        router.refresh();
+      }
     });
   };
 

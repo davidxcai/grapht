@@ -1,0 +1,2194 @@
+{
+  "generatedAt": "2026-08-07T15:57:35.169Z",
+  "harvester": {
+    "model": "gemini-3.6-flash",
+    "promptVersion": "2026-08-07.1"
+  },
+  "perBrand": 50,
+  "source": "skincare-data/skincare-brands.md",
+  "stats": {
+    "brands": 120,
+    "batchesRead": 12,
+    "candidates": 115,
+    "rejected": 212,
+    "brandsWithNoCandidates": 8
+  },
+  "candidates": [
+    {
+      "brand": "Klairs (Dear, Klairs)",
+      "name": "Freshly Juiced Vitamin Drop",
+      "size": "1.18 fl oz (35 mL)",
+      "barcode": "8809115025050"
+    },
+    {
+      "brand": "Neogen",
+      "name": "Dermalogy Real Ferment Micro Essence",
+      "size": "5.07 fl oz (150 mL)",
+      "barcode": "8809388842187"
+    },
+    {
+      "brand": "Neogen",
+      "name": "Dermalogy Bio-Peel Gauze Peeling Wine",
+      "size": "30 pads / 6.76 fl oz (200 mL)",
+      "barcode": "8809388840503"
+    },
+    {
+      "brand": "Dr. Jart+",
+      "name": "Cicapair Tiger Grass Color Correcting Treatment SPF 30",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "8809642710108"
+    },
+    {
+      "brand": "Dr. Jart+",
+      "name": "Cicapair Tiger Grass Color Correcting Treatment SPF 30",
+      "size": "0.5 fl oz (15 mL)",
+      "barcode": "8809642712959"
+    },
+    {
+      "brand": "Manyo Factory",
+      "name": "Pure Cleansing Oil",
+      "size": "6.76 fl oz (200 mL)",
+      "barcode": "8809409402130"
+    },
+    {
+      "brand": "Manyo Factory",
+      "name": "Bifida Biome Complex Ampoule",
+      "size": "1.69 fl oz (50 mL)",
+      "barcode": "8809409402505"
+    },
+    {
+      "brand": "La Prairie",
+      "name": "Skin Caviar Luxe Cream",
+      "size": "1.7 oz (50 mL)",
+      "barcode": "7611773081498"
+    },
+    {
+      "brand": "Sisley Paris",
+      "name": "Ecological Compound",
+      "size": "4.2 oz (125 mL)",
+      "barcode": "3473311141002"
+    },
+    {
+      "brand": "Sisley Paris",
+      "name": "Black Rose Cream Mask",
+      "size": "2.1 oz (60 mL)",
+      "barcode": "3473311400000"
+    },
+    {
+      "brand": "Dr. Barbara Sturm",
+      "name": "Hyaluronic Serum",
+      "size": "30 mL / 1.01 fl. oz.",
+      "barcode": "4260395250084"
+    },
+    {
+      "brand": "Dr. Barbara Sturm",
+      "name": "Face Cream",
+      "size": "50 mL / 1.69 fl. oz.",
+      "barcode": "4260395250039"
+    },
+    {
+      "brand": "Dr. Barbara Sturm",
+      "name": "Cleanser",
+      "size": "150 mL / 5.07 fl. oz.",
+      "barcode": "4260395250008"
+    },
+    {
+      "brand": "Dr. Barbara Sturm",
+      "name": "Enzyme Cleanser",
+      "size": "75 g / 2.64 oz.",
+      "barcode": "4260395250787"
+    },
+    {
+      "brand": "Clé de Peau Beauté",
+      "name": "Softening Cleansing Foam",
+      "size": "125 mL / 4.7 oz.",
+      "barcode": "729238142343"
+    },
+    {
+      "brand": "Clé de Peau Beauté",
+      "name": "The Cream",
+      "size": "50 mL / 1.7 oz.",
+      "barcode": "729238153400"
+    },
+    {
+      "brand": "Clé de Peau Beauté",
+      "name": "Correcting Cream Veil SPF 21",
+      "size": "37 mL / 1.4 oz.",
+      "barcode": "729238158580"
+    },
+    {
+      "brand": "Guerlain",
+      "name": "Abeille Royale Youth Watery Oil",
+      "size": "50 mL / 1.6 fl. oz.",
+      "barcode": "3346470614314"
+    },
+    {
+      "brand": "Guerlain",
+      "name": "Abeille Royale Advanced Youth Watery Oil",
+      "size": "50 mL / 1.6 fl. oz.",
+      "barcode": "3346470616172"
+    },
+    {
+      "brand": "Chanel Beauty",
+      "name": "Hydra Beauty Crème",
+      "size": "50 g / 1.7 oz.",
+      "barcode": "3145891430301"
+    },
+    {
+      "brand": "Chanel Beauty",
+      "name": "La Mousse Anti-Pollution Cleansing Cream-to-Foam",
+      "size": "150 mL / 5 fl. oz.",
+      "barcode": "3145891436808"
+    },
+    {
+      "brand": "Dior Skincare",
+      "name": "Capture Totale Super Potent Serum",
+      "size": "50 mL / 1.7 fl. oz.",
+      "barcode": "3348901486262"
+    },
+    {
+      "brand": "Aesop",
+      "name": "Parsley Seed Anti-Oxidant Serum",
+      "size": "100 mL / 3.4 fl. oz.",
+      "barcode": "9319944002621"
+    },
+    {
+      "brand": "Aesop",
+      "name": "Resurrection Aromatique Hand Balm",
+      "size": "75 mL / 2.6 oz.",
+      "barcode": "9319944030617"
+    },
+    {
+      "brand": "Aesop",
+      "name": "Fabulous Face Oil",
+      "size": "25 mL / 0.8 fl. oz.",
+      "barcode": "9319944000306"
+    },
+    {
+      "brand": "CeraVe",
+      "name": "Moisturizing Cream",
+      "size": "16 oz (453 g)",
+      "barcode": "3606000537736"
+    },
+    {
+      "brand": "CeraVe",
+      "name": "Hydrating Facial Cleanser",
+      "size": "12 fl oz (355 mL)",
+      "barcode": "3606000537446"
+    },
+    {
+      "brand": "CeraVe",
+      "name": "Foaming Facial Cleanser",
+      "size": "12 fl oz (355 mL)",
+      "barcode": "3606000537484"
+    },
+    {
+      "brand": "CeraVe",
+      "name": "AM Facial Moisturizing Lotion SPF 30",
+      "size": "3 fl oz (89 mL)",
+      "barcode": "3606000537330"
+    },
+    {
+      "brand": "CeraVe",
+      "name": "PM Facial Moisturizing Lotion",
+      "size": "3 fl oz (89 mL)",
+      "barcode": "3606000537354"
+    },
+    {
+      "brand": "CeraVe",
+      "name": "Renewing SA Cleanser",
+      "size": "8 fl oz (237 mL)",
+      "barcode": "3606000537552"
+    },
+    {
+      "brand": "La Roche-Posay",
+      "name": "Toleriane Hydrating Gentle Facial Cleanser",
+      "size": "13.52 fl oz (400 mL)",
+      "barcode": "3337875545778"
+    },
+    {
+      "brand": "La Roche-Posay",
+      "name": "Lipikar Balm AP+ Intense Repair Moisturizing Cream",
+      "size": "13.52 fl oz (400 mL)",
+      "barcode": "3337875696548"
+    },
+    {
+      "brand": "The Ordinary",
+      "name": "Niacinamide 10% + Zinc 1%",
+      "size": "30 mL",
+      "barcode": "769915190311"
+    },
+    {
+      "brand": "The Ordinary",
+      "name": "Hyaluronic Acid 2% + B5",
+      "size": "30 mL",
+      "barcode": "769915190199"
+    },
+    {
+      "brand": "The Ordinary",
+      "name": "Caffeine Solution 5% + EGCG",
+      "size": "30 mL",
+      "barcode": "769915190113"
+    },
+    {
+      "brand": "Tata Harper",
+      "name": "Regenerating Cleanser",
+      "size": "125 ml / 4.2 fl. oz.",
+      "barcode": "851371002014"
+    },
+    {
+      "brand": "Tata Harper",
+      "name": "Resurfacing Mask",
+      "size": "30 ml / 1.0 fl. oz.",
+      "barcode": "851371002038"
+    },
+    {
+      "brand": "Tata Harper",
+      "name": "Hydrating Floral Essence",
+      "size": "125 ml / 4.2 fl. oz.",
+      "barcode": "851371002069"
+    },
+    {
+      "brand": "Tata Harper",
+      "name": "Repairative Moisturizer",
+      "size": "50 ml / 1.7 fl. oz.",
+      "barcode": "851371002045"
+    },
+    {
+      "brand": "Caudalie",
+      "name": "Beauty Elixir",
+      "size": "100 ml / 3.4 fl. oz.",
+      "barcode": "3522930001393"
+    },
+    {
+      "brand": "Caudalie",
+      "name": "Vinoperfect Radiance Serum Complexion Correcting",
+      "size": "30 ml / 1 fl. oz.",
+      "barcode": "3522930002130"
+    },
+    {
+      "brand": "Caudalie",
+      "name": "Instant Foaming Cleanser",
+      "size": "150 ml / 5.1 fl. oz.",
+      "barcode": "3522930001812"
+    },
+    {
+      "brand": "Caudalie",
+      "name": "Vinosource Moisturizing Sorbet",
+      "size": "40 ml / 1.3 fl. oz.",
+      "barcode": "3522930001584"
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Hyaluronic Acid Serum",
+      "size": "30 ml / 1 fl oz",
+      "barcode": "5060422295328"
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Oat Cleansing Balm",
+      "size": "150 ml / 5 fl oz",
+      "barcode": "5060422297131"
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Retinol Serum",
+      "size": "30 ml / 1 fl oz",
+      "barcode": "5060422295366"
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Niacinamide Serum",
+      "size": "30 ml / 1 fl oz",
+      "barcode": "5060422295342"
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Salicylic Acid Cleanser",
+      "size": "150 ml / 5 fl oz",
+      "barcode": "5060422297124"
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Caffeine Eye Cream",
+      "size": "15 ml / 0.5 fl oz",
+      "barcode": "5060422295373"
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Polyglutamic Acid Serum",
+      "size": "30 ml / 1 fl oz",
+      "barcode": "5060422297162"
+    },
+    {
+      "brand": "Peace Out Skincare",
+      "name": "Peace Out Acne Acne Healing Dots",
+      "size": "20 patches",
+      "barcode": "858991007009"
+    },
+    {
+      "brand": "Peace Out Skincare",
+      "name": "Peace Out Pores Pore Strips",
+      "size": "4 strips",
+      "barcode": "858991007030"
+    },
+    {
+      "brand": "Peace Out Skincare",
+      "name": "Peace Out Wrinkles Microneedling Patches",
+      "size": "6 patches",
+      "barcode": "858991007054"
+    },
+    {
+      "brand": "Bubble",
+      "name": "Slam Dunk Hydrating Cream Moisturizer",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "850020056033"
+    },
+    {
+      "brand": "Bubble",
+      "name": "Fresh Start Gel Cleanser",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "850020056002"
+    },
+    {
+      "brand": "Bubble",
+      "name": "Level Up Balancing Gel Moisturizer",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "850020056040"
+    },
+    {
+      "brand": "Starface",
+      "name": "Hydro-Stars Hydrocolloid Pimple Patches",
+      "size": "32 Count",
+      "barcode": "850013843008"
+    },
+    {
+      "brand": "Ole Henriksen",
+      "name": "Truth Serum",
+      "size": "1 fl oz / 30 mL",
+      "barcode": "840093101372"
+    },
+    {
+      "brand": "Ole Henriksen",
+      "name": "Banana Bright Eye Crème",
+      "size": "0.5 fl oz / 15 mL",
+      "barcode": "840093101686"
+    },
+    {
+      "brand": "Ole Henriksen",
+      "name": "C-Rush Brightening Gel Crème",
+      "size": "1.7 fl oz / 50 mL",
+      "barcode": "840093101563"
+    },
+    {
+      "brand": "Mario Badescu",
+      "name": "Facial Spray with Aloe, Herbs and Rosewater",
+      "size": "4 fl oz",
+      "barcode": "785364130050"
+    },
+    {
+      "brand": "Mario Badescu",
+      "name": "Drying Lotion",
+      "size": "1 fl oz",
+      "barcode": "785364130081"
+    },
+    {
+      "brand": "Mario Badescu",
+      "name": "Facial Spray with Aloe, Herbs and Rosewater",
+      "size": "8 fl oz",
+      "barcode": "785364130043"
+    },
+    {
+      "brand": "Philosophy",
+      "name": "Purity Made Simple One-Step Facial Cleanser",
+      "size": "8 fl oz",
+      "barcode": "604926120172"
+    },
+    {
+      "brand": "Philosophy",
+      "name": "Purity Made Simple One-Step Facial Cleanser",
+      "size": "16 fl oz",
+      "barcode": "604926110036"
+    },
+    {
+      "brand": "Philosophy",
+      "name": "Hope in a Jar Smooth-Glow Multi-Tasking Moisturizer",
+      "size": "2 oz",
+      "barcode": "604926131345"
+    },
+    {
+      "brand": "Clinique",
+      "name": "Dramatically Different Moisturizing Lotion%",
+      "size": "4.2 fl oz / 125 mL",
+      "barcode": "020714598907"
+    },
+    {
+      "brand": "Clinique",
+      "name": "Take The Day Off Cleansing Balm",
+      "size": "3.8 oz / 125 mL",
+      "barcode": "020714215552"
+    },
+    {
+      "brand": "Clinique",
+      "name": "Clarifying Lotion 2",
+      "size": "16.9 fl oz / 500 mL",
+      "barcode": "020714466633"
+    },
+    {
+      "brand": "ESTÉE LAUDER",
+      "name": "Advanced Night Repair Synchronized Multi-Recovery Complex",
+      "size": "1.7 fl oz / 50 mL",
+      "barcode": "887167485488"
+    },
+    {
+      "brand": "ESTÉE LAUDER",
+      "name": "Advanced Night Repair Synchronized Multi-Recovery Complex",
+      "size": "1.0 fl oz / 30 mL",
+      "barcode": "887167485471"
+    },
+    {
+      "brand": "ESTÉE LAUDER",
+      "name": "DayWear Multi-Protection Anti-Oxidant 24H-Moisture Creme SPF 15",
+      "size": "1.7 oz / 50 mL",
+      "barcode": "887167031647"
+    },
+    {
+      "brand": "COSRX",
+      "name": "Advanced Snail 96 Mucin Power Essence",
+      "size": "100 mL",
+      "barcode": "8809416470009"
+    },
+    {
+      "brand": "COSRX",
+      "name": "Advanced Snail 92 All in One Cream",
+      "size": "100 g",
+      "barcode": "8809416470016"
+    },
+    {
+      "brand": "COSRX",
+      "name": "Low pH Good Morning Gel Cleanser",
+      "size": "150 mL",
+      "barcode": "8809416470511"
+    },
+    {
+      "brand": "COSRX",
+      "name": "Acne Pimple Master Patch",
+      "size": "24 patches",
+      "barcode": "8809416470221"
+    },
+    {
+      "brand": "COSRX",
+      "name": "BHA Blackhead Power Liquid",
+      "size": "100 mL",
+      "barcode": "8809416470054"
+    },
+    {
+      "brand": "COSRX",
+      "name": "AHA/BHA Clarifying Treatment Toner",
+      "size": "150 mL",
+      "barcode": "8809416470061"
+    },
+    {
+      "brand": "COSRX",
+      "name": "Oil-Free Ultra-Moisturizing Lotion with Birch Sap",
+      "size": "100 mL",
+      "barcode": "8809416470238"
+    },
+    {
+      "brand": "Laneige",
+      "name": "Lip Sleeping Mask Berry",
+      "size": "20 g",
+      "barcode": "8809643088619"
+    },
+    {
+      "brand": "Laneige",
+      "name": "Water Bank Blue Hyaluronic Cream Moisturizer",
+      "size": "50 mL",
+      "barcode": "8809643088626"
+    },
+    {
+      "brand": "Laneige",
+      "name": "Cream Skin Toner & Quick Skin Pack",
+      "size": "150 mL",
+      "barcode": "8809643088633"
+    },
+    {
+      "brand": "Innisfree",
+      "name": "Super Volcanic Pore Clay Mask 2X",
+      "size": "100 mL",
+      "barcode": "8809618342210"
+    },
+    {
+      "brand": "Anua",
+      "name": "Heartleaf 77% Soothing Toner",
+      "size": "250 mL",
+      "barcode": "8809640730016"
+    },
+    {
+      "brand": "Anua",
+      "name": "Heartleaf Pore Control Cleansing Oil",
+      "size": "200 mL",
+      "barcode": "8809640730078"
+    },
+    {
+      "brand": "Sulwhasoo",
+      "name": "First Care Activating Serum",
+      "size": "60 mL",
+      "barcode": "8809643080019"
+    },
+    {
+      "brand": "Sulwhasoo",
+      "name": "Concentrated Ginseng Renewing Cream EX",
+      "size": "60 mL",
+      "barcode": "8809643080026"
+    },
+    {
+      "brand": "Round Lab",
+      "name": "1025 Dokdo Toner",
+      "size": "200 mL",
+      "barcode": "8809600390014"
+    },
+    {
+      "brand": "Round Lab",
+      "name": "Birch Juice Moisturizing Sunscreen SPF50+ PA++++",
+      "size": "50 mL",
+      "barcode": "8809600390106"
+    },
+    {
+      "brand": "Obagi",
+      "name": "Nu-Derm Foaming Gel #1",
+      "size": "6.7 fl oz / 200 ml",
+      "barcode": "362032080000"
+    },
+    {
+      "brand": "Obagi",
+      "name": "Nu-Derm Toner #2",
+      "size": "6.7 fl oz / 200 ml",
+      "barcode": "362032080109"
+    },
+    {
+      "brand": "Obagi",
+      "name": "Medical Hydrate Facial Moisturizer",
+      "size": "1.7 oz / 48 g",
+      "barcode": "362032090009"
+    },
+    {
+      "brand": "Avene",
+      "name": "Thermal Spring Water",
+      "size": "10.1 fl oz / 300 ml",
+      "barcode": "3282779003131"
+    },
+    {
+      "brand": "Avene",
+      "name": "Thermal Spring Water",
+      "size": "5.0 fl oz / 150 ml",
+      "barcode": "3282779003124"
+    },
+    {
+      "brand": "Vaseline",
+      "name": "Healing Jelly Original",
+      "size": "13 oz",
+      "barcode": "042100022100"
+    },
+    {
+      "brand": "Vaseline",
+      "name": "Healing Jelly Original",
+      "size": "7.5 oz",
+      "barcode": "042100022209"
+    },
+    {
+      "brand": "Vaseline",
+      "name": "Intensive Care Cocoa Radiant Lotion",
+      "size": "20.3 fl oz",
+      "barcode": "042100497588"
+    },
+    {
+      "brand": "Vaseline",
+      "name": "Intensive Care Advanced Repair Unscented Lotion",
+      "size": "20.3 fl oz",
+      "barcode": "042100497380"
+    },
+    {
+      "brand": "Gold Bond",
+      "name": "Ultimate Healing Hand Cream",
+      "size": "3 oz",
+      "barcode": "041167050163"
+    },
+    {
+      "brand": "Gold Bond",
+      "name": "Ultimate Rough & Bumpy Skin Therapy Cream",
+      "size": "8 oz",
+      "barcode": "041167053003"
+    },
+    {
+      "brand": "Gold Bond",
+      "name": "Diabetics' Dry Skin Relief Lotion",
+      "size": "13 oz",
+      "barcode": "041167053515"
+    },
+    {
+      "brand": "Garnier",
+      "name": "SkinActive Micellar Cleansing Water All-in-1",
+      "size": "13.5 fl oz",
+      "barcode": "603084459735"
+    },
+    {
+      "brand": "Garnier",
+      "name": "SkinActive Micellar Cleansing Water Waterproof",
+      "size": "13.5 fl oz",
+      "barcode": "603084459780"
+    },
+    {
+      "brand": "Pond's",
+      "name": "Cold Cream Cleanser",
+      "size": "6.1 oz",
+      "barcode": "042100048735"
+    },
+    {
+      "brand": "Pond's",
+      "name": "Dry Skin Cream",
+      "size": "6.5 oz",
+      "barcode": "042100048605"
+    },
+    {
+      "brand": "Pond's",
+      "name": "Rejuveness Anti-Wrinkle Cream",
+      "size": "7 oz",
+      "barcode": "042100048704"
+    },
+    {
+      "brand": "Bioderma",
+      "name": "Sensibio H2O Micellar Water",
+      "size": "250 mL",
+      "barcode": "3401570394723"
+    },
+    {
+      "brand": "Bioderma",
+      "name": "Atoderm Intensive Baume",
+      "size": "500 mL",
+      "barcode": "3701129802052"
+    },
+    {
+      "brand": "Nuxe",
+      "name": "Huile Prodigieuse Multi-Purpose Dry Oil",
+      "size": "100 mL",
+      "barcode": "3264680002007"
+    },
+    {
+      "brand": "Nuxe",
+      "name": "Huile Prodigieuse Florale Dry Oil",
+      "size": "100 mL",
+      "barcode": "3264680015946"
+    },
+    {
+      "brand": "Nuxe",
+      "name": "Rêve de Miel Lip Moisturizing Stick",
+      "size": "4g",
+      "barcode": "3264680004087"
+    },
+    {
+      "brand": "Dr. Hauschka",
+      "name": "Rose Day Cream",
+      "size": "30 mL",
+      "barcode": "4020829005778"
+    },
+    {
+      "brand": "Dr. Hauschka",
+      "name": "Cleansing Cream",
+      "size": "50 mL",
+      "barcode": "4020829005518"
+    },
+    {
+      "brand": "Dr. Hauschka",
+      "name": "Facial Toner",
+      "size": "100 mL",
+      "barcode": "4020829005617"
+    }
+  ],
+  "rejected": [
+    {
+      "brand": "Belif",
+      "name": "The True Cream Aqua Bomb",
+      "size": "1.68 fl oz (50 mL)",
+      "barcode": "8801051216010",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Belif",
+      "name": "The True Cream Moisturizing Bomb",
+      "size": "1.68 fl oz (50 mL)",
+      "barcode": "8801051216034",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Belif",
+      "name": "Aqua Bomb Jelly Cleanser",
+      "size": "5.41 fl oz (160 mL)",
+      "barcode": "8801051410142",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Klairs (Dear, Klairs)",
+      "name": "Supple Preparation Unscented Toner",
+      "size": "6.08 fl oz (180 mL)",
+      "barcode": "8809579890145",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Klairs (Dear, Klairs)",
+      "name": "Rich Moist Soothing Cream",
+      "size": "2.7 fl oz (80 mL)",
+      "barcode": "8809579890084",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Klairs (Dear, Klairs)",
+      "name": "Gentle Black Deep Cleansing Oil",
+      "size": "5.07 fl oz (150 mL)",
+      "barcode": "8809579890060",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Dr. Jart+",
+      "name": "Ceramidin Cream",
+      "size": "1.69 fl oz (50 mL)",
+      "barcode": "8809535803875",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Augustinus Bader",
+      "name": "The Rich Cream",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "5060552900030",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Augustinus Bader",
+      "name": "The Cream",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "5060552900016",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Augustinus Bader",
+      "name": "The Essence",
+      "size": "3.38 fl oz (100 mL)",
+      "barcode": "5060552900535",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "La Mer",
+      "name": "Crème de la Mer",
+      "size": "2 oz (60 mL)",
+      "barcode": "747930000135",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "La Mer",
+      "name": "Crème de la Mer",
+      "size": "1 oz (30 mL)",
+      "barcode": "747930000012",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "La Mer",
+      "name": "The Treatment Lotion",
+      "size": "5 fl oz (150 mL)",
+      "barcode": "747930096237",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "111SKIN",
+      "name": "Celestial Black Diamond Eye Mask",
+      "size": "8 mL / 0.27 fl. oz.",
+      "barcode": "5060280370600",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "111SKIN",
+      "name": "Rose Gold Brightening Facial Treatment Mask",
+      "size": "30 mL / 1 fl. oz.",
+      "barcode": "5060280371072",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Omorovicza",
+      "name": "Thermal Cleansing Balm",
+      "size": "50 mL / 1.7 fl. oz.",
+      "barcode": "5999888370001",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Omorovicza",
+      "name": "Queen of Hungary Mist",
+      "size": "100 mL / 3.4 fl. oz.",
+      "barcode": "5999888370124",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Chantecaille",
+      "name": "Rose de Mai Face Oil",
+      "size": "30 mL / 1.01 fl. oz.",
+      "barcode": "656509033320",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Chantecaille",
+      "name": "Bio Lifting Mask",
+      "size": "50 mL / 1.7 fl. oz.",
+      "barcode": "656509015005",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Cetaphil",
+      "name": "Gentle Skin Cleanser",
+      "size": "16 fl oz (473 mL)",
+      "barcode": "302990110163",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Cetaphil",
+      "name": "Daily Facial Cleanser",
+      "size": "16 fl oz (473 mL)",
+      "barcode": "302990200162",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Cetaphil",
+      "name": "Moisturizing Cream",
+      "size": "16 oz (453 g)",
+      "barcode": "302990140160",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Neutrogena",
+      "name": "Hydro Boost Water Gel",
+      "size": "1.7 oz (48 g)",
+      "barcode": "070501110004",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Neutrogena",
+      "name": "Oil-Free Acne Wash",
+      "size": "9.1 fl oz (269 mL)",
+      "barcode": "070501053004",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "La Roche-Posay",
+      "name": "Anthelios Melt-in Milk Sunscreen SPF 60",
+      "size": "5 fl oz (150 mL)",
+      "barcode": "3337875586119",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Olay",
+      "name": "Regenerist Micro-Sculpting Cream",
+      "size": "1.7 oz (48 g)",
+      "barcode": "037000104104",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Aveeno",
+      "name": "Daily Moisturizing Lotion",
+      "size": "18 fl oz (532 mL)",
+      "barcode": "038137003610",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Eucerin",
+      "name": "Advanced Repair Lotion",
+      "size": "16.9 fl oz (500 mL)",
+      "barcode": "072140024442",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Eucerin",
+      "name": "Daily Hydration Lotion SPF 15",
+      "size": "16.9 fl oz (500 mL)",
+      "barcode": "072140633835",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Nivea",
+      "name": "Essentially Enriched Body Lotion",
+      "size": "16.9 fl oz (500 mL)",
+      "barcode": "072140818119",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Aquaphor",
+      "name": "Healing Ointment",
+      "size": "14 oz (396 g)",
+      "barcode": "072140633729",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Biossance",
+      "name": "Squalane + Vitamin C Rose Oil",
+      "size": "30 ml / 1 fl. oz.",
+      "barcode": "855597007050",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Biossance",
+      "name": "Squalane + Omega Repair Cream",
+      "size": "50 ml / 1.69 fl. oz.",
+      "barcode": "855597007180",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Biossance",
+      "name": "Squalane + Phyto-Retinol Serum",
+      "size": "30 ml / 1 fl. oz.",
+      "barcode": "855597007111",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Biossance",
+      "name": "Squalane + Marine Algae Eye Cream",
+      "size": "15 ml / 0.5 fl. oz.",
+      "barcode": "855597007296",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Biossance",
+      "name": "100% Squalane Oil",
+      "size": "100 ml / 3.3 fl. oz.",
+      "barcode": "855597007005",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Herbivore Botanicals",
+      "name": "Lapis Blue Tansy Face Oil",
+      "size": "1.7 oz / 50 mL",
+      "barcode": "859241004121",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Herbivore Botanicals",
+      "name": "Phoenix Rosehip Facial Oil",
+      "size": "1.7 oz / 50 mL",
+      "barcode": "859241004114",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Herbivore Botanicals",
+      "name": "Prism 12% AHA + 3% BHA Exfoliating Glow Serum",
+      "size": "1 oz / 30 mL",
+      "barcode": "850006339088",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Herbivore Botanicals",
+      "name": "Pink Cloud Rosewater + Tremella Tremella Jelly Cleanser",
+      "size": "3.3 oz / 100 mL",
+      "barcode": "850006339286",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "OSEA",
+      "name": "Ocean Cleanser",
+      "size": "5 fl oz",
+      "barcode": "643980000010",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "OSEA",
+      "name": "Advanced Protection Cream",
+      "size": "1.9 oz",
+      "barcode": "643980000096",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "OSEA",
+      "name": "Undaria Algae Body Oil",
+      "size": "5 fl oz",
+      "barcode": "643980000300",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "True Botanicals",
+      "name": "Pure Radiance Oil - Clear",
+      "size": "1 fl oz / 30 ml",
+      "barcode": "856643006020",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "True Botanicals",
+      "name": "Chebula Active Serum",
+      "size": "1 fl oz / 30 ml",
+      "barcode": "850014092289",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "KORA Organics",
+      "name": "Noni Glow Face Oil",
+      "size": "30 ml / 1.01 fl. oz.",
+      "barcode": "9342759000132",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "KORA Organics",
+      "name": "Turmeric Brightening & Exfoliating Mask",
+      "size": "100 ml / 3.38 fl. oz.",
+      "barcode": "9342759000842",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Indie Lee",
+      "name": "CoQ-10 Toner",
+      "size": "4.2 fl oz / 125 ml",
+      "barcode": "859668003189",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Indie Lee",
+      "name": "Brightening Cleanser",
+      "size": "4.2 fl oz / 125 ml",
+      "barcode": "859668003103",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Indie Lee",
+      "name": "Squalane Facial Oil",
+      "size": "1 fl oz / 30 ml",
+      "barcode": "859668003004",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Ursa Major",
+      "name": "Fantastic Face Wash",
+      "size": "8 fl oz / 236 ml",
+      "barcode": "851081003003",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Ursa Major",
+      "name": "Fortifying Face Balm",
+      "size": "2.7 fl oz / 80 ml",
+      "barcode": "851081003010",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Ursa Major",
+      "name": "Golden Hour Recovery Cream",
+      "size": "1.7 fl oz / 49 ml",
+      "barcode": "851081003317",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Eminence Organic",
+      "name": "Strawberry Rhubarb Dermafoliant",
+      "size": "120 g / 4.2 oz",
+      "barcode": "823638012899",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Tower 28 Beauty",
+      "name": "SOS Daily Rescue Facial Spray",
+      "size": "4.0 fl oz / 120 mL",
+      "barcode": "850009129038",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Tower 28 Beauty",
+      "name": "SOS Daily Rescue Facial Spray",
+      "size": "1.0 fl oz / 30 mL",
+      "barcode": "850009129021",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Tower 28 Beauty",
+      "name": "SOS Daily Skin Barrier Redness Recovery Cream",
+      "size": "50 mL / 1.7 fl oz",
+      "barcode": "850009129335",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Fenty Skin",
+      "name": "Total Cleans'r Lipid-Whipped Cleanser",
+      "size": "145 mL / 4.9 fl oz",
+      "barcode": "840015700007",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Fenty Skin",
+      "name": "Fat Water Pore-Refining Toner Serum",
+      "size": "150 mL / 5.0 fl oz",
+      "barcode": "840015700021",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Fenty Skin",
+      "name": "Hydra Vizor Invisible Moisturizer Broad Spectrum SPF 30 Sunscreen",
+      "size": "50 mL / 1.7 fl oz",
+      "barcode": "840015700045",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Fenty Skin",
+      "name": "Instant Reset Brightening Overnight Recovery Gel-Cream",
+      "size": "50 mL / 1.7 fl oz",
+      "barcode": "840015700069",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Good Molecules",
+      "name": "Niacinamide Brightening Toner",
+      "size": "120 ml / 4 fl oz",
+      "barcode": "810019610012",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Good Molecules",
+      "name": "Discoloration Correcting Serum",
+      "size": "30 ml / 1 fl oz",
+      "barcode": "810019610197",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Good Molecules",
+      "name": "Hyaluronic Acid Serum",
+      "size": "30 ml / 1 fl oz",
+      "barcode": "810019610036",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Good Molecules",
+      "name": "Yerba Mate Wake Up Eye Gel",
+      "size": "15 ml / 0.50 fl oz",
+      "barcode": "810019610173",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Good Molecules",
+      "name": "Gentle Retinol Cream",
+      "size": "30 ml / 1 fl oz",
+      "barcode": "810019610487",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Hero Cosmetics",
+      "name": "Mighty Patch Original",
+      "size": "36 patches",
+      "barcode": "850002235019",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Hero Cosmetics",
+      "name": "Mighty Patch Invisible+",
+      "size": "39 patches",
+      "barcode": "850002235071",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Hero Cosmetics",
+      "name": "Mighty Patch Surface",
+      "size": "10 patches",
+      "barcode": "850002235033",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Hero Cosmetics",
+      "name": "Rescue Balm Post-Blemish Recovery Cream",
+      "size": "15 mL",
+      "barcode": "850002235088",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Hero Cosmetics",
+      "name": "Force Shield Superlight Sunscreen SPF 30",
+      "size": "50 mL / 1.69 fl oz",
+      "barcode": "850002235286",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Touchland",
+      "name": "Power Mist Hydrating Hand Sanitizer Neutral Water Water",
+      "size": "1.3 fl oz / 38 mL",
+      "barcode": "850002061007",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Touchland",
+      "name": "Power Mist Hydrating Hand Sanitizer Beach Coco",
+      "size": "1.3 fl oz / 38 mL",
+      "barcode": "850002061038",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Touchland",
+      "name": "Power Mist Hydrating Hand Sanitizer Aloe You",
+      "size": "1.3 fl oz / 38 mL",
+      "barcode": "850002061014",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Touchland",
+      "name": "Power Mist Hydrating Hand Sanitizer Citrus Grove",
+      "size": "1.3 fl oz / 38 mL",
+      "barcode": "850002061021",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Sol de Janeiro",
+      "name": "Brazilian Bum Bum Cream",
+      "size": "240 mL / 8.1 fl oz",
+      "barcode": "851604006006",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Sol de Janeiro",
+      "name": "Brazilian Bum Bum Cream",
+      "size": "75 mL / 2.5 fl oz",
+      "barcode": "851604006020",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Sol de Janeiro",
+      "name": "Coco Cabana Cream",
+      "size": "240 mL / 8.1 fl oz",
+      "barcode": "851604006433",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Sol de Janeiro",
+      "name": "Bom Dia Bright Cream",
+      "size": "240 mL / 8.1 fl oz",
+      "barcode": "850006922335",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Kopari",
+      "name": "Organic Coconut Melt",
+      "size": "5.1 fl oz / 150 mL",
+      "barcode": "852096006027",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Kopari",
+      "name": "Coconut Deodorant",
+      "size": "2.0 oz / 57 g",
+      "barcode": "852096006157",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Kopari",
+      "name": "Coconut Lip Glossy",
+      "size": "0.35 oz / 10 g",
+      "barcode": "852096006126",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Vacation",
+      "name": "Classic Lotion Broad Spectrum SPF 30 Sunscreen",
+      "size": "3.4 fl oz / 100 mL",
+      "barcode": "850027815000",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Vacation",
+      "name": "Chardonnay Oil Broad Spectrum SPF 30 Sunscreen",
+      "size": "3.4 fl oz / 100 mL",
+      "barcode": "850027815062",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Vacation",
+      "name": "Classic Whip Broad Spectrum SPF 30 Sunscreen Mousse",
+      "size": "4.0 oz / 113 g",
+      "barcode": "850027815154",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Murad",
+      "name": "Clarifying Cleanser",
+      "size": "6.75 fl oz",
+      "barcode": "767332808018",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Murad",
+      "name": "AHA/BHA Exfoliating Cleanser",
+      "size": "6.75 fl oz",
+      "barcode": "767332808025",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Murad",
+      "name": "Hydro-Dynamic Ultimate Moisture",
+      "size": "1.7 fl oz",
+      "barcode": "767332801033",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Murad",
+      "name": "Rapid Dark Spot Correcting Serum",
+      "size": "1.0 fl oz",
+      "barcode": "767332152869",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Perricone MD",
+      "name": "Cold Plasma Plus+ Advanced Serum Concentrate",
+      "size": "1 fl oz",
+      "barcode": "651473523730",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Perricone MD",
+      "name": "High Potency Classics Face Finishing & Firming Moisturizer",
+      "size": "2 fl oz",
+      "barcode": "651473523099",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Dr. Dennis Gross",
+      "name": "Alpha Beta Extra Strength Daily Peel",
+      "size": "30 Treatments",
+      "barcode": "843294002018",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Dr. Dennis Gross",
+      "name": "Alpha Beta Universal Daily Peel",
+      "size": "30 Treatments",
+      "barcode": "843294002001",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Kate Somerville",
+      "name": "ExfoliKate Intensive Exfoliating Treatment",
+      "size": "2 fl oz",
+      "barcode": "813920010022",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Kate Somerville",
+      "name": "Goat Milk Moisturizing Cream",
+      "size": "1.7 oz",
+      "barcode": "813920015522",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Peter Thomas Roth",
+      "name": "Water Drench Hyaluronic Cloud Cream Hydrating Moisturizer",
+      "size": "1.7 fl oz",
+      "barcode": "670367013778",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Peter Thomas Roth",
+      "name": "Anti-Aging Cleansing Gel",
+      "size": "8.5 fl oz",
+      "barcode": "670367118022",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Byoma",
+      "name": "Creamy Jelly Cleanser",
+      "size": "175 mL",
+      "barcode": "5060489712716",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Byoma",
+      "name": "Moisturizing Gel Cream",
+      "size": "50 mL",
+      "barcode": "5060489712730",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Byoma",
+      "name": "Hydrating Serum",
+      "size": "30 mL",
+      "barcode": "5060489712785",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Glossier",
+      "name": "Milky Jelly Cleanser",
+      "size": "6.0 fl oz (177 mL)",
+      "barcode": "810026210008",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Glossier",
+      "name": "Priming Moisturizer",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "855152005022",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Summer Fridays",
+      "name": "Jet Lag Mask",
+      "size": "2.25 oz / 64 g",
+      "barcode": "850004234008",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Summer Fridays",
+      "name": "CC Me Serum",
+      "size": "1 fl oz / 30 mL",
+      "barcode": "850004234053",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Summer Fridays",
+      "name": "Lip Butter Balm Vanilla",
+      "size": "0.5 oz / 15 g",
+      "barcode": "850004234138",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "First Aid Beauty",
+      "name": "Ultra Repair Cream Intense Hydration",
+      "size": "6 oz",
+      "barcode": "815517010041",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "First Aid Beauty",
+      "name": "Pure Skin Face Cleanser",
+      "size": "5 oz",
+      "barcode": "815517010188",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "First Aid Beauty",
+      "name": "Facial Radiance Pads",
+      "size": "60 count",
+      "barcode": "815517010584",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Farmacy",
+      "name": "Green Clean Makeup Meltaway Cleansing Balm",
+      "size": "3.4 fl oz / 100 mL",
+      "barcode": "850839007051",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Farmacy",
+      "name": "Honeymoon Glow AHA Resurfacing Night Serum",
+      "size": "1 fl oz / 30 mL",
+      "barcode": "850839007204",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Farmacy",
+      "name": "Honey Potion Renewing Antioxidant Hydration Mask",
+      "size": "4 oz / 117 g",
+      "barcode": "850839007013",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Origins",
+      "name": "Clear Improvement Active Charcoal Mask",
+      "size": "2.5 fl oz / 75 mL",
+      "barcode": "717333075210",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Origins",
+      "name": "GinZing Energy-Boosting Gel Moisturizer",
+      "size": "1.7 oz / 50 mL",
+      "barcode": "717333200780",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Origins",
+      "name": "Checks and Balances Frothy Face Wash",
+      "size": "5 fl oz / 150 mL",
+      "barcode": "717333013847",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Kiehl's",
+      "name": "Ultra Facial Cream",
+      "size": "1.7 fl oz / 50 mL",
+      "barcode": "3605970034608",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Kiehl's",
+      "name": "Ultra Facial Cream",
+      "size": "4.2 fl oz / 125 mL",
+      "barcode": "3605970360753",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Kiehl's",
+      "name": "Calendula Herbal-Extract Toner",
+      "size": "8.4 fl oz / 250 mL",
+      "barcode": "3605970024227",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Beauty of Joseon",
+      "name": "Relief Sun : Rice + Probiotics",
+      "size": "50 mL",
+      "barcode": "8809738600021",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Beauty of Joseon",
+      "name": "Dynasty Cream",
+      "size": "50 mL",
+      "barcode": "8809738600007",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Beauty of Joseon",
+      "name": "Glow Serum : Propolis + Niacinamide",
+      "size": "30 mL",
+      "barcode": "8809738600014",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Beauty of Joseon",
+      "name": "Revive Eye Serum : Ginseng + Retinal",
+      "size": "30 mL",
+      "barcode": "8809738600106",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Beauty of Joseon",
+      "name": "Glow Deep Serum : Rice + Alpha-Arbutin",
+      "size": "30 mL",
+      "barcode": "8809738600083",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Beauty of Joseon",
+      "name": "Ginseng Essence Water",
+      "size": "150 mL",
+      "barcode": "8809738600052",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Innisfree",
+      "name": "Green Tea Seed Hyaluronic Serum",
+      "size": "80 mL",
+      "barcode": "8809811802090",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Innisfree",
+      "name": "Daily UV Defense Sunscreen Broad Spectrum SPF 36",
+      "size": "50 mL",
+      "barcode": "8809811802113",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Skin1004",
+      "name": "Madagascar Centella Ampoule",
+      "size": "100 mL",
+      "barcode": "8809576260124",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Skin1004",
+      "name": "Madagascar Centella Hyalu-Cica Water-Fit Sun Serum SPF50+ PA++++",
+      "size": "50 mL",
+      "barcode": "8809576260643",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SK-II",
+      "name": "Facial Treatment Essence",
+      "size": "75 mL",
+      "barcode": "4979006070087",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SK-II",
+      "name": "Facial Treatment Essence",
+      "size": "160 mL",
+      "barcode": "4979006070094",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SK-II",
+      "name": "Facial Treatment Essence",
+      "size": "230 mL",
+      "barcode": "4979006070063",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SK-II",
+      "name": "GenOptics Aura Essence",
+      "size": "50 mL",
+      "barcode": "4979006068527",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Shiseido",
+      "name": "Ultimune Power Infusing Concentrate",
+      "size": "50 mL",
+      "barcode": "729238171627",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Shiseido",
+      "name": "Ultimune Power Infusing Concentrate",
+      "size": "30 mL",
+      "barcode": "729238171610",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Shiseido",
+      "name": "Benefiance Wrinkle Smoothing Cream",
+      "size": "50 mL",
+      "barcode": "729238152916",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SkinCeuticals",
+      "name": "C E Ferulic",
+      "size": "1 fl oz / 30 ml",
+      "barcode": "3606000438600",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SkinCeuticals",
+      "name": "Hydrating B5 Gel",
+      "size": "1 fl oz / 30 ml",
+      "barcode": "3606000437344",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SkinCeuticals",
+      "name": "Triple Lipid Restore 2:4:2",
+      "size": "1.67 fl oz / 48 ml",
+      "barcode": "3606000465224",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SkinCeuticals",
+      "name": "HA Intensifier",
+      "size": "1 fl oz / 30 ml",
+      "barcode": "3606000473212",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SkinCeuticals",
+      "name": "Gentle Cleanser",
+      "size": "6.8 fl oz / 200 ml",
+      "barcode": "3606000463718",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SkinCeuticals",
+      "name": "Phyto Corrective Gel",
+      "size": "1 fl oz / 30 ml",
+      "barcode": "3606000437306",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SkinCeuticals",
+      "name": "Silymarin CF",
+      "size": "1 fl oz / 30 ml",
+      "barcode": "3606000557431",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "EltaMD",
+      "name": "UV Clear Broad-Spectrum SPF 46 - Untinted",
+      "size": "1.7 oz / 48 g",
+      "barcode": "090205022533",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "EltaMD",
+      "name": "UV Clear Broad-Spectrum SPF 46 - Tinted",
+      "size": "1.7 oz / 48 g",
+      "barcode": "090205022540",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "EltaMD",
+      "name": "UV Daily Broad-Spectrum SPF 40 - Untinted",
+      "size": "1.7 oz / 48 g",
+      "barcode": "090205022434",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "EltaMD",
+      "name": "Foaming Facial Cleanser",
+      "size": "7 fl oz / 207 ml",
+      "barcode": "090205022137",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "EltaMD",
+      "name": "UV Physical Broad-Spectrum SPF 41 - Tinted",
+      "size": "3 oz / 85 g",
+      "barcode": "090205022281",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "EltaMD",
+      "name": "UV Elements Broad-Spectrum SPF 44 - Tinted",
+      "size": "2 oz / 57 g",
+      "barcode": "090205022830",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Paula's Choice",
+      "name": "Skin Perfecting 2% BHA Liquid Exfoliant",
+      "size": "4 fl oz / 118 ml",
+      "barcode": "0655439020110",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Paula's Choice",
+      "name": "Skin Perfecting 2% BHA Liquid Exfoliant",
+      "size": "1 fl oz / 30 ml",
+      "barcode": "0655439020134",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Paula's Choice",
+      "name": "10% Niacinamide Booster",
+      "size": "0.67 fl oz / 20 ml",
+      "barcode": "0655439079804",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Paula's Choice",
+      "name": "C15 Super Booster",
+      "size": "0.67 fl oz / 20 ml",
+      "barcode": "0655439077701",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Paula's Choice",
+      "name": "Clinical 1% Retinol Treatment",
+      "size": "1 fl oz / 30 ml",
+      "barcode": "0655439080107",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Revision Skincare",
+      "name": "Nectifirm",
+      "size": "1.7 oz / 48 g",
+      "barcode": "800441000287",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Revision Skincare",
+      "name": "Intellishade TruPhysical SPF 45",
+      "size": "1.7 oz / 48 g",
+      "barcode": "800441001406",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "PCA Skin",
+      "name": "Hyaluronic Acid Boosting Serum",
+      "size": "1 oz / 28.3 g",
+      "barcode": "812042021674",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SkinMedica",
+      "name": "TNS Recovery Complex",
+      "size": "1 oz / 28.3 g",
+      "barcode": "300234381014",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SkinMedica",
+      "name": "HA5 Rejuvenating Hydrator",
+      "size": "2 oz / 56.7 g",
+      "barcode": "300234388020",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "SkinMedica",
+      "name": "TNS Advanced+ Serum",
+      "size": "1 oz / 28.3 g",
+      "barcode": "300235252016",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Avene",
+      "name": "Cicalfate+ Restorative Protective Cream",
+      "size": "1.3 fl oz / 40 ml",
+      "barcode": "3282770204661",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Differin",
+      "name": "Adapalene Gel 0.1% Acne Treatment",
+      "size": "0.5 oz (15 g)",
+      "barcode": "302994111000",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Differin",
+      "name": "Adapalene Gel 0.1% Acne Treatment",
+      "size": "1.6 oz (45 g)",
+      "barcode": "302994112007",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Differin",
+      "name": "Gentle Cleanser",
+      "size": "4 fl oz (118 mL)",
+      "barcode": "302994101001",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Differin",
+      "name": "Soothing Moisturizer",
+      "size": "4 fl oz (118 mL)",
+      "barcode": "302994103005",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "IS Clinical",
+      "name": "Cleansing Complex",
+      "size": "6 fl oz (180 mL)",
+      "barcode": "817244010044",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "IS Clinical",
+      "name": "Active Serum",
+      "size": "1 fl oz (30 mL)",
+      "barcode": "817244010136",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Drunk Elephant",
+      "name": "Protini Polypeptide Cream",
+      "size": "1.69 fl oz (50 mL)",
+      "barcode": "856556004439",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Drunk Elephant",
+      "name": "Lala Retro Whipped Cream",
+      "size": "1.69 fl oz (50 mL)",
+      "barcode": "856556004170",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Drunk Elephant",
+      "name": "Beste No. 9 Jelly Cleanser",
+      "size": "5 fl oz (150 mL)",
+      "barcode": "856556004415",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Drunk Elephant",
+      "name": "T.L.C. Framboos Glycolic Night Serum",
+      "size": "1 fl oz (30 mL)",
+      "barcode": "856556004033",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Drunk Elephant",
+      "name": "C-Firma Fresh Day Serum",
+      "size": "0.94 fl oz (28 mL)",
+      "barcode": "850020054045",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Glow Recipe",
+      "name": "Watermelon Glow Niacinamide Dew Drops",
+      "size": "1.35 fl oz (40 mL)",
+      "barcode": "810052960249",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Glow Recipe",
+      "name": "Watermelon Glow PHA + BHA Pore-Tight Toner",
+      "size": "5.07 fl oz (150 mL)",
+      "barcode": "850002449227",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Glow Recipe",
+      "name": "Plum Plump Hyaluronic Serum",
+      "size": "1 fl oz (30 mL)",
+      "barcode": "810052960010",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Tatcha",
+      "name": "The Water Cream",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "815235020827",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Tatcha",
+      "name": "The Dewy Skin Cream",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "815235023248",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Tatcha",
+      "name": "The Rice Wash Skin-Softening Cleanser",
+      "size": "4.0 fl oz (120 mL)",
+      "barcode": "815235025983",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Sunday Riley",
+      "name": "Good Genes All-In-One Lactic Acid Treatment",
+      "size": "1 fl oz (30 mL)",
+      "barcode": "817494014022",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Sunday Riley",
+      "name": "Luna Sleeping Night Oil",
+      "size": "1 fl oz (30 mL)",
+      "barcode": "817494014107",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Sunday Riley",
+      "name": "C.E.O. 15% Vitamin C Brightening Serum",
+      "size": "1 fl oz (30 mL)",
+      "barcode": "817494018228",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Youth to the People",
+      "name": "Superfood Cleanser",
+      "size": "8 fl oz (237 mL)",
+      "barcode": "854082006007",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Youth to the People",
+      "name": "Superfood Air-Whip Moisture Cream",
+      "size": "2 fl oz (59 mL)",
+      "barcode": "854082006021",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Jergens",
+      "name": "Ultra Healing Extra Dry Skin Moisturizer",
+      "size": "21 fl oz",
+      "barcode": "019100109987",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Jergens",
+      "name": "Original Scent Dry Skin Moisturizer",
+      "size": "21 fl oz",
+      "barcode": "019100109864",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Jergens",
+      "name": "Natural Glow Daily Moisturizer Fair to Medium",
+      "size": "7.5 fl oz",
+      "barcode": "019100112024",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "L'Oréal Paris",
+      "name": "Revitalift Derm Intensives 1.5% Pure Hyaluronic Acid Serum",
+      "size": "1.0 fl oz",
+      "barcode": "071249387420",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "L'Oréal Paris",
+      "name": "Revitalift Anti-Wrinkle + Firming Face & Neck Cream",
+      "size": "1.7 oz",
+      "barcode": "071249017365",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Simple",
+      "name": "Kind to Skin Micellar Cleansing Water",
+      "size": "6.7 fl oz",
+      "barcode": "608501000483",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Simple",
+      "name": "Kind to Skin Moisturizing Facial Wash",
+      "size": "5 fl oz",
+      "barcode": "608501000421",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Clean & Clear",
+      "name": "Morning Burst Facial Cleanser",
+      "size": "8 fl oz",
+      "barcode": "381370016422",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Clean & Clear",
+      "name": "Deep Action Exfoliating Scrub",
+      "size": "5 oz",
+      "barcode": "381370034266",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Clean & Clear",
+      "name": "Essential Foaming Facial Cleanser",
+      "size": "8 fl oz",
+      "barcode": "381370011533",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Bioderma",
+      "name": "Sensibio H2O Micellar Water",
+      "size": "500 mL",
+      "barcode": "3401574670782",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Burt's Bees",
+      "name": "Beeswax Lip Balm",
+      "size": "0.15 oz",
+      "barcode": "0792850010015",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Burt's Bees",
+      "name": "Beeswax Lip Balm 4-Pack",
+      "size": "0.6 oz",
+      "barcode": "0792850892994",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Burt's Bees",
+      "name": "Lip Balm Vitamin E & Peppermint",
+      "size": "0.15 oz",
+      "barcode": "792850010015",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Weleda",
+      "name": "Skin Food Original Ultra-Rich Cream",
+      "size": "2.5 fl oz",
+      "barcode": "4001638098396",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Weleda",
+      "name": "Skin Food Light Nourishing Cream",
+      "size": "2.5 fl oz",
+      "barcode": "4001638500219",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Weleda",
+      "name": "Skin Food Lip Butter",
+      "size": "0.27 fl oz",
+      "barcode": "4001638500172",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Pai Skincare",
+      "name": "Rosehip BioRegenerate Oil",
+      "size": "30 mL",
+      "barcode": "5060139720235",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Earth Harbor",
+      "name": "Calypso Revitalizing Violet Elixir",
+      "size": "1 fl oz",
+      "barcode": "850009572007",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Supergoop!",
+      "name": "Unseen Sunscreen SPF 40",
+      "size": "1.7 fl oz",
+      "barcode": "816218022144",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Supergoop!",
+      "name": "Glow Screen SPF 40 Sunrise",
+      "size": "1.7 fl oz",
+      "barcode": "816218023790",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Supergoop!",
+      "name": "PLAY Everyday Lotion SPF 50",
+      "size": "5.5 fl oz",
+      "barcode": "816218022397",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Coola",
+      "name": "Classic Face Sunscreen Lotion SPF 30 Cucumber",
+      "size": "1.7 fl oz",
+      "barcode": "850005486001",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Coola",
+      "name": "Classic Body Sunscreen Spray SPF 50 Piña Colada",
+      "size": "6 fl oz",
+      "barcode": "854036003184",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Sun Bum",
+      "name": "Original SPF 30 Sunscreen Lotion",
+      "size": "8 fl oz",
+      "barcode": "871760000109",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Sun Bum",
+      "name": "Original SPF 50 Sunscreen Lotion",
+      "size": "8 fl oz",
+      "barcode": "871760000116",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Sun Bum",
+      "name": "Original SPF 30 Sunscreen Lip Balm Coconut",
+      "size": "0.15 oz",
+      "barcode": "871760000215",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Coppertone",
+      "name": "Sport Sunscreen Lotion SPF 30",
+      "size": "7 fl oz",
+      "barcode": "041100005763",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Coppertone",
+      "name": "Sport Sunscreen Spray SPF 50",
+      "size": "5.5 oz",
+      "barcode": "041100002229",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Banana Boat",
+      "name": "Sport Ultra Sunscreen Lotion SPF 30",
+      "size": "8 fl oz",
+      "barcode": "079656008034",
+      "reason": "check digit failed"
+    },
+    {
+      "brand": "Banana Boat",
+      "name": "Sport Ultra Sunscreen Spray SPF 50",
+      "size": "6 oz",
+      "barcode": "079656009475",
+      "reason": "check digit failed"
+    }
+  ]
+}

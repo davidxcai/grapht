@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CardGrid } from "@/components/card-grid";
 import { TrialCard } from "@/components/trial-card";
 import { CommunityTrialCard } from "@/components/community-trial-card";
 import { RoutineCard } from "@/components/routine-card";
@@ -65,7 +66,18 @@ async function loadRoutines(userId: string): Promise<{
     }
 }
 
-export default async function Dashboard() {
+const TABS = ["active", "completed", "routines", "saved"] as const;
+type Tab = (typeof TABS)[number];
+
+function parseTab(value: string | undefined): Tab {
+    return TABS.includes(value as Tab) ? (value as Tab) : "active";
+}
+
+export default async function Dashboard({
+    searchParams,
+}: {
+    searchParams: Promise<{ tab?: string }>;
+}) {
     const userId = await currentUserId();
 
     // The marketing page is what a signed-out visitor gets; the dashboard needs
@@ -91,9 +103,10 @@ export default async function Dashboard() {
     const completed = trials.filter((t) => t.trial.status === "completed");
     const { routines, error } = await loadRoutines(userId);
     const saved = await listSavedTrials(userId).catch(() => []);
+    const tab = parseTab((await searchParams).tab);
 
     return (
-        <main className="mx-auto w-full max-w-4xl px-5 py-10">
+        <main className="w-full px-5 py-10 lg:px-10">
             <header>
                 <h1 className="text-2xl font-semibold tracking-tight">
                     <Greeting
@@ -103,7 +116,7 @@ export default async function Dashboard() {
                 </h1>
             </header>
 
-            <Tabs defaultValue="active" className="mt-8">
+            <Tabs defaultValue={tab} className="mt-8">
                 <TabsList className="w-full sm:w-fit">
                     <TabsTrigger value="active">Active</TabsTrigger>
                     <TabsTrigger value="completed">Completed</TabsTrigger>
@@ -115,9 +128,11 @@ export default async function Dashboard() {
                     {active.length === 0 ? (
                         <EmptyState>No trials in progress.</EmptyState>
                     ) : (
-                        active.map((d) => (
-                            <TrialCard key={d.trial.id} data={d} />
-                        ))
+                        <CardGrid>
+                            {active.map((d) => (
+                                <TrialCard key={d.trial.id} data={d} />
+                            ))}
+                        </CardGrid>
                     )}
                     <NewTrialButton />
                 </TabsContent>
@@ -126,9 +141,11 @@ export default async function Dashboard() {
                     {completed.length === 0 ? (
                         <EmptyState>No trials completed yet.</EmptyState>
                     ) : (
-                        completed.map((d) => (
-                            <TrialCard key={d.trial.id} data={d} />
-                        ))
+                        <CardGrid>
+                            {completed.map((d) => (
+                                <TrialCard key={d.trial.id} data={d} />
+                            ))}
+                        </CardGrid>
                     )}
                     <NewTrialButton />
                 </TabsContent>
@@ -144,9 +161,11 @@ export default async function Dashboard() {
                             pick it when you start a trial.
                         </EmptyState>
                     ) : (
-                        routines.map((r) => (
-                            <RoutineCard key={r.id} routine={r} />
-                        ))
+                        <CardGrid>
+                            {routines.map((r) => (
+                                <RoutineCard key={r.id} routine={r} />
+                            ))}
+                        </CardGrid>
                     )}
 
                     {!error && (
@@ -170,12 +189,14 @@ export default async function Dashboard() {
                             it lands here.
                         </EmptyState>
                     ) : (
-                        saved.map((entry) => (
-                            <CommunityTrialCard
-                                key={entry.trial.id}
-                                entry={entry}
-                            />
-                        ))
+                        <CardGrid>
+                            {saved.map((entry) => (
+                                <CommunityTrialCard
+                                    key={entry.trial.id}
+                                    entry={entry}
+                                />
+                            ))}
+                        </CardGrid>
                     )}
                 </TabsContent>
             </Tabs>

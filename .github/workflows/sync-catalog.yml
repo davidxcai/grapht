@@ -1,0 +1,39 @@
+name: Sync incidecoder catalog
+
+# Keeps the Neon catalog_products table current without a full sitemap
+# re-crawl. See scripts/sync-catalog.mjs and docs/product-identity.md, "The
+# INCIdecoder catalog", for the design.
+#
+# Runs once a day at an already-arbitrary UTC time, then sleeps a random
+# extra 0-59 minutes before hitting the site — so requests don't land at the
+# same second every day. GitHub's own scheduler adds further slack under
+# load, but that's a bonus, not something this depends on.
+on:
+  schedule:
+    - cron: '37 6 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: sync-catalog
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Randomized jitter before scraping
+        run: sleep $((RANDOM % 3600))
+
+      - run: node scripts/sync-catalog.mjs
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

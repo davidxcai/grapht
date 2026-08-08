@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ArrowDown, ArrowUp, Loader2, Plus, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -21,86 +21,58 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ConcernChips } from "@/components/concern-chips";
-import { ConcernPicker } from "@/components/concern-picker";
+import { SearchCombobox } from "@/components/search-combobox";
+import {
+    ProductDraftCard,
+    blankProductDraft,
+    isBlankDraft,
+    provenanceOfDraft,
+    type ProductDraft,
+} from "@/components/product-draft-card";
 import { orderConcerns } from "@/lib/concerns";
-import { cn } from "@/lib/utils";
 import {
     removeRoutine,
     saveRoutine,
+    searchCatalogForPicker,
     suggestConcerns,
     type Suggestion,
 } from "@/app/routines/actions";
-import type { Provenance, RankedConcern, Routine } from "@/lib/routines";
+import type { CatalogPickerMatch } from "@/lib/catalog";
+import type { RankedConcern, Routine } from "@/lib/routines";
 
-interface Draft {
-    key: string;
-    brand: string;
-    name: string;
-    targets: string[];
-    ranked: RankedConcern[];
-    classifier: { model: string; promptVersion: string } | null;
-    productKey: string | null;
-    /** What the classifier pre-ticked, so an untouched accept can be recorded as
-     *  `user-confirmed` rather than `user-edited`. Null means never classified. */
-    suggested: string[] | null;
-    busy: boolean;
-    note: string | null;
-}
-
-const sameSet = (a: string[], b: string[]) =>
-    a.length === b.length && a.every((x) => b.includes(x));
-
-/** The provenance ladder from src/products.mjs, decided at save time. */
-function provenanceOf(item: Draft): Provenance {
-    if (item.suggested === null) return "user-edited";
-    return sameSet(item.targets, item.suggested)
-        ? "user-confirmed"
-        : "user-edited";
-}
-
-let seq = 0;
-const blank = (): Draft => ({
-    key: `draft-${(seq += 1)}`,
-    brand: "",
-    name: "",
-    targets: [],
-    ranked: [],
-    classifier: null,
-    productKey: null,
-    suggested: null,
-    busy: false,
-    note: null,
-});
-
-function fromRoutine(routine: Routine): Draft[] {
+function fromRoutine(routine: Routine): ProductDraft[] {
     return routine.items.map((i) => ({
         key: i.id,
         brand: i.brand ?? "",
         name: i.name,
+        dosage: "",
         targets: i.targets,
         ranked: i.ranked,
         classifier: i.classifier,
         productKey: i.productKey,
+        catalogProductId: i.catalogProductId,
         // A saved item's targets are already a human's decision; re-deriving the
         // ladder from a stale `ranked` list would demote an edit back to a confirm.
         suggested: null,
         busy: false,
         note: null,
+        inci: null,
+        image: i.image,
     }));
 }
 
 export function RoutineEditor({ routine }: { routine?: Routine }) {
     const router = useRouter();
     const [name, setName] = useState(routine?.name ?? "");
-    const [items, setItems] = useState<Draft[]>(
-        routine ? fromRoutine(routine) : [blank()],
+    const [items, setItems] = useState<ProductDraft[]>(
+        routine ? fromRoutine(routine) : [blankProductDraft("draft")],
     );
     const [error, setError] = useState<string | null>(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [saving, startSaving] = useTransition();
     const [deleting, startDeleting] = useTransition();
 
-    const patch = (key: string, change: Partial<Draft>) =>
+    const patch = (key: string, change: Partial<ProductDraft>) =>
         setItems((prev) =>
             prev.map((i) => (i.key === key ? { ...i, ...change } : i)),
         );
@@ -114,7 +86,7 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
             return next;
         });
 
-    async function suggest(item: Draft) {
+    async function suggest(item: ProductDraft) {
         if (!item.name.trim()) {
             patch(item.key, { note: "Enter a product name first." });
             return;
@@ -124,6 +96,7 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
         const result = await suggestConcerns({
             brand: item.brand,
             name: item.name,
+            inci: item.inci,
         });
 
         if (!result.ok) {
@@ -146,6 +119,26 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
         });
     }
 
+    /** A pick from the catalog search bar above the list: add a new card
+     *  (or fill the still-untouched first one) and immediately ask the
+     *  classifier what it targets, using the catalog's real INCI list. */
+    async function addFromCatalog(match: CatalogPickerMatch) {
+        const draft: ProductDraft = {
+            ...blankProductDraft("draft"),
+            brand: match.brand ?? "",
+            name: match.name,
+            inci: match.inci,
+            image: match.image,
+            catalogProductId: match.id,
+        };
+        setItems((prev) =>
+            prev.length === 1 && isBlankDraft(prev[0])
+                ? [draft]
+                : [...prev, draft],
+        );
+        await suggest(draft);
+    }
+
     function save() {
         setError(null);
         startSaving(async () => {
@@ -159,9 +152,10 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                         name: i.name.trim(),
                         targets: i.targets,
                         ranked: i.ranked,
-                        provenance: provenanceOf(i),
+                        provenance: provenanceOfDraft(i),
                         classifier: i.classifier,
                         productKey: i.productKey,
+                        catalogProductId: i.catalogProductId,
                     })),
             });
 
@@ -169,7 +163,8 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                 setError(result.error);
                 return;
             }
-            router.push("/");
+            toast.success(routine ? "Routine updated" : "Routine created");
+            router.push("/dashboard?tab=routines");
             router.refresh();
         });
     }
@@ -186,7 +181,8 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                 setError(result.error);
                 return;
             }
-            router.push("/");
+            toast.success("Routine deleted");
+            router.push("/dashboard?tab=routines");
             router.refresh();
         });
     }
@@ -214,84 +210,43 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                     </p>
                 </div>
 
+                <SearchCombobox<CatalogPickerMatch>
+                    search={searchCatalogForPicker}
+                    itemKey={(m) => m.id}
+                    itemLabel={(m) =>
+                        m.brand ? `${m.name} — ${m.brand}` : m.name
+                    }
+                    itemImage={(m) => m.image}
+                    onSelect={addFromCatalog}
+                    placeholder="Search products to add…"
+                />
+
                 {items.map((item, index) => (
-                    <Card key={item.key} className="gap-3 p-4">
-                        <div className="flex items-start gap-2">
-                            <div className="grid flex-1 gap-2 sm:grid-cols-[1fr_1.4fr]">
-                                <Input
-                                    value={item.brand}
-                                    placeholder="Brand (optional)"
-                                    aria-label="Brand"
-                                    onChange={(e) =>
-                                        patch(item.key, {
-                                            brand: e.target.value,
-                                        })
-                                    }
-                                />
-                                <Input
-                                    value={item.name}
-                                    placeholder="Product, e.g. niacinamide serum"
-                                    aria-label="Product name"
-                                    onChange={(e) =>
-                                        patch(item.key, {
-                                            name: e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
-
-                            <div className="flex shrink-0 gap-0.5">
-                                <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label="Move up"
-                                    disabled={index === 0}
-                                    onClick={() => move(index, -1)}
-                                >
-                                    <ArrowUp aria-hidden />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label="Move down"
-                                    disabled={index === items.length - 1}
-                                    onClick={() => move(index, 1)}
-                                >
-                                    <ArrowDown aria-hidden />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label="Remove product"
-                                    onClick={() =>
-                                        setItems((prev) =>
-                                            prev.filter(
-                                                (i) => i.key !== item.key,
-                                            ),
-                                        )
-                                    }
-                                >
-                                    <X aria-hidden />
-                                </Button>
-                            </div>
-                        </div>
-
-                        <ConcernPicker
-                            targets={item.targets}
-                            ranked={item.ranked}
-                            busy={item.busy}
-                            note={item.note}
-                            label="What it targets"
-                            onChange={(targets) => patch(item.key, { targets })}
-                            onSuggest={() => suggest(item)}
-                        />
-                    </Card>
+                    <ProductDraftCard
+                        key={item.key}
+                        item={item}
+                        onChange={(change) => patch(item.key, change)}
+                        onRemove={() =>
+                            setItems((prev) =>
+                                prev.filter((i) => i.key !== item.key),
+                            )
+                        }
+                        onSuggest={() => suggest(item)}
+                        concernLabel="What it targets"
+                        reorder={{
+                            canMoveUp: index > 0,
+                            canMoveDown: index < items.length - 1,
+                            onMove: (by) => move(index, by),
+                        }}
+                    />
                 ))}
 
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setItems((prev) => [...prev, blank()])}
+                    onClick={() =>
+                        setItems((prev) => [...prev, blankProductDraft("draft")])
+                    }
                 >
                     <Plus aria-hidden />
                     Add product

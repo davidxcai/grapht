@@ -1,0 +1,37 @@
+{
+  "brands": [
+    "Murad",
+    "Perricone MD",
+    "Dr. Dennis Gross",
+    "Kate Somerville",
+    "Peter Thomas Roth",
+    "Rhode (Hailey Bieber)",
+    "Bubble",
+    "Byoma",
+    "Starface",
+    "Glossier"
+  ],
+  "harvester": {
+    "model": "gemini-3.6-flash",
+    "promptVersion": "2026-08-07.1"
+  },
+  "perBrand": 50,
+  "fetchedAt": "2026-08-07T15:50:05.645Z",
+  "promptFeedback": null,
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\"brands\":[{\"brand\":\"Murad\",\"products\":[{\"name\":\"Clarifying Cleanser\",\"size\":\"6.75 fl oz\",\"barcode\":\"767332808018\"},{\"name\":\"AHA/BHA Exfoliating Cleanser\",\"size\":\"6.75 fl oz\",\"barcode\":\"767332808025\"},{\"name\":\"Hydro-Dynamic Ultimate Moisture\",\"size\":\"1.7 fl oz\",\"barcode\":\"767332801033\"},{\"name\":\"Rapid Dark Spot Correcting Serum\",\"size\":\"1.0 fl oz\",\"barcode\":\"767332152869\"}]},{\"brand\":\"Perricone MD\",\"products\":[{\"name\":\"Cold Plasma Plus+ Advanced Serum Concentrate\",\"size\":\"1 fl oz\",\"barcode\":\"651473523730\"},{\"name\":\"High Potency Classics Face Finishing & Firming Moisturizer\",\"size\":\"2 fl oz\",\"barcode\":\"651473523099\"}]},{\"brand\":\"Dr. Dennis Gross\",\"products\":[{\"name\":\"Alpha Beta Extra Strength Daily Peel\",\"size\":\"30 Treatments\",\"barcode\":\"843294002018\"},{\"name\":\"Alpha Beta Universal Daily Peel\",\"size\":\"30 Treatments\",\"barcode\":\"843294002001\"}]},{\"brand\":\"Kate Somerville\",\"products\":[{\"name\":\"ExfoliKate Intensive Exfoliating Treatment\",\"size\":\"2 fl oz\",\"barcode\":\"813920010022\"},{\"name\":\"Goat Milk Moisturizing Cream\",\"size\":\"1.7 oz\",\"barcode\":\"813920015522\"}]},{\"brand\":\"Peter Thomas Roth\",\"products\":[{\"name\":\"Water Drench Hyaluronic Cloud Cream Hydrating Moisturizer\",\"size\":\"1.7 fl oz\",\"barcode\":\"670367013778\"},{\"name\":\"Anti-Aging Cleansing Gel\",\"size\":\"8.5 fl oz\",\"barcode\":\"670367118022\"}]},{\"brand\":\"Rhode (Hailey Bieber)\",\"products\":[]},{\"brand\":\"Bubble\",\"products\":[{\"name\":\"Slam Dunk Hydrating Cream Moisturizer\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"850020056033\"},{\"name\":\"Fresh Start Gel Cleanser\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"850020056002\"},{\"name\":\"Level Up Balancing Gel Moisturizer\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"850020056040\"}]},{\"brand\":\"Byoma\",\"products\":[{\"name\":\"Creamy Jelly Cleanser\",\"size\":\"175 mL\",\"barcode\":\"5060489712716\"},{\"name\":\"Moisturizing Gel Cream\",\"size\":\"50 mL\",\"barcode\":\"5060489712730\"},{\"name\":\"Hydrating Serum\",\"size\":\"30 mL\",\"barcode\":\"5060489712785\"}]},{\"brand\":\"Starface\",\"products\":[{\"name\":\"Hydro-Stars Hydrocolloid Pimple Patches\",\"size\":\"32 Count\",\"barcode\":\"850013843008\"}]},{\"brand\":\"Glossier\",\"products\":[{\"name\":\"Milky Jelly Cleanser\",\"size\":\"6.0 fl oz (177 mL)\",\"barcode\":\"810026210008\"},{\"name\":\"Priming Moisturizer\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"855152005022\"}]}]}",
+            "thoughtSignature": "EjQKMgERTTIPFAHhwlpOJe2ie4tgrgczIadOEinTQCsKQ0kEq7DtrIOmZa5tKrl9mMbYajcf"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "text": "{\"brands\":[{\"brand\":\"Murad\",\"products\":[{\"name\":\"Clarifying Cleanser\",\"size\":\"6.75 fl oz\",\"barcode\":\"767332808018\"},{\"name\":\"AHA/BHA Exfoliating Cleanser\",\"size\":\"6.75 fl oz\",\"barcode\":\"767332808025\"},{\"name\":\"Hydro-Dynamic Ultimate Moisture\",\"size\":\"1.7 fl oz\",\"barcode\":\"767332801033\"},{\"name\":\"Rapid Dark Spot Correcting Serum\",\"size\":\"1.0 fl oz\",\"barcode\":\"767332152869\"}]},{\"brand\":\"Perricone MD\",\"products\":[{\"name\":\"Cold Plasma Plus+ Advanced Serum Concentrate\",\"size\":\"1 fl oz\",\"barcode\":\"651473523730\"},{\"name\":\"High Potency Classics Face Finishing & Firming Moisturizer\",\"size\":\"2 fl oz\",\"barcode\":\"651473523099\"}]},{\"brand\":\"Dr. Dennis Gross\",\"products\":[{\"name\":\"Alpha Beta Extra Strength Daily Peel\",\"size\":\"30 Treatments\",\"barcode\":\"843294002018\"},{\"name\":\"Alpha Beta Universal Daily Peel\",\"size\":\"30 Treatments\",\"barcode\":\"843294002001\"}]},{\"brand\":\"Kate Somerville\",\"products\":[{\"name\":\"ExfoliKate Intensive Exfoliating Treatment\",\"size\":\"2 fl oz\",\"barcode\":\"813920010022\"},{\"name\":\"Goat Milk Moisturizing Cream\",\"size\":\"1.7 oz\",\"barcode\":\"813920015522\"}]},{\"brand\":\"Peter Thomas Roth\",\"products\":[{\"name\":\"Water Drench Hyaluronic Cloud Cream Hydrating Moisturizer\",\"size\":\"1.7 fl oz\",\"barcode\":\"670367013778\"},{\"name\":\"Anti-Aging Cleansing Gel\",\"size\":\"8.5 fl oz\",\"barcode\":\"670367118022\"}]},{\"brand\":\"Rhode (Hailey Bieber)\",\"products\":[]},{\"brand\":\"Bubble\",\"products\":[{\"name\":\"Slam Dunk Hydrating Cream Moisturizer\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"850020056033\"},{\"name\":\"Fresh Start Gel Cleanser\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"850020056002\"},{\"name\":\"Level Up Balancing Gel Moisturizer\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"850020056040\"}]},{\"brand\":\"Byoma\",\"products\":[{\"name\":\"Creamy Jelly Cleanser\",\"size\":\"175 mL\",\"barcode\":\"5060489712716\"},{\"name\":\"Moisturizing Gel Cream\",\"size\":\"50 mL\",\"barcode\":\"5060489712730\"},{\"name\":\"Hydrating Serum\",\"size\":\"30 mL\",\"barcode\":\"5060489712785\"}]},{\"brand\":\"Starface\",\"products\":[{\"name\":\"Hydro-Stars Hydrocolloid Pimple Patches\",\"size\":\"32 Count\",\"barcode\":\"850013843008\"}]},{\"brand\":\"Glossier\",\"products\":[{\"name\":\"Milky Jelly Cleanser\",\"size\":\"6.0 fl oz (177 mL)\",\"barcode\":\"810026210008\"},{\"name\":\"Priming Moisturizer\",\"size\":\"1.7 fl oz (50 mL)\",\"barcode\":\"855152005022\"}]}]}"
+}

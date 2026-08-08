@@ -8,7 +8,7 @@ import { TimeOfDayBadge } from '@/components/time-of-day-badge';
 import { TrialComments } from '@/components/trial-comments';
 import { TrialDetailTabs } from '@/components/trial-detail-tabs';
 import { TrialGauge } from '@/components/trial-gauge';
-import { isFixtureTrial, loadTrials } from '@/lib/trial-store';
+import { getFixtureTrials, isFixtureTrial, loadTrials } from '@/lib/trial-store';
 import {
   getPublicTrial,
   isSaved,
@@ -23,10 +23,12 @@ import { currentUserId } from '@/lib/auth';
  * The trial detail page — the daily log for the owner, and the published
  * record for everyone else.
  *
- * Two ways in. Your own trials (and the fixture) arrive via `loadTrials()`,
- * exactly as before. Anything else falls through to `getPublicTrial()`, which
- * returns only what its owner deliberately published — so a private trial and
- * a nonexistent one still 404 identically, and "not yours" leaks nothing.
+ * Three ways in. Your own trials arrive via `loadTrials()`; the fixture is
+ * looked up by id, because it is a published sample readable by anyone and no
+ * longer rides in a signed-in user's list. Anything else falls through to
+ * `getPublicTrial()`, which returns only what its owner deliberately published
+ * — so a private trial and a nonexistent one still 404 identically, and "not
+ * yours" leaks nothing.
  *
  * A community reader gets the same tabs the owner does, minus every control:
  * no capture slot, no note editing, no End trial, no settings. The one thing
@@ -37,7 +39,7 @@ export default async function TrialDetail({ params }: { params: Promise<{ id: st
   const userId = await currentUserId();
   const { trials } = await loadTrials(userId);
 
-  let trial = trials.find((t) => t.id === id);
+  let trial = trials.find((t) => t.id === id) ?? getFixtureTrials().find((t) => t.id === id);
   let handle: string | null = null;
   let isOwner = trial !== undefined && !isFixtureTrial(trial.id);
 
@@ -72,7 +74,7 @@ export default async function TrialDetail({ params }: { params: Promise<{ id: st
   const views = trial.viewCount ?? 0;
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-5 py-10">
+    <main className="w-full px-5 py-10 lg:px-10">
       <header className="relative">
         {isCompleted && (
           <div className="absolute right-0 top-0">

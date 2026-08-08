@@ -29,7 +29,7 @@ export default async function ProductDetail({
   const ongoing = trials.filter((t) => t.trial.status === 'active');
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-5 py-10">
+    <main className="w-full px-5 py-10 lg:px-10">
       <Link
         href="/products"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"

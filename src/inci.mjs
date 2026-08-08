@@ -25,6 +25,13 @@ import { normalizeInci, normalizeBarcode } from './products.mjs';
 
 const BASE_URL = 'https://inciapi.com/v1';
 
+/**
+ * How many times to sit out a 429. The limiter asks for ~25s, so this is up to
+ * a couple of minutes of waiting on a single lookup — worth it in a batch pass,
+ * and unreachable in the interactive path, which makes one call at a time.
+ */
+const RATE_LIMIT_ATTEMPTS = 5;
+
 export class InciError extends Error {
   constructor(message, { status, body, url } = {}) {
     super(message);
@@ -259,7 +266,7 @@ export class InciClient {
     return value;
   }
 
-  async #request(path, { method = 'GET', body = null } = {}) {
+  async #request(path, { method = 'GET', body = null, attempt = 0 } = {}) {
     if (!this.apiKey) throw new InciError('no INCI_API_KEY set');
     const url = `${BASE_URL}${path}`;
     const res = await fetch(url, {
@@ -277,6 +284,23 @@ export class InciClient {
       parsed = text ? JSON.parse(text) : null;
     } catch {
       parsed = text;
+    }
+
+    // The rate limit is per IP, separate from the monthly quota, and it is
+    // strict enough that a batch loop trips it within a few dozen calls. The
+    // body carries `retryAfter` in seconds — obeying it is the difference
+    // between a slow pass and a 73% failure rate, measured on the first real
+    // 115-code run before this existed.
+    //
+    // Retrying here rather than in the caller means nothing is cached until it
+    // actually succeeded, so a re-run resumes cleanly on whatever timed out.
+    if (res.status === 429 && attempt < RATE_LIMIT_ATTEMPTS) {
+      const headerWait = Number(res.headers.get('retry-after'));
+      const bodyWait = Number(parsed?.retryAfter);
+      const waitS = [bodyWait, headerWait].find((n) => Number.isFinite(n) && n > 0) ?? 2 ** attempt;
+      this.#log(`429 on ${path} — waiting ${waitS}s (attempt ${attempt + 1})`);
+      await new Promise((r) => setTimeout(r, waitS * 1000));
+      return this.#request(path, { method, body, attempt: attempt + 1 });
     }
 
     if (res.status === 404) return { found: false, status: 404 };

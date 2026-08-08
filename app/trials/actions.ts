@@ -28,6 +28,14 @@ import { writeSummary } from '@/lib/summary';
 import { currentUserId } from '@/lib/auth';
 import type { BaselineEntry, Frequency, Trial } from '@/lib/trials';
 import type { ActionResult } from '@/app/routines/actions';
+import { searchCatalogForPicker as searchCatalog, type CatalogPickerMatch } from '@/lib/catalog';
+
+/** Catalog matches for the product-name autocomplete in the trial editor
+ *  (components/trial-editor.tsx) — each carries its INCI list so "Suggest"
+ *  can classify from real ingredients instead of the typed name alone. */
+export async function searchCatalogForPicker(q: string): Promise<CatalogPickerMatch[]> {
+  return searchCatalog(q);
+}
 
 export interface NewTrialInput {
   name: string;

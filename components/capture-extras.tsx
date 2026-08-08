@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ImagePlus, Loader2, Pencil, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { addCapturePhotos, removeCapturePhoto, saveCaptureNote } from '@/app/trials/actions';
@@ -38,13 +39,17 @@ export function CaptureExtras({
   const note = capture.note ?? null;
   const extras = capture.extraPhotos ?? [];
 
-  const run = (work: () => Promise<{ ok: boolean; error?: string }>) => {
+  const run = (
+    work: () => Promise<{ ok: boolean; error?: string }>,
+    message: string,
+  ) => {
     setError(null);
     startTransition(async () => {
       const result = await work();
       if (!result.ok) setError(result.error ?? 'Something went wrong.');
       else {
         setEditing(false);
+        toast.success(message);
         router.refresh();
       }
     });
@@ -54,7 +59,10 @@ export function CaptureExtras({
     if (!files || files.length === 0) return;
     const form = new FormData();
     for (const file of Array.from(files)) form.append('photos', file);
-    run(() => addCapturePhotos(trialId, capture.id, form));
+    run(
+      () => addCapturePhotos(trialId, capture.id, form),
+      files.length === 1 ? 'Photo added' : 'Photos added',
+    );
   };
 
   return (
@@ -75,7 +83,7 @@ export function CaptureExtras({
             <Button
               size="sm"
               disabled={pending}
-              onClick={() => run(() => saveCaptureNote(trialId, capture.id, draft))}
+              onClick={() => run(() => saveCaptureNote(trialId, capture.id, draft), 'Note saved')}
             >
               {pending && <Loader2 className="animate-spin" aria-hidden />}
               Save
@@ -89,7 +97,7 @@ export function CaptureExtras({
                 size="sm"
                 disabled={pending}
                 className="ml-auto text-muted-foreground"
-                onClick={() => run(() => saveCaptureNote(trialId, capture.id, ''))}
+                onClick={() => run(() => saveCaptureNote(trialId, capture.id, ''), 'Note removed')}
               >
                 Remove note
               </Button>
@@ -133,7 +141,7 @@ export function CaptureExtras({
                   type="button"
                   aria-label="Remove this photo"
                   disabled={pending}
-                  onClick={() => run(() => removeCapturePhoto(trialId, photo.id))}
+                  onClick={() => run(() => removeCapturePhoto(trialId, photo.id), 'Photo removed')}
                   className="absolute right-3 top-3 rounded-full bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80"
                 >
                   <X className="size-4" aria-hidden />

@@ -1,13 +1,21 @@
+import { networkInterfaces } from 'node:os';
+
+// Testing on a phone hits `next dev` via the machine's LAN IP, which dev treats
+// as cross-origin and blocks from loading /_next/* — the page then renders but
+// never hydrates. Read the addresses off the interfaces so a new lease on the
+// network doesn't need a config edit.
+const lanAddresses = Object.values(networkInterfaces())
+  .flat()
+  .filter((i) => i && i.family === 'IPv4' && !i.internal)
+  .map((i) => i.address);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // The pipeline modules in src/ are plain Node ESM and use sharp / tfjs.
   // Keep them server-side only; nothing here should reach the browser bundle.
   serverExternalPackages: ['sharp', '@tensorflow/tfjs', '@tensorflow-models/blazeface'],
 
-  // Testing on a phone hits `next dev` via the machine's LAN IP, which dev
-  // treats as cross-origin and blocks from loading /_next/* — the page then
-  // renders but never hydrates. Update the IP if the network assigns a new one.
-  allowedDevOrigins: ['172.20.12.52'],
+  allowedDevOrigins: lanAddresses,
 
   experimental: {
     // Server actions cap request bodies at 1MB, and a capture is a full-size

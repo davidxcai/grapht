@@ -1,9 +1,9 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ChevronLeft } from 'lucide-react';
+import Link from 'next/link';
 
 import { ProfileForm } from '@/components/profile-form';
 import { AuthUnavailable } from '@/components/auth-parts';
+import { Button } from '@/components/ui/button';
 import { clerkConfigured, getSession, requireUserId } from '@/lib/auth';
 import { getProfile } from '@/lib/profile-store';
 
@@ -44,15 +44,7 @@ export default async function ProfilePage() {
 
   return (
     <main className="mx-auto w-full max-w-sm px-5 py-16">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft className="size-4" aria-hidden />
-        Back
-      </Link>
-
-      <h1 className="mt-6 text-2xl font-semibold tracking-tight">Profile</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
       {session && <p className="mt-1 text-sm text-muted-foreground">{session.name}</p>}
 
       <ProfileForm
@@ -63,6 +55,14 @@ export default async function ProfilePage() {
           birthday: profile.birthday,
         }}
       />
+
+      <div className="mt-8">
+        <Link href="/logout">
+          <Button variant="outline" className="w-full">
+            Log out
+          </Button>
+        </Link>
+      </div>
     </main>
   );
 }

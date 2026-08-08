@@ -6,13 +6,33 @@ code in this repository.
 ## Repository state
 
 The data pipeline and YouCam API integration work. Attribution and product
-picking are built and tested. In the web app the dashboard (`/dashboard`),
+picking are built and tested. A name→barcode seed table exists in
+`skincare-data/` — **36 corroborated products across 18 brands, and nothing
+reads it yet**; see `docs/product-identity.md` for why it is that thin. A
+second, independent seed source — the incidecoder catalog, browsable at
+`/catalog` and wired into the trial-creation product picker — is fully loaded:
+183,172 products, 20,016 ingredients, and 25,726 brands in Neon (`catalog_*`
+tables, `lib/catalog.ts`). It sat at a 29,994-product sample until the Neon
+Launch-tier upgrade on 2026-08-08 replaced the free tier's 512MB project cap
+with pay-as-you-go storage; the full load now costs ~$0.19/month at 549MB. See
+`docs/product-identity.md`, "Storage, measured," for the numbers and the
+still-open question of whether the full uncurated catalog is the right corpus.
+A GitHub Actions workflow (`.github/workflows/sync-catalog.yml`,
+`scripts/sync-catalog.mjs`) keeps the catalog current daily by polling
+incidecoder's `/products/new` rather than re-crawling the sitemap; see
+`docs/product-identity.md`, "Daily incremental update."
+In the web app the dashboard (`/dashboard`),
 saved routines, trial creation, the trial detail page, daily capture, accounts,
-the Gemini trial summary, and the community surfaces (marketing home at `/`,
-`/community`, `/products`, `/search`, comments, saves, views) are built — trial
+the Gemini trial summary, and the community surfaces (the published-trial index
+at `/`, `/products`, `/search`, comments, saves, views) are built — trial
 creation and daily capture both analyse a live capture, so they are the only
 screens that spend units; extra per-day photos upload straight to Blob and cost
-nothing. The capture quality gate is not built.
+nothing. The capture quality gate is **partly** built: the camera is ours
+(`components/camera-capture.tsx`, `lib/capture-guide.ts`) and enforces framing,
+face scale and head pose live, with uneven lighting reported but never blocking;
+light colour, sharpness, clipping and occlusion are not built. Perfect Corp's JS
+Camera Kit held this for a day and was removed on 2026-08-08 —
+`docs/capture-quality.md` §5 for why.
 
 The fixture now carries **scores as well as timestamps**, so the detail page
 renders with no `data/` directory. Seven of the fourteen concerns per capture are
@@ -24,6 +44,7 @@ carries `synthetic: true`; never strip that flag. Photos live under gitignored
 ```bash
 npm install                              # Node 22+, macOS (sips is used for HEIC)
 npm run dev                              # the web app, http://localhost:3000
+npm run dev:mobile                       # same over HTTPS on the LAN IP, for a phone
 node scripts/seed-trials.mjs             # rebuild fixtures/trials.json, free
 
 vercel env pull .env.local --yes                          # Neon credentials
@@ -40,14 +61,39 @@ node scripts/analyze-all.mjs             # THE ONLY STEP THAT COSTS UNITS
 node scripts/device-offset.mjs           # derive cross-device offsets, free
 node scripts/summarize.mjs               # series (raw + device-corrected) + noise floor, free
 
+node scripts/test-capture-guide.mjs      # camera guide geometry, offline, free
 node scripts/test-attribution.mjs        # attribution table, offline, free
 node scripts/test-products.mjs           # product identity + cache, offline, free
 node scripts/probe-catalog.mjs           # harvest product catalog, public web only, free
+
+node scripts/scrape-incidecoder.mjs --report                     # incidecoder cache stats, free
+node scripts/scrape-incidecoder.mjs                               # crawl sitemap + new slugs, public web only, free
+node --env-file=.env.local scripts/migrate-catalog.mjs           # catalog_* tables, idempotent
+node --env-file=.env.local scripts/import-catalog.mjs --dry-run  # parse + report, no DB writes
+node --env-file=.env.local scripts/import-catalog.mjs            # load scraped cache into Neon
+node --env-file=.env.local scripts/sync-catalog.mjs --dry-run    # daily job: what's new, no writes
+node --env-file=.env.local scripts/sync-catalog.mjs              # /products/new -> Neon, free (also runs daily via GH Actions)
+
+node --env-file=.env scripts/harvest-barcodes.mjs --dry-run   # batches, no spend
+node --env-file=.env scripts/harvest-barcodes.mjs             # brands -> candidate barcodes (Gemini)
+node scripts/harvest-barcodes.mjs --reparse                   # re-filter cached responses, free
+node --env-file=.env scripts/verify-barcodes.mjs              # candidates -> verified (INCI)
+node scripts/verify-barcodes.mjs --offline                    # replay INCI cache, free
 
 node --env-file=.env scripts/classify-product.mjs --name "..."   # costs a Gemini call
 ```
 
 `npm run build` typechecks and builds the app. There is no lint command yet.
+
+**The working tree has no safety net — commit finished work.** As of
+2026-08-08 the repo had gone uncommitted since `d3520de` (2026-08-07) despite
+substantial UI work landing on top of it (most of `app/`, `components/`,
+`docs/` — see `git status`), and the reflog shows a plain `git reset` run the
+same day. A styling change that "keeps resetting" across sessions is almost
+always this: nothing wrong with the CSS, the edit just never got committed, so
+the next `git reset` / `checkout` / stash silently drops it and the next
+session redoes it from scratch. Commit UI changes once they look right instead
+of leaving them staged-only for days.
 
 ## The web app
 
@@ -79,16 +125,19 @@ should be a type error, not a leak. `proxy.ts` only redirects; it is not the
 boundary, and neither is the page that rendered a form, which is why each server
 action resolves the caller itself. `currentUserId()` returns `'local'` when
 Clerk is unconfigured, so a keyless build behaves exactly as it did before
-accounts existed and the demo path stays writable; the first account to finish
-sign-up claims those rows, once, and never again.
+accounts existed and the demo path stays writable; those rows stay on the
+keyless path — sign-up creates a profile row and nothing else, so a new
+account always starts empty.
 
 A signed-out visitor reads the fixture and writes nothing. Keep it that way:
 `/` and `/trials/[id]` are public because the reference series is a published
 sample, and a trial that isn't yours 404s rather than admitting it exists.
 
-`loadTrials()` unions the stored trials with the fixture and **catches the
-database failure rather than throwing** — the same deliberate degradation
-`app/page.tsx` applies to routines. A missing `DATABASE_URL` costs what the user
+`loadTrials()` lists the fixture only for the signed-out reader and the keyless
+demo owner — a real account sees only its own trials, and the fixture reaches it
+by id and through the community surfaces instead. It **catches the database
+failure rather than throwing** — the same deliberate degradation `app/page.tsx`
+applies to routines. A missing `DATABASE_URL` costs what the user
 created and never the twenty-photo reference series, because the fixture-only
 demo path is a hackathon requirement. Keep it that way: nothing that renders the
 fixture may require the database.
@@ -162,8 +211,9 @@ Reference documentation, kept current:
   `src/regression.mjs`, or `src/noise-floor.mjs`
 - `docs/measurements.md` — empirical findings from the reference dataset. The
   evidence base for nearly every decision here
-- `docs/capture-quality.md` — the pre-analysis quality gate: designed, not
-  built. Thresholds measured against the reference photos. **Read this before
+- `docs/capture-quality.md` — the pre-analysis quality gate. Checks 4 and 5 are
+  built and check 2 reports without blocking; the rest are designed and not built.
+  Thresholds measured against the reference photos. **Read this before
   adding robustness to the estimation engine** — bad-photo handling belongs
   here, not in `src/kalman.mjs`
 - `docs/youcam-api.md` — the full API contract, most of it undocumented publicly
@@ -333,7 +383,8 @@ enrichment path. Vision is not restricted.
 ```
 Camera capture / archive photos
   → prepare.mjs         HEIC→JPEG, DisplayP3→sRGB, EXIF orientation baked in
-  → quality gate        block bad captures, warn on lighting drift    [not built]
+  → capture guide       BlazeFace blocks bad framing/scale/pose      [live only]
+                        light colour, sharpness, clipping, occlusion  [not built]
   → normalize-faces.mjs BlazeFace detect, crop to 0.55 face fraction, 1920×2560
   → analyze-all.mjs     YouCam HD Skin Analysis, results cached
   → device-offset.mjs   per-metric cross-device correction (dormant single-device)
@@ -347,6 +398,13 @@ capture. Barcode scan, ingredient-panel photo, or typed name → `inci.mjs` →
 `product-targets.mjs` → `products.mjs` → a frozen `targets[]` on the
 intervention. It never touches the measurement path and cannot cost YouCam
 units.
+
+`skincare-data/` seeds the name→barcode hop that no API provides, via
+`harvest-barcodes.mjs` (Gemini recall → check digit) then `verify-barcodes.mjs`
+(INCI). **A harvested row is a candidate identity, never a target source** — it
+may pre-fill a display name behind the confirmation screen, and nothing else.
+`targets[]` still comes from the ingredient list. Treat `verified.json` as
+corroborated, `needs-review.json` as unconfirmed, and neither as measurement.
 
 Capture constraints, measured rather than assumed:
 
@@ -382,6 +440,14 @@ Do not relitigate these without new measurement:
 - **Compliance is reported, including its shape.** Clustering matters as much as
   count — 8 consecutive days costs 2.33× the error bars of 8 spread days, and
   both read as `8/14`.
+- **An analysed photo comes from the live camera. There is no upload.** An
+  existing photo carries whatever framing, light and face scale it was taken
+  under, and every one of those is part of the measurement (rules 3 and 4) — the
+  alignment guide, the resolution check and the quality gate only bind if the
+  frame passes through them. Cost: a webcam that cannot give a 3:4 window 1080px
+  across, or a denied camera permission, leaves that device with no way to log,
+  and the user is sent to their phone. Extra per-day angles are never analysed
+  and keep their file picker.
 
 ## Hackathon constraints that affect the code
 

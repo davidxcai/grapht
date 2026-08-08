@@ -34,6 +34,15 @@ export interface RoutineItem {
   provenance: Provenance;
   classifier: { model: string; promptVersion: string } | null;
   productKey: string | null;
+  /** FK into `catalog_products`, set only when this item came from a catalog
+   *  pick. Read-only enrichment — never a source for `targets[]`, which stay
+   *  the frozen identity the item was added under. */
+  catalogProductId: string | null;
+  /** Joined live from `catalog_products.image_url` via `catalogProductId`,
+   *  never stored — a catalog image can change or disappear, so every read
+   *  gets whatever it currently points at instead of a stale copy. Null for
+   *  an item with no catalog match. */
+  image: string | null;
 }
 
 export interface Routine {
@@ -60,6 +69,7 @@ export interface RoutineItemInput {
   provenance?: Provenance;
   classifier?: { model: string; promptVersion: string } | null;
   productKey?: string | null;
+  catalogProductId?: string | null;
 }
 
 /* ---------- reads ---------- */
@@ -76,7 +86,12 @@ export interface RoutineItemInput {
  */
 const ITEM_COLUMNS = `i.id, i.routine_id, i.position, i.brand, i.name,
    i.targets::text[] as targets, i.ranked, i.provenance, i.classifier,
-   i.product_key, i.created_at`;
+   i.product_key, i.catalog_product_id, cp.image_url as image, i.created_at`;
+
+/** Every read of `routine_items` joins this in for `ITEM_COLUMNS`' `cp.image_url`
+ *  — left, not inner, since most items (typed name, barcode, ingredient photo)
+ *  have no catalog row at all. */
+const CATALOG_JOIN = `left join catalog_products cp on cp.id = i.catalog_product_id`;
 
 function toItem(row: Record<string, unknown>): RoutineItem {
   return {
@@ -89,6 +104,8 @@ function toItem(row: Record<string, unknown>): RoutineItem {
     provenance: row.provenance as Provenance,
     classifier: (row.classifier as RoutineItem['classifier']) ?? null,
     productKey: (row.product_key as string | null) ?? null,
+    catalogProductId: (row.catalog_product_id as string | null) ?? null,
+    image: (row.image as string | null) ?? null,
   };
 }
 
@@ -100,6 +117,7 @@ export async function listRoutines(userId: string): Promise<Routine[]> {
     sql.query(
       `select ${ITEM_COLUMNS} from routine_items i
        join routines r on r.id = i.routine_id
+       ${CATALOG_JOIN}
        where r.user_id = $1
        order by i.position asc, i.created_at asc`,
       [userId],
@@ -135,6 +153,7 @@ export async function getRoutine(userId: string, id: string): Promise<Routine | 
 
   const itemRows = await sql.query(
     `select ${ITEM_COLUMNS} from routine_items i
+     ${CATALOG_JOIN}
      where i.routine_id = $1
      order by i.position asc, i.created_at asc`,
     [id],
@@ -166,7 +185,7 @@ function itemInserts(routineId: string, items: RoutineItemInput[]) {
     const ranked = item.ranked ?? [];
     return sql`
       insert into routine_items
-        (id, routine_id, position, brand, name, targets, ranked, provenance, classifier, product_key)
+        (id, routine_id, position, brand, name, targets, ranked, provenance, classifier, product_key, catalog_product_id)
       values (
         ${randomUUID()}, ${routineId}, ${position},
         ${item.brand?.trim() || null}, ${item.name.trim()},
@@ -174,7 +193,8 @@ function itemInserts(routineId: string, items: RoutineItemInput[]) {
         ${JSON.stringify(ranked)}::jsonb,
         ${item.provenance ?? 'user-edited'}::target_provenance,
         ${item.classifier ? JSON.stringify(item.classifier) : null}::jsonb,
-        ${item.productKey ?? null}
+        ${item.productKey ?? null},
+        ${item.catalogProductId ?? null}
       )`;
   });
 }

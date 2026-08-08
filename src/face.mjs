@@ -21,24 +21,22 @@ import * as tf from '@tensorflow/tfjs';
 import * as blazeface from '@tensorflow-models/blazeface';
 import sharp from 'sharp';
 
-/**
- * Face height as a fraction of output height.
- *
- * Empirically the analysis API rejects anything near 0.45 with
- * `error_src_face_too_small` — at that size roughly a third of our photos failed,
- * deterministically, varying with head pose rather than randomly. 0.55 was
- * verified to pass on a frame that 0.45 rejected. Do not lower this without
- * re-running scripts/test-face-fraction.mjs, and note that changing it
- * invalidates every cached analysis, since face scale drives texture and pore.
- */
-export const TARGET_FACE_FRACTION = 0.55;
+// The frame geometry lives in its own module so the browser can import it
+// without this file's `sharp` and tfjs imports coming with it. Re-exported here
+// because every existing caller reads them from `face.mjs`.
+export {
+  TARGET_FACE_FRACTION,
+  FACE_CENTER_Y,
+  OUTPUT_WIDTH,
+  OUTPUT_HEIGHT,
+} from './face-geometry.mjs';
 
-/** Face centre sits above the middle so neck and upper chest stay in shot. */
-const FACE_CENTER_Y = 0.42;
-
-/** Matches the API's own internal working resolution. */
-export const OUTPUT_WIDTH = 1920;
-export const OUTPUT_HEIGHT = 2560;
+import {
+  TARGET_FACE_FRACTION,
+  FACE_CENTER_Y,
+  OUTPUT_WIDTH,
+  OUTPUT_HEIGHT,
+} from './face-geometry.mjs';
 
 /** Detection runs on a downscaled copy; full resolution buys nothing here. */
 const DETECT_WIDTH = 512;

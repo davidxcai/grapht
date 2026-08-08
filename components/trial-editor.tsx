@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { toast } from "sonner";
 import {
     Camera,
-    ImageUp,
     Loader2,
     Lock,
     Moon,
@@ -12,7 +12,6 @@ import {
     Plus,
     Sun,
     Users,
-    X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -23,8 +22,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { ConcernChips } from "@/components/concern-chips";
-import { ConcernPicker } from "@/components/concern-picker";
+import { SearchCombobox } from "@/components/search-combobox";
+import {
+    ProductDraftCard,
+    blankProductDraft,
+    isBlankDraft,
+    provenanceOfDraft,
+    type ProductDraft,
+} from "@/components/product-draft-card";
 import {
     Select,
     SelectContent,
@@ -34,56 +39,18 @@ import {
 } from "@/components/ui/select";
 import { orderConcerns } from "@/lib/concerns";
 import { suggestConcerns, type Suggestion } from "@/app/routines/actions";
-import { startTrial } from "@/app/trials/actions";
-import type { Provenance, RankedConcern } from "@/lib/routines";
+import { startTrial, searchCatalogForPicker } from "@/app/trials/actions";
+import { RoutineSummary } from "@/components/routine-summary";
+import type { CatalogPickerMatch } from "@/lib/catalog";
+import type { RankedConcern } from "@/lib/routines";
 import type { Frequency, TimeOfDay, TrialVisibility } from "@/lib/trials";
 
 export interface RoutineOption {
     id: string;
     name: string;
     coverage: string[];
-    products: string[];
+    items: { id: string; name: string; image: string | null }[];
 }
-
-interface Draft {
-    key: string;
-    brand: string;
-    name: string;
-    dosage: string;
-    targets: string[];
-    ranked: RankedConcern[];
-    classifier: { model: string; promptVersion: string } | null;
-    productKey: string | null;
-    suggested: string[] | null;
-    busy: boolean;
-    note: string | null;
-}
-
-const sameSet = (a: string[], b: string[]) =>
-    a.length === b.length && a.every((x) => b.includes(x));
-
-/** The provenance ladder from src/products.mjs, decided at save time. */
-function provenanceOf(item: Draft): Provenance {
-    if (item.suggested === null) return "user-edited";
-    return sameSet(item.targets, item.suggested)
-        ? "user-confirmed"
-        : "user-edited";
-}
-
-let seq = 0;
-const blank = (): Draft => ({
-    key: `tracked-${(seq += 1)}`,
-    brand: "",
-    name: "",
-    dosage: "",
-    targets: [],
-    ranked: [],
-    classifier: null,
-    productKey: null,
-    suggested: null,
-    busy: false,
-    note: null,
-});
 
 /** 30 days is the pre-filled default — see docs/app-ui.md §4, "Duration". */
 const DURATIONS = [14, 30, 60];
@@ -121,35 +88,6 @@ const VISIBILITIES: {
     { id: "private", label: "Private", icon: Lock },
     { id: "public", label: "Public", icon: Users },
 ];
-
-/** The chosen routine, showing what a routine card shows. */
-function RoutineSummary({ routine }: { routine: RoutineOption }) {
-    return (
-        <div className="flex w-full flex-col gap-3 rounded-xl bg-card p-4 text-sm text-card-foreground ring-1 ring-foreground/10">
-            <div className="flex items-center justify-between gap-3">
-                <h3 className="truncate text-sm font-medium">{routine.name}</h3>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                    {routine.products.length}{" "}
-                    {routine.products.length === 1 ? "product" : "products"}
-                </span>
-            </div>
-
-            {routine.products.length > 0 && (
-                <p className="truncate text-xs text-muted-foreground">
-                    {routine.products.join(" · ")}
-                </p>
-            )}
-
-            <div>
-                <p className="mb-1.5 text-xs text-muted-foreground">Covers</p>
-                <ConcernChips
-                    concerns={routine.coverage}
-                    empty="No metrics tagged"
-                />
-            </div>
-        </div>
-    );
-}
 
 /** Click the title, or its pencil, to rename inline. Blank falls back to "New Trial". */
 function TitleEditor({
@@ -210,7 +148,9 @@ export function TrialEditor({
 }) {
     const router = useRouter();
 
-    const [items, setItems] = useState<Draft[]>([blank()]);
+    const [items, setItems] = useState<ProductDraft[]>([
+        blankProductDraft("tracked"),
+    ]);
     const [name, setName] = useState("");
     const [nameTouched, setNameTouched] = useState(false);
 
@@ -231,7 +171,6 @@ export function TrialEditor({
     const [photo, setPhoto] = useState<File | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
     const [cameraOpen, setCameraOpen] = useState(false);
-    const fileInput = useRef<HTMLInputElement>(null);
 
     const [error, setError] = useState<string | null>(null);
     const [saving, startSaving] = useTransition();
@@ -250,12 +189,21 @@ export function TrialEditor({
         return () => URL.revokeObjectURL(url);
     }, [photo]);
 
-    const patch = (key: string, change: Partial<Draft>) =>
+    const patch = (key: string, change: Partial<ProductDraft>) =>
         setItems((prev) =>
             prev.map((i) => (i.key === key ? { ...i, ...change } : i)),
         );
 
-    async function suggest(item: Draft) {
+    const move = (index: number, by: number) =>
+        setItems((prev) => {
+            const next = [...prev];
+            const to = index + by;
+            if (to < 0 || to >= next.length) return prev;
+            [next[index], next[to]] = [next[to], next[index]];
+            return next;
+        });
+
+    async function suggest(item: ProductDraft) {
         if (!item.name.trim()) {
             patch(item.key, { note: "Enter a product name first." });
             return;
@@ -265,6 +213,7 @@ export function TrialEditor({
         const result = await suggestConcerns({
             brand: item.brand,
             name: item.name,
+            inci: item.inci,
         });
         if (!result.ok) {
             patch(item.key, { busy: false, note: result.error });
@@ -286,6 +235,26 @@ export function TrialEditor({
                     ? "Nothing came back with high confidence — tick what you want to watch."
                     : null,
         });
+    }
+
+    /** A pick from the catalog search bar above the list: add a new card (or
+     *  fill the still-untouched first one) and immediately ask the classifier
+     *  what it targets, using the catalog's real INCI list. */
+    async function addFromCatalog(match: CatalogPickerMatch) {
+        const draft: ProductDraft = {
+            ...blankProductDraft("tracked"),
+            brand: match.brand ?? "",
+            name: match.name,
+            inci: match.inci,
+            image: match.image,
+            catalogProductId: match.id,
+        };
+        setItems((prev) =>
+            prev.length === 1 && isBlankDraft(prev[0])
+                ? [draft]
+                : [...prev, draft],
+        );
+        await suggest(draft);
     }
 
     function frequencyValue(): Frequency {
@@ -346,7 +315,7 @@ export function TrialEditor({
                             dosage: i.dosage.trim() || null,
                             targets: i.targets,
                             ranked: i.ranked,
-                            provenance: provenanceOf(i),
+                            provenance: provenanceOfDraft(i),
                             classifier: i.classifier,
                             productKey: i.productKey,
                         })),
@@ -368,6 +337,7 @@ export function TrialEditor({
                 setError(result.error);
                 return;
             }
+            toast.success("Trial started");
             router.push(`/trials/${result.data.id}`);
             router.refresh();
         });
@@ -408,80 +378,52 @@ export function TrialEditor({
 
                 <h2 className="text-sm font-medium">Product(s)</h2>
 
-                {items.map((item) => (
-                    <Card key={item.key} className="gap-3 p-4">
-                        <div className="flex items-start gap-2">
-                            <div className="grid flex-1 gap-2 sm:grid-cols-[1fr_1.4fr]">
-                                <Input
-                                    value={item.brand}
-                                    placeholder="Brand (optional)"
-                                    aria-label="Brand"
-                                    onChange={(e) =>
-                                        patch(item.key, {
-                                            brand: e.target.value,
-                                        })
-                                    }
-                                />
-                                <Input
-                                    value={item.name}
-                                    placeholder="Product, e.g. azelaic acid 10%"
-                                    aria-label="Product name"
-                                    onChange={(e) =>
-                                        patch(item.key, {
-                                            name: e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
+                <SearchCombobox<CatalogPickerMatch>
+                    search={searchCatalogForPicker}
+                    itemKey={(m) => m.id}
+                    itemLabel={(m) =>
+                        m.brand ? `${m.name} — ${m.brand}` : m.name
+                    }
+                    itemImage={(m) => m.image}
+                    onSelect={addFromCatalog}
+                    placeholder="Search products to add…"
+                />
 
-                            {items.length > 1 && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label="Remove product"
-                                    className="shrink-0"
-                                    onClick={() =>
-                                        setItems((prev) =>
-                                            prev.filter(
-                                                (i) => i.key !== item.key,
-                                            ),
-                                        )
-                                    }
-                                >
-                                    <X aria-hidden />
-                                </Button>
-                            )}
-                        </div>
-
-                        {/* Free text on purpose: "2 pumps", "pea-sized", "20 mg"
-                            are all legitimate and no unit picker fits them all. */}
-                        <Input
-                            value={item.dosage}
-                            placeholder="Amount per use (optional), e.g. 2 pumps"
-                            aria-label="Amount per use"
-                            onChange={(e) =>
-                                patch(item.key, {
-                                    dosage: e.target.value,
-                                })
-                            }
-                        />
-
-                        <ConcernPicker
-                            targets={item.targets}
-                            ranked={item.ranked}
-                            busy={item.busy}
-                            note={item.note}
-                            label="What you want to watch"
-                            onChange={(targets) => patch(item.key, { targets })}
-                            onSuggest={() => suggest(item)}
-                        />
-                    </Card>
+                {items.map((item, index) => (
+                    <ProductDraftCard
+                        key={item.key}
+                        item={item}
+                        onChange={(change) => patch(item.key, change)}
+                        onRemove={
+                            items.length > 1
+                                ? () =>
+                                      setItems((prev) =>
+                                          prev.filter(
+                                              (i) => i.key !== item.key,
+                                          ),
+                                      )
+                                : undefined
+                        }
+                        onSuggest={() => suggest(item)}
+                        concernLabel="What you want to watch"
+                        dosage
+                        reorder={{
+                            canMoveUp: index > 0,
+                            canMoveDown: index < items.length - 1,
+                            onMove: (by) => move(index, by),
+                        }}
+                    />
                 ))}
 
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setItems((prev) => [...prev, blank()])}
+                    onClick={() =>
+                        setItems((prev) => [
+                            ...prev,
+                            blankProductDraft("tracked"),
+                        ])
+                    }
                 >
                     <Plus aria-hidden />
                     Add own
@@ -550,7 +492,13 @@ export function TrialEditor({
                             </Select>
 
                             {chosenRoutine && (
-                                <RoutineSummary routine={chosenRoutine} />
+                                <div className="flex w-full flex-col gap-3 rounded-xl bg-card p-4 text-card-foreground ring-1 ring-foreground/10">
+                                    <RoutineSummary
+                                        routine={chosenRoutine}
+                                        as="h3"
+                                        titleClassName="text-sm"
+                                    />
+                                </div>
                             )}
                         </>
                     ))}
@@ -680,22 +628,6 @@ export function TrialEditor({
             <section className="space-y-3">
                 <h2 className="text-sm font-medium">First Photo</h2>
 
-                <input
-                    ref={fileInput}
-                    type="file"
-                    accept="image/jpeg,image/png"
-                    className="sr-only"
-                    onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        e.target.value = "";
-                        if (file) {
-                            setPhoto(file);
-                            setError(null);
-                            setCameraOpen(false);
-                        }
-                    }}
-                />
-
                 {cameraOpen ? (
                     <CameraCapture
                         onCapture={(file) => {
@@ -704,7 +636,6 @@ export function TrialEditor({
                             setCameraOpen(false);
                         }}
                         onCancel={() => setCameraOpen(false)}
-                        onUpload={() => fileInput.current?.click()}
                     />
                 ) : (
                     <Card className="items-center gap-3 p-5">
@@ -718,7 +649,7 @@ export function TrialEditor({
                             />
                         ) : (
                             <div className="flex flex-col items-center gap-1 py-6 text-center">
-                                <ImageUp
+                                <Camera
                                     className="size-6 text-muted-foreground"
                                     aria-hidden
                                 />
@@ -728,22 +659,10 @@ export function TrialEditor({
                             </div>
                         )}
 
-                        <div className="flex items-center gap-2">
-                            <Button
-                                size="sm"
-                                onClick={() => setCameraOpen(true)}
-                            >
-                                <Camera aria-hidden />
-                                Open camera
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => fileInput.current?.click()}
-                            >
-                                Upload photo
-                            </Button>
-                        </div>
+                        <Button size="sm" onClick={() => setCameraOpen(true)}>
+                            <Camera aria-hidden />
+                            {photo ? "Retake" : "Open camera"}
+                        </Button>
                     </Card>
                 )}
             </section>

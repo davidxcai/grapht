@@ -89,7 +89,7 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
 
         {onlyBaseline ? (
           <p className="rounded-lg border border-dashed px-5 py-6 text-center text-sm text-muted-foreground">
-            No progress yet — come back and upload another picture tomorrow.
+            No progress yet — come back and take another photo tomorrow.
           </p>
         ) : (
           <>

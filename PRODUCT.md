@@ -217,7 +217,7 @@ Defaults: **metrics-only, photos opt-in per trial.** Never the reverse.
 ### Community — amended 2026-08-07, built
 
 Previously out of scope; promoted by `ideas.md` and built deliberately.
-Public browsing of ongoing and completed trials (`/community`), comments the
+Public browsing of ongoing and completed trials — the home page `/` — comments the
 owner can switch off, saves, a product index derived from published trials
 (`/products`), and fuzzy search over trials, products and people (`/search`).
 Views are the only count — no likes, because a dramatic before/after would

@@ -1,6 +1,4 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft } from 'lucide-react';
 
 import { TrialSettingsEditor } from '@/components/trial-settings-editor';
 import { listStoredTrials } from '@/lib/trial-store';
@@ -23,16 +21,8 @@ export default async function EditTrial({ params }: { params: Promise<{ id: stri
   if (!trial) notFound();
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-5 py-10">
-      <Link
-        href={`/trials/${trial.id}`}
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft className="size-4" aria-hidden />
-        Back
-      </Link>
-
-      <h1 className="mt-6 text-2xl font-semibold tracking-tight">Edit trial</h1>
+    <main className="w-full px-5 py-10 lg:px-10">
+      <h1 className="text-2xl font-semibold tracking-tight">Edit trial</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {trial.status === 'completed'
           ? 'This trial has ended, so its window and schedule stay as they were logged.'

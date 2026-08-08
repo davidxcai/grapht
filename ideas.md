@@ -2,7 +2,9 @@
 
 ## important and priority
 
-we still haven't tested a full end-to-end run of this
+we still haven't tested a full end-to-end run of this.
+
+we also need the product search to be functional. it currently isn't pulling any data from the available APIs and doesn't seem like anything is persisted yet.
 
 ## privacy
 

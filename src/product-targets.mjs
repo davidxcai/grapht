@@ -28,15 +28,8 @@
  */
 
 import { readFile } from 'node:fs/promises';
-import { GoogleGenAI } from '@google/genai';
+import { client, MODEL, withRetry } from './gemini.mjs';
 import { ANALYSIS_CONCERNS, normalizeConcerns } from './concerns.mjs';
-
-/**
- * Latest stable Gemini as of 2026-08-04, confirmed present on this key by
- * listing /v1beta/models rather than trusting a docs page. Multimodal, so the
- * same model handles the ingredient-panel photo path.
- */
-const MODEL = 'gemini-3.6-flash';
 
 /**
  * Bump this whenever the prompt, schema, or model below changes in a way that
@@ -98,47 +91,6 @@ const SCHEMA = {
   },
   required: ['productType', 'ranked', 'durationClaimDays'],
 };
-
-function client() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY is not set');
-  return new GoogleGenAI({ apiKey });
-}
-
-/**
- * Retry on 429 and 5xx with exponential backoff.
- *
- * The free tier's per-minute quota is small enough that classifying a handful
- * of products back to back will hit it, and grounded search burns it faster
- * still. A rate limit is a wait, not a failure, so it should not surface as a
- * stack trace — but it is also not worth retrying forever, because an exhausted
- * *daily* quota returns the same 429 and no amount of backoff fixes it.
- */
-async function withRetry(fn, { attempts = 4, baseDelayMs = 5000, onRetry = null } = {}) {
-  let lastError;
-  for (let i = 0; i < attempts; i += 1) {
-    try {
-      return await fn();
-    } catch (err) {
-      const status = err?.status;
-      if (status !== 429 && !(status >= 500 && status < 600)) throw err;
-      lastError = err;
-      if (i === attempts - 1) break;
-      const delay = baseDelayMs * 2 ** i;
-      onRetry?.({ attempt: i + 1, delayMs: delay, status });
-      await new Promise((r) => setTimeout(r, delay));
-    }
-  }
-
-  const kind = lastError?.status === 429 ? 'rate limit / quota' : 'server error';
-  const err = new Error(
-    `Gemini ${kind} persisted after ${attempts} attempts. If this is a free-tier daily quota, ` +
-      `backoff will not help — check https://ai.dev/rate-limit.`,
-  );
-  err.status = lastError?.status;
-  err.cause = lastError;
-  throw err;
-}
 
 /** Build the request parts from whatever identity we happen to have. */
 async function buildParts({ brand, name, inci, signals, labelImagePath }) {

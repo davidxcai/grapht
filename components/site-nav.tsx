@@ -10,21 +10,17 @@ import { cn } from '@/lib/utils';
 
 type NavLink = { href: string; label: string };
 
-/** `/` is the marketing front door; the daily surface lives at /dashboard. */
+/** `/` is the published trials themselves; the daily surface lives at /dashboard. */
 const SIGNED_OUT: NavLink[] = [
   { href: '/', label: 'Home' },
-  { href: '/community', label: 'Community' },
-  { href: '/search', label: 'Search' },
   { href: '/login', label: 'Login' },
   { href: '/signup', label: 'Sign up' },
 ];
 
 const SIGNED_IN: NavLink[] = [
+  { href: '/', label: 'Home' },
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/community', label: 'Community' },
-  { href: '/search', label: 'Search' },
   { href: '/profile', label: 'Profile' },
-  { href: '/logout', label: 'Log out' },
 ];
 
 export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
@@ -79,10 +75,10 @@ export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
   return (
     <>
       <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-4xl items-center justify-between gap-4 px-5">
+        <div className="page-width flex h-14 items-center justify-between gap-4 px-5">
           <Link
             href="/"
-            className="rounded-sm text-base font-semibold tracking-tight outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="rounded-sm text-base font-semibold tracking-tight outline-none focus-visible:ring-3 focus-visible:ring-ring/50 flex-shrink-0"
           >
             Grapht
           </Link>
@@ -92,7 +88,7 @@ export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
             nav item is a link, and Base UI's button primitive puts
             `role="button"` on whatever it renders once `nativeButton` is false.
           */}
-          <nav className="hidden items-center gap-1 sm:flex">
+          <nav className="hidden items-center gap-1 sm:flex ml-auto">
             {links.map((link) => (
               <Link
                 key={link.href}
@@ -112,7 +108,7 @@ export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
           <Button
             variant="ghost"
             size="icon"
-            className="sm:hidden"
+            className="sm:hidden flex-shrink-0"
             aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
             aria-controls="site-nav-menu"
@@ -137,24 +133,26 @@ export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
           open ? 'opacity-100' : 'pointer-events-none opacity-0',
         )}
       >
-        <nav className="mx-auto flex w-full max-w-4xl flex-col px-5 py-2">
-          {links.map((link, i) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              aria-current={isActive(link.href) ? 'page' : undefined}
-              onClick={() => setOpen(false)}
-              className={cn(
-                'rounded-lg px-2 py-3 text-lg font-medium transition-all duration-300 ease-out outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-                isActive(link.href) ? 'text-foreground' : 'text-muted-foreground',
-                open ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0',
-              )}
-              style={{ transitionDelay: open ? `${60 + i * 40}ms` : '0ms' }}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        <div className="flex w-full flex-col px-5 py-2">
+          <nav className="flex w-full flex-col">
+            {links.map((link, i) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={isActive(link.href) ? 'page' : undefined}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  'rounded-lg px-2 py-3 text-lg font-medium transition-all duration-300 ease-out outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                  isActive(link.href) ? 'text-foreground' : 'text-muted-foreground',
+                  open ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0',
+                )}
+                style={{ transitionDelay: open ? `${100 + i * 40}ms` : '0ms' }}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
       </div>
     </>
   );

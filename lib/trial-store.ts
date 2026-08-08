@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { getSql } from '@/lib/db';
+import { DEMO_USER } from '@/lib/auth';
 import { validateConcerns } from '@/lib/concerns';
 import type { BaselineEntry, Capture, Frequency, Intervention, Trial } from '@/lib/trials';
 import type { Provenance, RankedConcern } from '@/lib/routines';
@@ -254,12 +255,18 @@ export async function listStoredTrials(userId: string): Promise<Trial[]> {
 }
 
 /**
- * Every trial this reader may see: their own first, then the reference series.
+ * Every trial this reader may call theirs.
  *
  * A null `userId` is the signed-out visitor, and they get the fixture alone —
  * no database round trip, because there is no owner to scope it to. That is the
  * whole demo path: the reference series is a published sample and reads without
- * an account.
+ * an account. The keyless build's implicit `DEMO_USER` keeps the fixture too,
+ * because that build has to behave as it did before accounts existed.
+ *
+ * A real account gets only what it created. The fixture belongs to nobody, and
+ * listing it here made a fresh account's dashboard open on trials it never ran
+ * — pre-seeded data, not a sample. It stays reachable by id (`/trials/[id]`)
+ * and on the community surfaces, where it is presented as the sample it is.
  *
  * The database failure is caught rather than thrown, exactly as `listRoutines()`
  * is on the dashboard. A missing or unreachable `DATABASE_URL` must never cost
@@ -272,10 +279,11 @@ export async function loadTrials(
   const fixture = getFixtureTrials();
   if (!userId) return { trials: fixture, storeError: null };
 
+  const sample = userId === DEMO_USER ? fixture : [];
   try {
-    return { trials: [...(await listStoredTrials(userId)), ...fixture], storeError: null };
+    return { trials: [...(await listStoredTrials(userId)), ...sample], storeError: null };
   } catch (error) {
-    return { trials: fixture, storeError: (error as Error).message };
+    return { trials: sample, storeError: (error as Error).message };
   }
 }
 

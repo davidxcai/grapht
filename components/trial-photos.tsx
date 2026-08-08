@@ -1,9 +1,10 @@
 'use client';
 
-import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { Fragment, useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Camera, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { CameraCapture } from '@/components/camera-capture';
 import { CaptureExtras } from '@/components/capture-extras';
@@ -40,8 +41,8 @@ import { cn } from '@/lib/utils';
  * that small. The scores say so; the colour is what stays withheld.
  *
  * **Today is a frame in the roll, not a card beneath it.** When today has no
- * photo the last slot is an empty frame carrying the camera and upload buttons,
- * and the tab opens on it — so what you land on is the thing you came to do,
+ * photo the last slot is an empty frame carrying the camera button, and the tab
+ * opens on it — so what you land on is the thing you came to do,
  * with yesterday's face one swipe back. It keeps the day counter, because it *is*
  * today, and carries no metric overlay, because nothing has been measured yet.
  *
@@ -147,7 +148,6 @@ export function TrialPhotos({
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const fileInput = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -184,6 +184,7 @@ export function TrialPhotos({
       const result = await logCapture(trialId, photo, navigator.userAgent, noteDraft);
       if (result.ok) {
         cancel();
+        toast.success('Photo logged');
         router.refresh();
       } else {
         setError(result.error);
@@ -191,40 +192,16 @@ export function TrialPhotos({
     });
   };
 
-  const filePicker = (
-    <input
-      ref={fileInput}
-      type="file"
-      accept="image/jpeg,image/png"
-      className="sr-only"
-      onChange={(e) => {
-        const file = e.target.files?.[0];
-        e.target.value = '';
-        if (file) accept(file);
-      }}
-    />
-  );
-
   // Capturing takes over the whole area rather than living inside a frame: the
   // roll's drag handler and a live camera would be fighting for the same
   // pointer, and there is nothing to browse mid-capture anyway.
   if (mode === 'camera') {
-    return (
-      <div>
-        {filePicker}
-        <CameraCapture
-          onCapture={accept}
-          onCancel={cancel}
-          onUpload={() => fileInput.current?.click()}
-        />
-      </div>
-    );
+    return <CameraCapture onCapture={accept} onCancel={cancel} />;
   }
 
   if (mode === 'review' && preview) {
     return (
       <div>
-        {filePicker}
         <div className="overflow-hidden rounded-xl bg-muted">
           {/* A local object URL, not a remote asset the Image loader could optimise. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -301,8 +278,6 @@ export function TrialPhotos({
 
   return (
     <div>
-      {filePicker}
-
       <Carousel
         setApi={setApi}
         opts={opts}
@@ -317,11 +292,8 @@ export function TrialPhotos({
                   <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 px-6 text-center">
                     <Camera className="size-6 text-muted-foreground" aria-hidden />
                     <p className="text-sm text-muted-foreground">Log today&apos;s photo</p>
-                    <div className="mt-1 flex items-center gap-2">
+                    <div className="mt-1">
                       <Button onClick={() => setMode('camera')}>Open camera</Button>
-                      <Button variant="outline" onClick={() => fileInput.current?.click()}>
-                        Upload
-                      </Button>
                     </div>
                   </div>
                 </CarouselItem>

@@ -5,7 +5,7 @@ export default async function NewRoutine() {
     await requireOnboardedUserId();
 
     return (
-        <main className="mx-auto w-full max-w-4xl px-5 py-10">
+        <main className="w-full px-5 py-10 lg:px-10">
             <h1 className="text-2xl font-semibold tracking-tight">
                 New Routine
             </h1>

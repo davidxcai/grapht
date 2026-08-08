@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { CalendarIcon, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -10,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { ThemeSelector } from '@/components/theme-selector';
 import { saveProfileDetails } from '@/app/profile/actions';
 import { SKIN_TYPES } from '@/lib/profile';
 
@@ -130,6 +132,7 @@ export function ProfileForm({
     setAvatar(null);
     setSaved(true);
     setBusy(false);
+    toast.success('Profile updated');
   }
 
   return (
@@ -243,6 +246,8 @@ export function ProfileForm({
           </PopoverContent>
         </Popover>
       </div>
+
+      <ThemeSelector />
 
       {error && (
         <p role="alert" className="text-sm text-destructive">

@@ -1,0 +1,964 @@
+{
+  "generatedAt": "2026-08-07T16:00:14.315Z",
+  "source": "skincare-data/barcodes.json",
+  "offline": true,
+  "checked": 115,
+  "counts": {
+    "verified": 36,
+    "mismatch": 1,
+    "unknown": 78,
+    "uncached": 0,
+    "error": 0
+  },
+  "products": [
+    {
+      "brand": "Ole Henriksen",
+      "name": "Banana Bright Eye Crème",
+      "size": "0.5 fl oz / 15 mL",
+      "barcode": "840093101686",
+      "outcome": "mismatch",
+      "returned": {
+        "brand": "Nature's Truth",
+        "name": "Nature's Truth, Chewable C Plus Wild Rose Hips, Natural Orange, 60 Chewable Tablets",
+        "inci": 14,
+        "matchedOn": null
+      }
+    },
+    {
+      "brand": "Neogen",
+      "name": "Dermalogy Real Ferment Micro Essence",
+      "size": "5.07 fl oz (150 mL)",
+      "barcode": "8809388842187",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Neogen",
+      "name": "Dermalogy Bio-Peel Gauze Peeling Wine",
+      "size": "30 pads / 6.76 fl oz (200 mL)",
+      "barcode": "8809388840503",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Dr. Jart+",
+      "name": "Cicapair Tiger Grass Color Correcting Treatment SPF 30",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "8809642710108",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Dr. Jart+",
+      "name": "Cicapair Tiger Grass Color Correcting Treatment SPF 30",
+      "size": "0.5 fl oz (15 mL)",
+      "barcode": "8809642712959",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Manyo Factory",
+      "name": "Pure Cleansing Oil",
+      "size": "6.76 fl oz (200 mL)",
+      "barcode": "8809409402130",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Manyo Factory",
+      "name": "Bifida Biome Complex Ampoule",
+      "size": "1.69 fl oz (50 mL)",
+      "barcode": "8809409402505",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "La Prairie",
+      "name": "Skin Caviar Luxe Cream",
+      "size": "1.7 oz (50 mL)",
+      "barcode": "7611773081498",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Dr. Barbara Sturm",
+      "name": "Hyaluronic Serum",
+      "size": "30 mL / 1.01 fl. oz.",
+      "barcode": "4260395250084",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Dr. Barbara Sturm",
+      "name": "Face Cream",
+      "size": "50 mL / 1.69 fl. oz.",
+      "barcode": "4260395250039",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Dr. Barbara Sturm",
+      "name": "Cleanser",
+      "size": "150 mL / 5.07 fl. oz.",
+      "barcode": "4260395250008",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Dr. Barbara Sturm",
+      "name": "Enzyme Cleanser",
+      "size": "75 g / 2.64 oz.",
+      "barcode": "4260395250787",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Clé de Peau Beauté",
+      "name": "Softening Cleansing Foam",
+      "size": "125 mL / 4.7 oz.",
+      "barcode": "729238142343",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Clé de Peau Beauté",
+      "name": "The Cream",
+      "size": "50 mL / 1.7 oz.",
+      "barcode": "729238153400",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Clé de Peau Beauté",
+      "name": "Correcting Cream Veil SPF 21",
+      "size": "37 mL / 1.4 oz.",
+      "barcode": "729238158580",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Dior Skincare",
+      "name": "Capture Totale Super Potent Serum",
+      "size": "50 mL / 1.7 fl. oz.",
+      "barcode": "3348901486262",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Aesop",
+      "name": "Parsley Seed Anti-Oxidant Serum",
+      "size": "100 mL / 3.4 fl. oz.",
+      "barcode": "9319944002621",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Aesop",
+      "name": "Fabulous Face Oil",
+      "size": "25 mL / 0.8 fl. oz.",
+      "barcode": "9319944000306",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "CeraVe",
+      "name": "Hydrating Facial Cleanser",
+      "size": "12 fl oz (355 mL)",
+      "barcode": "3606000537446",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "CeraVe",
+      "name": "Foaming Facial Cleanser",
+      "size": "12 fl oz (355 mL)",
+      "barcode": "3606000537484",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "CeraVe",
+      "name": "PM Facial Moisturizing Lotion",
+      "size": "3 fl oz (89 mL)",
+      "barcode": "3606000537354",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "The Ordinary",
+      "name": "Caffeine Solution 5% + EGCG",
+      "size": "30 mL",
+      "barcode": "769915190113",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Tata Harper",
+      "name": "Regenerating Cleanser",
+      "size": "125 ml / 4.2 fl. oz.",
+      "barcode": "851371002014",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Tata Harper",
+      "name": "Resurfacing Mask",
+      "size": "30 ml / 1.0 fl. oz.",
+      "barcode": "851371002038",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Tata Harper",
+      "name": "Hydrating Floral Essence",
+      "size": "125 ml / 4.2 fl. oz.",
+      "barcode": "851371002069",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Tata Harper",
+      "name": "Repairative Moisturizer",
+      "size": "50 ml / 1.7 fl. oz.",
+      "barcode": "851371002045",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Caudalie",
+      "name": "Beauty Elixir",
+      "size": "100 ml / 3.4 fl. oz.",
+      "barcode": "3522930001393",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Caudalie",
+      "name": "Vinosource Moisturizing Sorbet",
+      "size": "40 ml / 1.3 fl. oz.",
+      "barcode": "3522930001584",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Hyaluronic Acid Serum",
+      "size": "30 ml / 1 fl oz",
+      "barcode": "5060422295328",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Oat Cleansing Balm",
+      "size": "150 ml / 5 fl oz",
+      "barcode": "5060422297131",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Retinol Serum",
+      "size": "30 ml / 1 fl oz",
+      "barcode": "5060422295366",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Niacinamide Serum",
+      "size": "30 ml / 1 fl oz",
+      "barcode": "5060422295342",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Salicylic Acid Cleanser",
+      "size": "150 ml / 5 fl oz",
+      "barcode": "5060422297124",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Caffeine Eye Cream",
+      "size": "15 ml / 0.5 fl oz",
+      "barcode": "5060422295373",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "The INKEY List",
+      "name": "Polyglutamic Acid Serum",
+      "size": "30 ml / 1 fl oz",
+      "barcode": "5060422297162",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Peace Out Skincare",
+      "name": "Peace Out Acne Acne Healing Dots",
+      "size": "20 patches",
+      "barcode": "858991007009",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Peace Out Skincare",
+      "name": "Peace Out Pores Pore Strips",
+      "size": "4 strips",
+      "barcode": "858991007030",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Peace Out Skincare",
+      "name": "Peace Out Wrinkles Microneedling Patches",
+      "size": "6 patches",
+      "barcode": "858991007054",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Starface",
+      "name": "Hydro-Stars Hydrocolloid Pimple Patches",
+      "size": "32 Count",
+      "barcode": "850013843008",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Ole Henriksen",
+      "name": "Truth Serum",
+      "size": "1 fl oz / 30 mL",
+      "barcode": "840093101372",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Ole Henriksen",
+      "name": "C-Rush Brightening Gel Crème",
+      "size": "1.7 fl oz / 50 mL",
+      "barcode": "840093101563",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Mario Badescu",
+      "name": "Facial Spray with Aloe, Herbs and Rosewater",
+      "size": "8 fl oz",
+      "barcode": "785364130043",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Philosophy",
+      "name": "Purity Made Simple One-Step Facial Cleanser",
+      "size": "8 fl oz",
+      "barcode": "604926120172",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Philosophy",
+      "name": "Purity Made Simple One-Step Facial Cleanser",
+      "size": "16 fl oz",
+      "barcode": "604926110036",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Philosophy",
+      "name": "Hope in a Jar Smooth-Glow Multi-Tasking Moisturizer",
+      "size": "2 oz",
+      "barcode": "604926131345",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Clinique",
+      "name": "Clarifying Lotion 2",
+      "size": "16.9 fl oz / 500 mL",
+      "barcode": "020714466633",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "ESTÉE LAUDER",
+      "name": "DayWear Multi-Protection Anti-Oxidant 24H-Moisture Creme SPF 15",
+      "size": "1.7 oz / 50 mL",
+      "barcode": "887167031647",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "COSRX",
+      "name": "Acne Pimple Master Patch",
+      "size": "24 patches",
+      "barcode": "8809416470221",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "COSRX",
+      "name": "AHA/BHA Clarifying Treatment Toner",
+      "size": "150 mL",
+      "barcode": "8809416470061",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "COSRX",
+      "name": "Oil-Free Ultra-Moisturizing Lotion with Birch Sap",
+      "size": "100 mL",
+      "barcode": "8809416470238",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Laneige",
+      "name": "Lip Sleeping Mask Berry",
+      "size": "20 g",
+      "barcode": "8809643088619",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Laneige",
+      "name": "Water Bank Blue Hyaluronic Cream Moisturizer",
+      "size": "50 mL",
+      "barcode": "8809643088626",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Laneige",
+      "name": "Cream Skin Toner & Quick Skin Pack",
+      "size": "150 mL",
+      "barcode": "8809643088633",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Innisfree",
+      "name": "Super Volcanic Pore Clay Mask 2X",
+      "size": "100 mL",
+      "barcode": "8809618342210",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Anua",
+      "name": "Heartleaf 77% Soothing Toner",
+      "size": "250 mL",
+      "barcode": "8809640730016",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Anua",
+      "name": "Heartleaf Pore Control Cleansing Oil",
+      "size": "200 mL",
+      "barcode": "8809640730078",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Sulwhasoo",
+      "name": "First Care Activating Serum",
+      "size": "60 mL",
+      "barcode": "8809643080019",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Sulwhasoo",
+      "name": "Concentrated Ginseng Renewing Cream EX",
+      "size": "60 mL",
+      "barcode": "8809643080026",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Round Lab",
+      "name": "1025 Dokdo Toner",
+      "size": "200 mL",
+      "barcode": "8809600390014",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Round Lab",
+      "name": "Birch Juice Moisturizing Sunscreen SPF50+ PA++++",
+      "size": "50 mL",
+      "barcode": "8809600390106",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Obagi",
+      "name": "Nu-Derm Foaming Gel #1",
+      "size": "6.7 fl oz / 200 ml",
+      "barcode": "362032080000",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Obagi",
+      "name": "Nu-Derm Toner #2",
+      "size": "6.7 fl oz / 200 ml",
+      "barcode": "362032080109",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Obagi",
+      "name": "Medical Hydrate Facial Moisturizer",
+      "size": "1.7 oz / 48 g",
+      "barcode": "362032090009",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Vaseline",
+      "name": "Healing Jelly Original",
+      "size": "13 oz",
+      "barcode": "042100022100",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Vaseline",
+      "name": "Healing Jelly Original",
+      "size": "7.5 oz",
+      "barcode": "042100022209",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Vaseline",
+      "name": "Intensive Care Cocoa Radiant Lotion",
+      "size": "20.3 fl oz",
+      "barcode": "042100497588",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Vaseline",
+      "name": "Intensive Care Advanced Repair Unscented Lotion",
+      "size": "20.3 fl oz",
+      "barcode": "042100497380",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Gold Bond",
+      "name": "Ultimate Healing Hand Cream",
+      "size": "3 oz",
+      "barcode": "041167050163",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Gold Bond",
+      "name": "Ultimate Rough & Bumpy Skin Therapy Cream",
+      "size": "8 oz",
+      "barcode": "041167053003",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Gold Bond",
+      "name": "Diabetics' Dry Skin Relief Lotion",
+      "size": "13 oz",
+      "barcode": "041167053515",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Garnier",
+      "name": "SkinActive Micellar Cleansing Water All-in-1",
+      "size": "13.5 fl oz",
+      "barcode": "603084459735",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Garnier",
+      "name": "SkinActive Micellar Cleansing Water Waterproof",
+      "size": "13.5 fl oz",
+      "barcode": "603084459780",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Pond's",
+      "name": "Cold Cream Cleanser",
+      "size": "6.1 oz",
+      "barcode": "042100048735",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Pond's",
+      "name": "Dry Skin Cream",
+      "size": "6.5 oz",
+      "barcode": "042100048605",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Pond's",
+      "name": "Rejuveness Anti-Wrinkle Cream",
+      "size": "7 oz",
+      "barcode": "042100048704",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Bioderma",
+      "name": "Sensibio H2O Micellar Water",
+      "size": "250 mL",
+      "barcode": "3401570394723",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Nuxe",
+      "name": "Huile Prodigieuse Multi-Purpose Dry Oil",
+      "size": "100 mL",
+      "barcode": "3264680002007",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Dr. Hauschka",
+      "name": "Rose Day Cream",
+      "size": "30 mL",
+      "barcode": "4020829005778",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    },
+    {
+      "brand": "Dr. Hauschka",
+      "name": "Cleansing Cream",
+      "size": "50 mL",
+      "barcode": "4020829005518",
+      "outcome": "unknown",
+      "returned": {
+        "brand": null,
+        "name": null,
+        "inci": null
+      }
+    }
+  ]
+}

@@ -19,7 +19,7 @@ this is wrong.
 | 6 | Trial end and summary | **built**, including the Gemini summary |
 | 7 | Share and privacy | per-trial visibility built; face censoring deferred |
 | 8 | Community | **built 2026-08-07**; PRODUCT.md §7 amended to match |
-| 9 | Marketing home and search | **built 2026-08-07** |
+| 9 | Home and search | **built 2026-08-07**; hero 2026-08-08, search not yet wired past trials |
 
 ---
 
@@ -30,6 +30,15 @@ EXIF, so the **EV100 ambient-light check is unavailable** — it needs aperture,
 exposure time, and ISO. The pixel-based checks (light direction, colour,
 sharpness, framing) all still work. The demo path is fixture replay and needs no
 camera.
+
+**Page width caps at 1440px** — 75% of a 1920px (1080p) screen — via the
+`.page-width` utility in `app/globals.css`, applied identically in
+`app/layout.tsx` (main content), `components/site-nav.tsx` (header row) and
+`components/site-footer.tsx`. It is one shared class rather than three
+hardcoded widths on purpose: those three previously drifted (full-width header,
+1440px content, 896px footer) and read as a layout bug rather than a design
+choice. Add any future full-bleed region to `.page-width`, not a new
+`max-w-[...]`.
 
 ---
 
@@ -52,8 +61,9 @@ an **optional profile picture**.
   picture is Clerk's `setProfileImage()`, so a Google account brings one with it.
 - Ownership is enforced in the data layer, where every query takes the owner as
   an argument — the proxy only redirects. A build with no Clerk keys writes as
-  one implicit local owner, which is what keeps the keyless demo writable; the
-  first real account claims those rows.
+  one implicit local owner, which is what keeps the keyless demo writable; those
+  rows stay on the keyless path, never claimed by an account. Accounts start
+  empty, and the reference series is not listed as theirs.
 - Skin type is oily / dry / combination / normal / sensitive. Fitzpatrick is
   more clinically precise but most users don't know their number, and it answers
   a UV question this product isn't asking.
@@ -76,13 +86,22 @@ demographic prior would corrupt it invisibly.
 
 ## 3. Dashboard
 
-**Status: resolved and built, 2026-08-05.** `app/page.tsx`,
-`components/trial-card.tsx`, `components/trial-ring.tsx`, `lib/trials.ts`.
+**Status: resolved and built, 2026-08-05.** `app/dashboard/page.tsx`,
+`components/trial-card.tsx`, `components/trial-ring.tsx`, `lib/trials.ts`,
+`components/card-grid.tsx` (added 2026-08-08).
 
 The homescreen — seen every day for the length of a trial, not a results screen.
-A **New trial** button at the top, three tabs (**Active**, **Completed**,
-**Routines**), and nothing else. Every number and every decision lives one tap
-deeper, on the trial detail page.
+A **New trial** button at the top, four tabs (**Active**, **Completed**,
+**Routines**, **Saved**), and nothing else. Every number and every decision
+lives one tap deeper, on the trial detail page.
+
+All four tabs lay their cards out through one shared container,
+`components/card-grid.tsx` — a CSS grid, one column on mobile and up to four
+across on desktop (`grid-cols-1 lg:grid-cols-4`). `TrialCard`, `RoutineCard`
+and `CommunityTrialCard` (the Saved tab's card, borrowed from §8) don't know
+they're in a grid; the container is the only place the column count is
+decided, so a layout change applies to all four tabs at once instead of
+drifting between copies.
 
 One card, used in both tabs:
 
@@ -158,7 +177,24 @@ from "completed."
 
 **Status: resolved and built, 2026-08-05.** `app/routines/`,
 `components/routine-editor.tsx`, `components/routine-card.tsx`,
-`lib/routines.ts`.
+`lib/routines.ts`. The product row itself —
+add-from-catalog, brand/name, targets, reorder — is
+`components/product-draft-card.tsx`, shared with §4's trial-creation picker.
+The card's content — name, product count, coverage, and each product listed
+vertically with its catalog image where one exists — is
+`components/routine-summary.tsx` (added 2026-08-08), shared with §4's
+chosen-routine preview for the same reason: two screens showing the same
+routine must render it identically, not maintain two copies that drift.
+
+A saved product's image is not stored. `routine_items.catalog_product_id` is a
+nullable FK into `catalog_products` (`on delete set null` — a catalog row
+disappearing must cost a picture, not a routine item), set only when the
+product came from a `/catalog` pick; a typed name, barcode scan, or
+ingredient-photo read leaves it null. `listRoutines()` / `getRoutine()` join on
+it and read `image_url` live, so the image always reflects the catalog's
+current picture rather than one frozen at save time. It is read-only
+enrichment — `targets[]`/`brand`/`name` stay the identity the item was added
+under, same as always.
 
 A **routine** is a named, ordered set of products the user already uses —
 `[Morning]`, `[Night]`, as many as they want. Full CRUD from the third dashboard
@@ -206,7 +242,10 @@ than one trial references it.
 
 **Status: resolved and built, 2026-08-05.** `app/trials/new/`,
 `app/trials/actions.ts`, `components/trial-editor.tsx`, `lib/capture.ts`,
-`lib/trial-store.ts`, `scripts/migrate-trials.mjs`.
+`lib/trial-store.ts`, `scripts/migrate-trials.mjs`. The tracked-product row
+(§3.1) is `components/product-draft-card.tsx`, not local to this screen — and
+neither is the chosen-routine preview, which is §3.1's
+`components/routine-summary.tsx`.
 
 One screen, saved in one action, landing on the trial detail page:
 
@@ -299,8 +338,8 @@ without the product, leave the tracked list empty, name it *No vitamin C*. See
 
 ### The first photo
 
-Taken or uploaded here and **analysed on save**, establishing day-1 values for
-all 14 concerns. HD, always — mixing HD and SD within a series shifts acne,
+Taken here on the live camera — there is no upload, §5 — and **analysed on
+save**, establishing day-1 values for all 14 concerns. HD, always — mixing HD and SD within a series shifts acne,
 texture and pore by 13–18 points, several times any real change (rule 4).
 Images live in Vercel Blob, private; they are never committed and never enter
 the fixture.
@@ -318,18 +357,20 @@ conservative day-to-day figure, which a burst can't measure anyway.
 
 ### Open
 
-- **Product search is unbuilt, and it is the real fix for target quality.**
-  Products are typed in and classified from the name alone — the weakest of the
-  four paths in `product-identity.md`, and one that doc explicitly calls
-  insufficient for an *intervention*, where targets decide credit rather than
-  just confounding. Searching the product cache (`src/products.mjs`, keyed by
-  INCI/barcode/name) would fill brand, name, `targets[]` and `productKey` from
-  real ingredient data in one step. Until then "Add own" is the only path, which
-  is what that button name anticipates.
+- **Product search now covers the common case, via the incidecoder catalog
+  rather than `src/products.mjs`.** `components/product-draft-card.tsx` puts a
+  `SearchCombobox` (`components/search-combobox.tsx`) above the tracked-product
+  list, backed by `searchCatalogForPicker` (`lib/catalog.ts`); picking a match
+  fills brand, name and the real INCI list, which `suggestConcerns` then
+  classifies into `targets[]`. "Add own" is still the fallback for anything not
+  in the catalog, and stays the only path that reaches the `src/products.mjs`
+  cache (keyed by INCI/barcode/name) — that source is still unwired here, so a
+  typed name with no catalog match is still classified from the name alone,
+  the weakest of the four paths in `product-identity.md`.
 - **`downloadResult()` shells out to `unzip`** (`src/results.mjs`), which is not
   present on Vercel's Node runtime. Captures work locally and would fail on a
   deployment.
-- Whether the first photo can be deferred — "upload whenever they can" conflicts
+- Whether the first photo can be deferred — "log it whenever they can" conflicts
   with a fixed `startDate`, and a baseline landing three days in would count
   those days as missed.
 
@@ -371,8 +412,8 @@ which is the shape the summary is supposed to narrate.
 ### Today's photo
 
 **Today is the last frame of the roll, not a card beneath it.** With no photo
-logged, that slot is an empty frame carrying *No photo for today* and the two
-buttons, and the tab opens on it — what you land on is the thing you came to do,
+logged, that slot is an empty frame carrying *Log today's photo* and the camera
+button, and the tab opens on it — what you land on is the thing you came to do,
 with yesterday's face one swipe back. A card underneath was built first and was
 wrong: it greeted you with yesterday and put the action somewhere further down.
 
@@ -387,19 +428,65 @@ Capturing takes over the whole area rather than animating inside the frame: a
 live camera and the roll's drag handler would fight for the same pointer, and
 there is nothing to browse mid-capture.
 
-The shutter does not spend units. Every frame is reviewed before it is sent,
+**The camera is ours (2026-08-08)** — `getUserMedia`, BlazeFace for the face and
+its six landmarks, and the guide from `docs/capture-quality.md` §5. It ran on
+Perfect Corp's JS Camera Kit for a day; that is in §5 and in
+`docs/youcam-api.md`, along with why it went.
+
+**The frame is fixed and the user moves.** Every capture is the same crop — the
+largest 3:4 window in the camera's frame — with the outline drawn inside it at
+`TARGET_FACE_FRACTION` and `FACE_CENTER_Y`, the same constants the server-side
+cropper uses. A capture that passes is therefore already normalised, so face
+scale is constant by construction. One hint shows at a time, worst problem first;
+a camera that lists four faults at once is a camera nobody reads.
+
+**The shutter is manual and disabled until the frame passes.** Framing, scale and
+pose gate it; uneven light is named underneath and never blocks, because its
+threshold is the user's own baseline and a new user has none. Auto-firing was
+what the Camera Kit did and it took the moment away from the user — the whole
+point of a guide is that the frame is already right when you press.
+
+Capture does not spend units. Every frame is still reviewed before it is sent,
 because an unreviewed capture costs ~20 units *and* joins the series either way.
 
-Two constraints are checked in the browser, before the call, because both are
-free there and unrecoverable after: **short side ≥ 1080px** blocks the shutter
-and offers upload instead — most laptop webcams are 720p, so this fires often —
-and a long side over 2560px is downscaled on the canvas.
+Resolution asks for 1920×2560 and falls back to 2560×1920, taking whichever the
+device grants and cropping the tallest 3:4 window from it — 1920×2560 whole, or
+1440×1920 from a landscape stream. Both clear the analysis floor of 1080px on the
+short side comfortably; a stream that cannot is refused rather than upscaled,
+because inventing pixels would be inventing the measurement. Nothing is ever
+scaled up: the API works at 1920×2560 and resizes anything else itself.
 
-The preview is mirrored and the file is not. Which handedness hardly matters;
-that it never changes mid-trial does.
+This is a real gain over the Camera Kit, which could only manage 1080×1920 on a
+phone — its working buffer was derived from the camera stream inside a heap it
+could not grow, so a wider frame crashed it outright (`docs/youcam-api.md`).
 
-Cost, stated: face framing rests on an oval guide and the user. There is no
-automatic crop-to-0.55, so rule 3 stands as the warning about scale drift.
+**The live camera is the only way in, on both screens (2026-08-07).** An
+existing photo carries whatever framing, light and face scale it was taken
+under, and each of those is part of the measurement rather than a property of
+the picture (rules 3 and 4). The guide, the resolution check and the quality
+gate only bind if the frame passes through them, so the file picker is gone from
+creation and from daily capture alike.
+
+The cost, stated: a desktop user whose webcam cannot give a 3:4 window 1080px
+across, or who denies camera access, has no way to log a photo on that device and
+is told to use their phone. That is the intended trade — a series is
+single-device by default anyway (rule 6), and a phone camera clears this where
+laptop webcams often don't.
+
+This does not touch the extra angles attached to a day (`capture-extras.tsx`),
+which are never analysed and where framing carries no measurement.
+
+Cost, stated: the kit floors face scale at 0.75 and never pins it
+(`face_ratio_upper_threshold` is 1.0 in every preset), so scale still drifts
+inside that band and rule 3 stands as the warning. The correction is the user
+moving closer, which the kit prompts — not a crop, which would discard the
+resolution texture and pore depend on.
+
+**Unverified, and to check on the first real capture:** the handedness of the
+kit's output. The hand-rolled camera deliberately mirrored the preview and not
+the file. Which handedness hardly matters; that it never changes mid-trial
+does — so a trial started before this change should be checked against one
+started after.
 
 **Same-day captures are allowed by the store and never prompted for.** Nothing
 in the model forbids them and consecutive captures are how the per-user
@@ -425,10 +512,14 @@ name, and the setup rows. The products sat above the tabs first and were wrong
 there: fixed to the page, they pushed the photo down on every tab to restate
 something only the setup tab is asking about.
 
-The routine reads as a routine card — frozen name, product count, and what it
-**covers** — so it is the same object here as on the dashboard. The section is
-present even when the trial has no routine, saying so: an absent panel reads as
-a bug, where "nothing" is a fact about the trial.
+The routine reads like a routine card — frozen name, product count, and what it
+**covers** — but deliberately isn't `components/routine-summary.tsx`:
+`RoutineSnapshotCard` in `components/trial-products.tsx` renders a frozen
+`RoutineSnapshot`, which has no id or image to join against (freezing it is the
+whole point — §3.1), so it can't share the component the dashboard and the
+new-trial picker do. The section is present even when the trial has no
+routine, saying so: an absent panel reads as a bug, where "nothing" is a fact
+about the trial.
 
 ### The headline number is today minus day one
 
@@ -458,7 +549,7 @@ lighting was varied deliberately and it produced a 57.6-point texture spread in
 the word — never whether the user may see their own measurement.
 
 With a single capture nothing is called flat, because nothing has been asked yet.
-The copy is *"No progress yet — come back and upload another picture tomorrow."*
+The copy is *"No progress yet — come back and take another photo tomorrow."*
 
 ### The calendar
 
@@ -584,11 +675,11 @@ deletion.
 ## 8. Community
 
 **Status: built 2026-08-07**, with `PRODUCT.md` §7 amended on purpose.
-`app/community`, `app/products`, `lib/community.ts`,
+`app/page.tsx`, `app/products`, `lib/community.ts`,
 `components/community-trial-card.tsx`, `components/trial-comments.tsx`.
 
-Public trials browse in two tabs (ongoing / completed), filtered by product
-text, the owner's skin type, and tracked concern. A published trial page shows
+Public trials browse in two tabs (ongoing / completed), narrowed by the home
+search (§9). A published trial page shows
 its owner's @username and view count, takes comments (the owner's switch), and
 can be saved — saves land on a dashboard tab. The product index is derived
 entirely from published trials: a product exists because someone trialled it,
@@ -599,12 +690,27 @@ are the only count, so a feed can't be sorted against the premise — and
 **aggregation stops at listing**; nothing averages outcomes across faces.
 Moderation stays open, and matters, given the content is faces.
 
-## 9. Marketing home and search
+## 9. Home and search
 
-**Status: built 2026-08-07.** `/` is the front door — hero, the sample trial's
-real acne series as the graphic (retrospective, like everything else), how it
-works, the problem statement, recent completed trials, community pitch. The
-dashboard moved to `/dashboard` (sign-in required; the keyless build's implicit
-local owner passes). `/search` is one box over the public corpus — trials,
-products, people, tabbed with counts, fuzzy (`lib/fuzzy.ts`, in-memory; an
-index when the corpus outgrows it).
+**Status: built 2026-08-07; home replaced 2026-08-08; hero added 2026-08-08.**
+`/` is the community index itself — a first-time visitor lands on the published
+trials rather than on a page describing them, and there is no marketing landing
+page. The nav labels it **Home**; the `/community` route is gone. Cost: the
+sample trial's acne series no longer appears above the fold.
+
+Above those trials sits a centred hero (`components/hero-search.tsx`):
+**Skincare, Verified.** over *Search thousands of skincare products to see
+real-world results*, and one large search field. It states the pitch a
+first-time visitor was previously left to infer, and it makes search — not the
+trial list — the thing the page opens with.
+
+The field is **one box across every category**, matching `/search`; the skin
+type and concern selects are gone. Cost: the two structured narrowings the
+community index had are no longer reachable from the home page, and until the
+box is wired past trials its placeholder promises products, brands and
+ingredients that it does not yet search.
+
+The dashboard lives at `/dashboard` (sign-in required; the keyless build's
+implicit local owner passes). `/search` is one box over the public corpus —
+trials, products, people, tabbed with counts, fuzzy (`lib/fuzzy.ts`, in-memory;
+an index when the corpus outgrows it).

@@ -5,6 +5,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
+import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/lib/theme-provider";
 import { clerkConfigured, getSession } from "@/lib/auth";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -18,11 +20,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const session = await getSession();
 
   const document = (
-    <html lang="en" className={cn("dark", "font-sans", geist.variable)}>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body className="flex min-h-screen flex-col antialiased">
-        <SiteNav signedIn={session !== null} />
-        <div className="flex-1">{children}</div>
-        <SiteFooter />
+        <ThemeProvider>
+          <SiteNav signedIn={session !== null} />
+          <div className="w-full flex-1">
+            <div className="page-width">{children}</div>
+          </div>
+          <SiteFooter />
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

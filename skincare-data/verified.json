@@ -1,0 +1,483 @@
+{
+  "generatedAt": "2026-08-07T16:00:14.315Z",
+  "source": "skincare-data/barcodes.json",
+  "offline": true,
+  "checked": 115,
+  "counts": {
+    "verified": 36,
+    "mismatch": 1,
+    "unknown": 78,
+    "uncached": 0,
+    "error": 0
+  },
+  "products": [
+    {
+      "brand": "Klairs (Dear, Klairs)",
+      "name": "Freshly Juiced Vitamin Drop",
+      "size": "1.18 fl oz (35 mL)",
+      "barcode": "8809115025050",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Dear Klairs",
+        "name": "Freshly Juiced Vitamin Drop",
+        "inci": 51,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Sisley Paris",
+      "name": "Ecological Compound",
+      "size": "4.2 oz (125 mL)",
+      "barcode": "3473311141002",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Sisley",
+        "name": "Emulsion Ecologique Sisley 125ml",
+        "inci": 24,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Sisley Paris",
+      "name": "Black Rose Cream Mask",
+      "size": "2.1 oz (60 mL)",
+      "barcode": "3473311400000",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Sisley-Paris",
+        "name": "Black Rose Cream Mask",
+        "inci": 37,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Guerlain",
+      "name": "Abeille Royale Youth Watery Oil",
+      "size": "50 mL / 1.6 fl. oz.",
+      "barcode": "3346470614314",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Guerlain",
+        "name": "Guerlain Abeille Royale Double R Renew & Repair serum 50 ml",
+        "inci": 55,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Guerlain",
+      "name": "Abeille Royale Advanced Youth Watery Oil",
+      "size": "50 mL / 1.6 fl. oz.",
+      "barcode": "3346470616172",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Guerlain",
+        "name": "Abeille Royale",
+        "inci": 31,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Chanel Beauty",
+      "name": "Hydra Beauty Crème",
+      "size": "50 g / 1.7 oz.",
+      "barcode": "3145891430301",
+      "outcome": "verified",
+      "returned": {
+        "brand": "CHANEL",
+        "name": "Chanel Hydra Beauty Hydration Protection Radiance 50 g",
+        "inci": 35,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Chanel Beauty",
+      "name": "La Mousse Anti-Pollution Cleansing Cream-to-Foam",
+      "size": "150 mL / 5 fl. oz.",
+      "barcode": "3145891436808",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Chanel",
+        "name": "Chanel Le Blanc Intense Brightening Foam Cleanser 150ml",
+        "inci": 0,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Aesop",
+      "name": "Resurrection Aromatique Hand Balm",
+      "size": "75 mL / 2.6 oz.",
+      "barcode": "9319944030617",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Aesop",
+        "name": "Aesop Resurrection Aromatique Hand Balm 500ml",
+        "inci": 27,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "CeraVe",
+      "name": "Moisturizing Cream",
+      "size": "16 oz (453 g)",
+      "barcode": "3606000537736",
+      "outcome": "verified",
+      "returned": {
+        "brand": "FRANKEL & FRANKEL",
+        "name": "CERAVE MOISTURIZ LOTION 8 OZ",
+        "inci": 24,
+        "matchedOn": "name"
+      }
+    },
+    {
+      "brand": "CeraVe",
+      "name": "AM Facial Moisturizing Lotion SPF 30",
+      "size": "3 fl oz (89 mL)",
+      "barcode": "3606000537330",
+      "outcome": "verified",
+      "returned": {
+        "brand": "CeraVe",
+        "name": "Moisturizing Cream",
+        "inci": 0,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "CeraVe",
+      "name": "Renewing SA Cleanser",
+      "size": "8 fl oz (237 mL)",
+      "barcode": "3606000537552",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Cerave",
+        "name": "Cerave",
+        "inci": 0,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "La Roche-Posay",
+      "name": "Toleriane Hydrating Gentle Facial Cleanser",
+      "size": "13.52 fl oz (400 mL)",
+      "barcode": "3337875545778",
+      "outcome": "verified",
+      "returned": {
+        "brand": "La Roche-Posay",
+        "name": "Toleriane Hydrating Gentle Cleanser",
+        "inci": 19,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "La Roche-Posay",
+      "name": "Lipikar Balm AP+ Intense Repair Moisturizing Cream",
+      "size": "13.52 fl oz (400 mL)",
+      "barcode": "3337875696548",
+      "outcome": "verified",
+      "returned": {
+        "brand": "La Roche-Posay,loreal",
+        "name": "Lipikar Baume AP+ M",
+        "inci": 27,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "The Ordinary",
+      "name": "Niacinamide 10% + Zinc 1%",
+      "size": "30 mL",
+      "barcode": "769915190311",
+      "outcome": "verified",
+      "returned": {
+        "brand": "The Ordinary",
+        "name": "The Ordinary Niacinamide 10% + Zinc 1% serum rozświetlające do twarzy z niacynamidem i cynkiem 30 ml",
+        "inci": 11,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "The Ordinary",
+      "name": "Hyaluronic Acid 2% + B5",
+      "size": "30 mL",
+      "barcode": "769915190199",
+      "outcome": "verified",
+      "returned": {
+        "brand": "The ordinary",
+        "name": "Hyaluronic acid 2% b5",
+        "inci": 0,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Caudalie",
+      "name": "Vinoperfect Radiance Serum Complexion Correcting",
+      "size": "30 ml / 1 fl. oz.",
+      "barcode": "3522930002130",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Caudalie",
+        "name": "Eau Des Vignes",
+        "inci": 21,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Caudalie",
+      "name": "Instant Foaming Cleanser",
+      "size": "150 ml / 5.1 fl. oz.",
+      "barcode": "3522930001812",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Caudalie",
+        "name": "Masque peeling glycolique",
+        "inci": 0,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Bubble",
+      "name": "Slam Dunk Hydrating Cream Moisturizer",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "850020056033",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Bubble",
+        "name": "Bubble Skincare Bounce Back Toner Mist 55 ML",
+        "inci": 0,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Bubble",
+      "name": "Fresh Start Gel Cleanser",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "850020056002",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Bubble",
+        "name": "Bubble Skincare Fresh Start Gel Cleanser 125 ML",
+        "inci": 12,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Bubble",
+      "name": "Level Up Balancing Gel Moisturizer",
+      "size": "1.7 fl oz (50 mL)",
+      "barcode": "850020056040",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Bubble",
+        "name": "Bubble Skincare Slam Dunk Hydrating Moisturizer 50 ML",
+        "inci": 24,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Mario Badescu",
+      "name": "Facial Spray with Aloe, Herbs and Rosewater",
+      "size": "4 fl oz",
+      "barcode": "785364130050",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Mario Badescu",
+        "name": "Mario Badescu Buffering Lotion 29ML",
+        "inci": 18,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Mario Badescu",
+      "name": "Drying Lotion",
+      "size": "1 fl oz",
+      "barcode": "785364130081",
+      "outcome": "verified",
+      "returned": {
+        "brand": "",
+        "name": "Mario Badescu",
+        "inci": 10,
+        "matchedOn": "name"
+      }
+    },
+    {
+      "brand": "Clinique",
+      "name": "Dramatically Different Moisturizing Lotion%",
+      "size": "4.2 fl oz / 125 mL",
+      "barcode": "020714598907",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Clinique",
+        "name": "Clinique Dramatically Different Moisturizing Lotion+ 125 ml",
+        "inci": 21,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Clinique",
+      "name": "Take The Day Off Cleansing Balm",
+      "size": "3.8 oz / 125 mL",
+      "barcode": "020714215552",
+      "outcome": "verified",
+      "returned": {
+        "brand": "CLINIQUE div. ESTEE LAUDER Srl",
+        "name": "CQ TAKE THE DAY OFF CLEAN BALM 125",
+        "inci": 0,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "ESTÉE LAUDER",
+      "name": "Advanced Night Repair Synchronized Multi-Recovery Complex",
+      "size": "1.7 fl oz / 50 mL",
+      "barcode": "887167485488",
+      "outcome": "verified",
+      "returned": {
+        "brand": "estee lauder",
+        "name": "E.Lauder Advanced Night Repair 50ml",
+        "inci": 0,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "ESTÉE LAUDER",
+      "name": "Advanced Night Repair Synchronized Multi-Recovery Complex",
+      "size": "1.0 fl oz / 30 mL",
+      "barcode": "887167485471",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Estee Lauder",
+        "name": "Estée Lauder Advanced Night Repair Synchronized Multi-Recovery Complex 30 ml",
+        "inci": 41,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "COSRX",
+      "name": "Advanced Snail 96 Mucin Power Essence",
+      "size": "100 mL",
+      "barcode": "8809416470009",
+      "outcome": "verified",
+      "returned": {
+        "brand": "COSRX",
+        "name": "Cosrx Advanced Snail 96 Mucin Power Essence, nawilżająca esencja ze śluzu ślimaka, 100 ml",
+        "inci": 12,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "COSRX",
+      "name": "Advanced Snail 92 All in One Cream",
+      "size": "100 g",
+      "barcode": "8809416470016",
+      "outcome": "verified",
+      "returned": {
+        "brand": "COSRX",
+        "name": "Advanced Snail 92 All in one cream 100ml",
+        "inci": 22,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "COSRX",
+      "name": "Low pH Good Morning Gel Cleanser",
+      "size": "150 mL",
+      "barcode": "8809416470511",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Cosrx",
+        "name": "Limpiador PH Neutro Low PH Good Morning",
+        "inci": 23,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "COSRX",
+      "name": "BHA Blackhead Power Liquid",
+      "size": "100 mL",
+      "barcode": "8809416470054",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Cosrx",
+        "name": "Exfoliante Químico BHA Blackhead Power Liquid",
+        "inci": 10,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Avene",
+      "name": "Thermal Spring Water",
+      "size": "10.1 fl oz / 300 ml",
+      "barcode": "3282779003131",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Avène",
+        "name": "Eau thermale",
+        "inci": 2,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Avene",
+      "name": "Thermal Spring Water",
+      "size": "5.0 fl oz / 150 ml",
+      "barcode": "3282779003124",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Avène",
+        "name": "Eau Thermale Avène Peaux sensibles Avene Apaisante, anti-irritante hermal Spring Wa EAU THERMALE",
+        "inci": 6,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Bioderma",
+      "name": "Atoderm Intensive Baume",
+      "size": "500 mL",
+      "barcode": "3701129802052",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Bioderma",
+        "name": "Bioderma Atoderm Intensive Balm",
+        "inci": 34,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Nuxe",
+      "name": "Huile Prodigieuse Florale Dry Oil",
+      "size": "100 mL",
+      "barcode": "3264680015946",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Nuxe",
+        "name": "Nuxe Huile Prodigieuse Florale Multi-Purpose Dry Oil 100 ml",
+        "inci": 23,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Nuxe",
+      "name": "Rêve de Miel Lip Moisturizing Stick",
+      "size": "4g",
+      "barcode": "3264680004087",
+      "outcome": "verified",
+      "returned": {
+        "brand": "NUXE",
+        "name": "Nuxe RÃªve De Miel Baume LÃ¨vres Ultra Nourrissant (BP1014985600) (Balsam 15ml)",
+        "inci": 24,
+        "matchedOn": "brand"
+      }
+    },
+    {
+      "brand": "Dr. Hauschka",
+      "name": "Facial Toner",
+      "size": "100 mL",
+      "barcode": "4020829005617",
+      "outcome": "verified",
+      "returned": {
+        "brand": "Dr Hauschka",
+        "name": "Dr. Hauschka Silk Body Powder 50g",
+        "inci": 14,
+        "matchedOn": "brand"
+      }
+    }
+  ]
+}

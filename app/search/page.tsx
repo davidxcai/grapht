@@ -57,7 +57,7 @@ export default async function SearchPage({
   const users = q ? fuzzyRank(q, allUsers, (u) => u.handle) : allUsers;
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-5 py-10">
+    <main className="w-full px-5 py-10 lg:px-10">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Search</h1>
       </header>

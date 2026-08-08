@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 import { endTrial } from '@/app/trials/actions';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ export function EndTrialButton({ trialId, daysLogged }: { trialId: string; daysL
       const result = await endTrial(trialId);
       if (result.ok) {
         setOpen(false);
+        toast.success('Trial ended');
         router.refresh();
       } else {
         setError(result.error);

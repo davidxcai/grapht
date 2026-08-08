@@ -1,0 +1,37 @@
+{
+  "brands": [
+    "Dr. Barbara Sturm",
+    "Clé de Peau Beauté",
+    "Guerlain",
+    "Chanel Beauty",
+    "Dior Skincare",
+    "111SKIN",
+    "Omorovicza",
+    "Aesop",
+    "Chantecaille",
+    "SKIN DESIGN LONDON"
+  ],
+  "harvester": {
+    "model": "gemini-3.6-flash",
+    "promptVersion": "2026-08-07.1"
+  },
+  "perBrand": 50,
+  "fetchedAt": "2026-08-07T15:51:23.774Z",
+  "promptFeedback": null,
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\"brands\":[{\"brand\":\"Dr. Barbara Sturm\",\"products\":[{\"name\":\"Hyaluronic Serum\",\"size\":\"30 mL / 1.01 fl. oz.\",\"barcode\":\"4260395250084\"},{\"name\":\"Face Cream\",\"size\":\"50 mL / 1.69 fl. oz.\",\"barcode\":\"4260395250039\"},{\"name\":\"Cleanser\",\"size\":\"150 mL / 5.07 fl. oz.\",\"barcode\":\"4260395250008\"},{\"name\":\"Enzyme Cleanser\",\"size\":\"75 g / 2.64 oz.\",\"barcode\":\"4260395250787\"}]},{\"brand\":\"Clé de Peau Beauté\",\"products\":[{\"name\":\"Softening Cleansing Foam\",\"size\":\"125 mL / 4.7 oz.\",\"barcode\":\"729238142343\"},{\"name\":\"The Cream\",\"size\":\"50 mL / 1.7 oz.\",\"barcode\":\"729238153400\"},{\"name\":\"Correcting Cream Veil SPF 21\",\"size\":\"37 mL / 1.4 oz.\",\"barcode\":\"729238158580\"}]},{\"brand\":\"Guerlain\",\"products\":[{\"name\":\"Abeille Royale Youth Watery Oil\",\"size\":\"50 mL / 1.6 fl. oz.\",\"barcode\":\"3346470614314\"},{\"name\":\"Abeille Royale Advanced Youth Watery Oil\",\"size\":\"50 mL / 1.6 fl. oz.\",\"barcode\":\"3346470616172\"}]},{\"brand\":\"Chanel Beauty\",\"products\":[{\"name\":\"Hydra Beauty Crème\",\"size\":\"50 g / 1.7 oz.\",\"barcode\":\"3145891430301\"},{\"name\":\"La Mousse Anti-Pollution Cleansing Cream-to-Foam\",\"size\":\"150 mL / 5 fl. oz.\",\"barcode\":\"3145891436808\"}]},{\"brand\":\"Dior Skincare\",\"products\":[{\"name\":\"Capture Totale Super Potent Serum\",\"size\":\"50 mL / 1.7 fl. oz.\",\"barcode\":\"3348901486262\"}]},{\"brand\":\"111SKIN\",\"products\":[{\"name\":\"Celestial Black Diamond Eye Mask\",\"size\":\"8 mL / 0.27 fl. oz.\",\"barcode\":\"5060280370600\"},{\"name\":\"Rose Gold Brightening Facial Treatment Mask\",\"size\":\"30 mL / 1 fl. oz.\",\"barcode\":\"5060280371072\"}]},{\"brand\":\"Omorovicza\",\"products\":[{\"name\":\"Thermal Cleansing Balm\",\"size\":\"50 mL / 1.7 fl. oz.\",\"barcode\":\"5999888370001\"},{\"name\":\"Queen of Hungary Mist\",\"size\":\"100 mL / 3.4 fl. oz.\",\"barcode\":\"5999888370124\"}]},{\"brand\":\"Aesop\",\"products\":[{\"name\":\"Parsley Seed Anti-Oxidant Serum\",\"size\":\"100 mL / 3.4 fl. oz.\",\"barcode\":\"9319944002621\"},{\"name\":\"Resurrection Aromatique Hand Balm\",\"size\":\"75 mL / 2.6 oz.\",\"barcode\":\"9319944030617\"},{\"name\":\"Fabulous Face Oil\",\"size\":\"25 mL / 0.8 fl. oz.\",\"barcode\":\"9319944000306\"}]},{\"brand\":\"Chantecaille\",\"products\":[{\"name\":\"Rose de Mai Face Oil\",\"size\":\"30 mL / 1.01 fl. oz.\",\"barcode\":\"656509033320\"},{\"name\":\"Bio Lifting Mask\",\"size\":\"50 mL / 1.7 fl. oz.\",\"barcode\":\"656509015005\"}]},{\"brand\":\"SKIN DESIGN LONDON\",\"products\":[]}]}",
+            "thoughtSignature": "EjQKMgERTTIP1DLWtMnSodjxfCpG2Ji8jSBSaUQ4wWLobbkrYAx9AhLqU2skLNwdhD/cseKO"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "text": "{\"brands\":[{\"brand\":\"Dr. Barbara Sturm\",\"products\":[{\"name\":\"Hyaluronic Serum\",\"size\":\"30 mL / 1.01 fl. oz.\",\"barcode\":\"4260395250084\"},{\"name\":\"Face Cream\",\"size\":\"50 mL / 1.69 fl. oz.\",\"barcode\":\"4260395250039\"},{\"name\":\"Cleanser\",\"size\":\"150 mL / 5.07 fl. oz.\",\"barcode\":\"4260395250008\"},{\"name\":\"Enzyme Cleanser\",\"size\":\"75 g / 2.64 oz.\",\"barcode\":\"4260395250787\"}]},{\"brand\":\"Clé de Peau Beauté\",\"products\":[{\"name\":\"Softening Cleansing Foam\",\"size\":\"125 mL / 4.7 oz.\",\"barcode\":\"729238142343\"},{\"name\":\"The Cream\",\"size\":\"50 mL / 1.7 oz.\",\"barcode\":\"729238153400\"},{\"name\":\"Correcting Cream Veil SPF 21\",\"size\":\"37 mL / 1.4 oz.\",\"barcode\":\"729238158580\"}]},{\"brand\":\"Guerlain\",\"products\":[{\"name\":\"Abeille Royale Youth Watery Oil\",\"size\":\"50 mL / 1.6 fl. oz.\",\"barcode\":\"3346470614314\"},{\"name\":\"Abeille Royale Advanced Youth Watery Oil\",\"size\":\"50 mL / 1.6 fl. oz.\",\"barcode\":\"3346470616172\"}]},{\"brand\":\"Chanel Beauty\",\"products\":[{\"name\":\"Hydra Beauty Crème\",\"size\":\"50 g / 1.7 oz.\",\"barcode\":\"3145891430301\"},{\"name\":\"La Mousse Anti-Pollution Cleansing Cream-to-Foam\",\"size\":\"150 mL / 5 fl. oz.\",\"barcode\":\"3145891436808\"}]},{\"brand\":\"Dior Skincare\",\"products\":[{\"name\":\"Capture Totale Super Potent Serum\",\"size\":\"50 mL / 1.7 fl. oz.\",\"barcode\":\"3348901486262\"}]},{\"brand\":\"111SKIN\",\"products\":[{\"name\":\"Celestial Black Diamond Eye Mask\",\"size\":\"8 mL / 0.27 fl. oz.\",\"barcode\":\"5060280370600\"},{\"name\":\"Rose Gold Brightening Facial Treatment Mask\",\"size\":\"30 mL / 1 fl. oz.\",\"barcode\":\"5060280371072\"}]},{\"brand\":\"Omorovicza\",\"products\":[{\"name\":\"Thermal Cleansing Balm\",\"size\":\"50 mL / 1.7 fl. oz.\",\"barcode\":\"5999888370001\"},{\"name\":\"Queen of Hungary Mist\",\"size\":\"100 mL / 3.4 fl. oz.\",\"barcode\":\"5999888370124\"}]},{\"brand\":\"Aesop\",\"products\":[{\"name\":\"Parsley Seed Anti-Oxidant Serum\",\"size\":\"100 mL / 3.4 fl. oz.\",\"barcode\":\"9319944002621\"},{\"name\":\"Resurrection Aromatique Hand Balm\",\"size\":\"75 mL / 2.6 oz.\",\"barcode\":\"9319944030617\"},{\"name\":\"Fabulous Face Oil\",\"size\":\"25 mL / 0.8 fl. oz.\",\"barcode\":\"9319944000306\"}]},{\"brand\":\"Chantecaille\",\"products\":[{\"name\":\"Rose de Mai Face Oil\",\"size\":\"30 mL / 1.01 fl. oz.\",\"barcode\":\"656509033320\"},{\"name\":\"Bio Lifting Mask\",\"size\":\"50 mL / 1.7 fl. oz.\",\"barcode\":\"656509015005\"}]},{\"brand\":\"SKIN DESIGN LONDON\",\"products\":[]}]}"
+}

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { postComment, removeComment } from '@/app/community/actions';
@@ -51,6 +52,7 @@ export function TrialComments({
       if (!result.ok) setError(result.error);
       else {
         setDraft('');
+        toast.success('Comment posted');
         router.refresh();
       }
     });
@@ -61,7 +63,10 @@ export function TrialComments({
     startTransition(async () => {
       const result = await removeComment(trialId, commentId);
       if (!result.ok) setError(result.error);
-      else router.refresh();
+      else {
+        toast.success('Comment deleted');
+        router.refresh();
+      }
     });
   };
 

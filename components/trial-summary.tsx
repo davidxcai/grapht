@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Pencil, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { generateSummary, saveUserReview } from '@/app/trials/actions';
@@ -36,7 +37,10 @@ export function TrialSummary({ trial, canEdit }: { trial: Trial; canEdit: boolea
     startWriting(async () => {
       const result = await generateSummary(trial.id);
       if (!result.ok) setError(result.error);
-      else router.refresh();
+      else {
+        toast.success(summary ? 'Summary rewritten' : 'Summary written');
+        router.refresh();
+      }
     });
   };
 
@@ -47,6 +51,7 @@ export function TrialSummary({ trial, canEdit }: { trial: Trial; canEdit: boolea
       if (!result.ok) setError(result.error);
       else {
         setEditingReview(false);
+        toast.success(review ? 'Review updated' : 'Review saved');
         router.refresh();
       }
     });

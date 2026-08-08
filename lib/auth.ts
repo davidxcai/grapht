@@ -23,8 +23,8 @@ export const clerkConfigured = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE
  * Such a build has no way to tell one visitor from another, so it behaves as it
  * did before accounts existed: one implicit local owner who can read and write.
  * That is what keeps the keyless demo path complete rather than read-only. With
- * Clerk configured this value is never written again — the first account to
- * finish sign-up claims the rows already carrying it (`lib/profile.ts`).
+ * Clerk configured this value is never written again, and rows carrying it stay
+ * on the keyless path — no account ever claims them.
  */
 export const DEMO_USER = 'local';
 

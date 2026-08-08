@@ -1,0 +1,37 @@
+{
+  "brands": [
+    "Weleda",
+    "Nuxe",
+    "Dr. Hauschka",
+    "Pai Skincare",
+    "Earth Harbor",
+    "Supergoop!",
+    "Coola",
+    "Sun Bum",
+    "Coppertone",
+    "Banana Boat"
+  ],
+  "harvester": {
+    "model": "gemini-3.6-flash",
+    "promptVersion": "2026-08-07.1"
+  },
+  "perBrand": 50,
+  "fetchedAt": "2026-08-07T15:51:59.827Z",
+  "promptFeedback": null,
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\"brands\":[{\"brand\":\"Weleda\",\"products\":[{\"name\":\"Skin Food Original Ultra-Rich Cream\",\"size\":\"2.5 fl oz\",\"barcode\":\"4001638098396\"},{\"name\":\"Skin Food Light Nourishing Cream\",\"size\":\"2.5 fl oz\",\"barcode\":\"4001638500219\"},{\"name\":\"Skin Food Lip Butter\",\"size\":\"0.27 fl oz\",\"barcode\":\"4001638500172\"}]},{\"brand\":\"Nuxe\",\"products\":[{\"name\":\"Huile Prodigieuse Multi-Purpose Dry Oil\",\"size\":\"100 mL\",\"barcode\":\"3264680002007\"},{\"name\":\"Huile Prodigieuse Florale Dry Oil\",\"size\":\"100 mL\",\"barcode\":\"3264680015946\"},{\"name\":\"Rêve de Miel Lip Moisturizing Stick\",\"size\":\"4g\",\"barcode\":\"3264680004087\"}]},{\"brand\":\"Dr. Hauschka\",\"products\":[{\"name\":\"Rose Day Cream\",\"size\":\"30 mL\",\"barcode\":\"4020829005778\"},{\"name\":\"Cleansing Cream\",\"size\":\"50 mL\",\"barcode\":\"4020829005518\"},{\"name\":\"Facial Toner\",\"size\":\"100 mL\",\"barcode\":\"4020829005617\"}]},{\"brand\":\"Pai Skincare\",\"products\":[{\"name\":\"Rosehip BioRegenerate Oil\",\"size\":\"30 mL\",\"barcode\":\"5060139720235\"}]},{\"brand\":\"Earth Harbor\",\"products\":[{\"name\":\"Calypso Revitalizing Violet Elixir\",\"size\":\"1 fl oz\",\"barcode\":\"850009572007\"}]},{\"brand\":\"Supergoop!\",\"products\":[{\"name\":\"Unseen Sunscreen SPF 40\",\"size\":\"1.7 fl oz\",\"barcode\":\"816218022144\"},{\"name\":\"Glow Screen SPF 40 Sunrise\",\"size\":\"1.7 fl oz\",\"barcode\":\"816218023790\"},{\"name\":\"PLAY Everyday Lotion SPF 50\",\"size\":\"5.5 fl oz\",\"barcode\":\"816218022397\"}]},{\"brand\":\"Coola\",\"products\":[{\"name\":\"Classic Face Sunscreen Lotion SPF 30 Cucumber\",\"size\":\"1.7 fl oz\",\"barcode\":\"850005486001\"},{\"name\":\"Classic Body Sunscreen Spray SPF 50 Piña Colada\",\"size\":\"6 fl oz\",\"barcode\":\"854036003184\"}]},{\"brand\":\"Sun Bum\",\"products\":[{\"name\":\"Original SPF 30 Sunscreen Lotion\",\"size\":\"8 fl oz\",\"barcode\":\"871760000109\"},{\"name\":\"Original SPF 50 Sunscreen Lotion\",\"size\":\"8 fl oz\",\"barcode\":\"871760000116\"},{\"name\":\"Original SPF 30 Sunscreen Lip Balm Coconut\",\"size\":\"0.15 oz\",\"barcode\":\"871760000215\"}]},{\"brand\":\"Coppertone\",\"products\":[{\"name\":\"Sport Sunscreen Lotion SPF 30\",\"size\":\"7 fl oz\",\"barcode\":\"041100005763\"},{\"name\":\"Sport Sunscreen Spray SPF 50\",\"size\":\"5.5 oz\",\"barcode\":\"041100002229\"}]},{\"brand\":\"Banana Boat\",\"products\":[{\"name\":\"Sport Ultra Sunscreen Lotion SPF 30\",\"size\":\"8 fl oz\",\"barcode\":\"079656008034\"},{\"name\":\"Sport Ultra Sunscreen Spray SPF 50\",\"size\":\"6 oz\",\"barcode\":\"079656009475\"}]}]}",
+            "thoughtSignature": "EjQKMgERTTIPc5OFc9BHLPrk5kyaCkQbVY1Ttw4gL/M/sDvNHKfB3S/9YCKKFyPLx2ppVfXu"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "text": "{\"brands\":[{\"brand\":\"Weleda\",\"products\":[{\"name\":\"Skin Food Original Ultra-Rich Cream\",\"size\":\"2.5 fl oz\",\"barcode\":\"4001638098396\"},{\"name\":\"Skin Food Light Nourishing Cream\",\"size\":\"2.5 fl oz\",\"barcode\":\"4001638500219\"},{\"name\":\"Skin Food Lip Butter\",\"size\":\"0.27 fl oz\",\"barcode\":\"4001638500172\"}]},{\"brand\":\"Nuxe\",\"products\":[{\"name\":\"Huile Prodigieuse Multi-Purpose Dry Oil\",\"size\":\"100 mL\",\"barcode\":\"3264680002007\"},{\"name\":\"Huile Prodigieuse Florale Dry Oil\",\"size\":\"100 mL\",\"barcode\":\"3264680015946\"},{\"name\":\"Rêve de Miel Lip Moisturizing Stick\",\"size\":\"4g\",\"barcode\":\"3264680004087\"}]},{\"brand\":\"Dr. Hauschka\",\"products\":[{\"name\":\"Rose Day Cream\",\"size\":\"30 mL\",\"barcode\":\"4020829005778\"},{\"name\":\"Cleansing Cream\",\"size\":\"50 mL\",\"barcode\":\"4020829005518\"},{\"name\":\"Facial Toner\",\"size\":\"100 mL\",\"barcode\":\"4020829005617\"}]},{\"brand\":\"Pai Skincare\",\"products\":[{\"name\":\"Rosehip BioRegenerate Oil\",\"size\":\"30 mL\",\"barcode\":\"5060139720235\"}]},{\"brand\":\"Earth Harbor\",\"products\":[{\"name\":\"Calypso Revitalizing Violet Elixir\",\"size\":\"1 fl oz\",\"barcode\":\"850009572007\"}]},{\"brand\":\"Supergoop!\",\"products\":[{\"name\":\"Unseen Sunscreen SPF 40\",\"size\":\"1.7 fl oz\",\"barcode\":\"816218022144\"},{\"name\":\"Glow Screen SPF 40 Sunrise\",\"size\":\"1.7 fl oz\",\"barcode\":\"816218023790\"},{\"name\":\"PLAY Everyday Lotion SPF 50\",\"size\":\"5.5 fl oz\",\"barcode\":\"816218022397\"}]},{\"brand\":\"Coola\",\"products\":[{\"name\":\"Classic Face Sunscreen Lotion SPF 30 Cucumber\",\"size\":\"1.7 fl oz\",\"barcode\":\"850005486001\"},{\"name\":\"Classic Body Sunscreen Spray SPF 50 Piña Colada\",\"size\":\"6 fl oz\",\"barcode\":\"854036003184\"}]},{\"brand\":\"Sun Bum\",\"products\":[{\"name\":\"Original SPF 30 Sunscreen Lotion\",\"size\":\"8 fl oz\",\"barcode\":\"871760000109\"},{\"name\":\"Original SPF 50 Sunscreen Lotion\",\"size\":\"8 fl oz\",\"barcode\":\"871760000116\"},{\"name\":\"Original SPF 30 Sunscreen Lip Balm Coconut\",\"size\":\"0.15 oz\",\"barcode\":\"871760000215\"}]},{\"brand\":\"Coppertone\",\"products\":[{\"name\":\"Sport Sunscreen Lotion SPF 30\",\"size\":\"7 fl oz\",\"barcode\":\"041100005763\"},{\"name\":\"Sport Sunscreen Spray SPF 50\",\"size\":\"5.5 oz\",\"barcode\":\"041100002229\"}]},{\"brand\":\"Banana Boat\",\"products\":[{\"name\":\"Sport Ultra Sunscreen Lotion SPF 30\",\"size\":\"8 fl oz\",\"barcode\":\"079656008034\"},{\"name\":\"Sport Ultra Sunscreen Spray SPF 50\",\"size\":\"6 oz\",\"barcode\":\"079656009475\"}]}]}"
+}

@@ -1,0 +1,37 @@
+{
+  "brands": [
+    "Vaseline",
+    "Gold Bond",
+    "Jergens",
+    "Garnier",
+    "L'Oréal Paris",
+    "Simple",
+    "Pond's",
+    "Clean & Clear",
+    "Bioderma",
+    "Burt's Bees"
+  ],
+  "harvester": {
+    "model": "gemini-3.6-flash",
+    "promptVersion": "2026-08-07.1"
+  },
+  "perBrand": 50,
+  "fetchedAt": "2026-08-07T15:48:39.857Z",
+  "promptFeedback": null,
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\"brands\":[{\"brand\":\"Vaseline\",\"products\":[{\"name\":\"Healing Jelly Original\",\"size\":\"13 oz\",\"barcode\":\"042100022100\"},{\"name\":\"Healing Jelly Original\",\"size\":\"7.5 oz\",\"barcode\":\"042100022209\"},{\"name\":\"Intensive Care Cocoa Radiant Lotion\",\"size\":\"20.3 fl oz\",\"barcode\":\"042100497588\"},{\"name\":\"Intensive Care Advanced Repair Unscented Lotion\",\"size\":\"20.3 fl oz\",\"barcode\":\"042100497380\"}]},{\"brand\":\"Gold Bond\",\"products\":[{\"name\":\"Ultimate Healing Hand Cream\",\"size\":\"3 oz\",\"barcode\":\"041167050163\"},{\"name\":\"Ultimate Rough & Bumpy Skin Therapy Cream\",\"size\":\"8 oz\",\"barcode\":\"041167053003\"},{\"name\":\"Diabetics' Dry Skin Relief Lotion\",\"size\":\"13 oz\",\"barcode\":\"041167053515\"}]},{\"brand\":\"Jergens\",\"products\":[{\"name\":\"Ultra Healing Extra Dry Skin Moisturizer\",\"size\":\"21 fl oz\",\"barcode\":\"019100109987\"},{\"name\":\"Original Scent Dry Skin Moisturizer\",\"size\":\"21 fl oz\",\"barcode\":\"019100109864\"},{\"name\":\"Natural Glow Daily Moisturizer Fair to Medium\",\"size\":\"7.5 fl oz\",\"barcode\":\"019100112024\"}]},{\"brand\":\"Garnier\",\"products\":[{\"name\":\"SkinActive Micellar Cleansing Water All-in-1\",\"size\":\"13.5 fl oz\",\"barcode\":\"603084459735\"},{\"name\":\"SkinActive Micellar Cleansing Water Waterproof\",\"size\":\"13.5 fl oz\",\"barcode\":\"603084459780\"}]},{\"brand\":\"L'Oréal Paris\",\"products\":[{\"name\":\"Revitalift Derm Intensives 1.5% Pure Hyaluronic Acid Serum\",\"size\":\"1.0 fl oz\",\"barcode\":\"071249387420\"},{\"name\":\"Revitalift Anti-Wrinkle + Firming Face & Neck Cream\",\"size\":\"1.7 oz\",\"barcode\":\"071249017365\"}]},{\"brand\":\"Simple\",\"products\":[{\"name\":\"Kind to Skin Micellar Cleansing Water\",\"size\":\"6.7 fl oz\",\"barcode\":\"608501000483\"},{\"name\":\"Kind to Skin Moisturizing Facial Wash\",\"size\":\"5 fl oz\",\"barcode\":\"608501000421\"}]},{\"brand\":\"Pond's\",\"products\":[{\"name\":\"Cold Cream Cleanser\",\"size\":\"6.1 oz\",\"barcode\":\"042100048735\"},{\"name\":\"Dry Skin Cream\",\"size\":\"6.5 oz\",\"barcode\":\"042100048605\"},{\"name\":\"Rejuveness Anti-Wrinkle Cream\",\"size\":\"7 oz\",\"barcode\":\"042100048704\"}]},{\"brand\":\"Clean & Clear\",\"products\":[{\"name\":\"Morning Burst Facial Cleanser\",\"size\":\"8 fl oz\",\"barcode\":\"381370016422\"},{\"name\":\"Deep Action Exfoliating Scrub\",\"size\":\"5 oz\",\"barcode\":\"381370034266\"},{\"name\":\"Essential Foaming Facial Cleanser\",\"size\":\"8 fl oz\",\"barcode\":\"381370011533\"}]},{\"brand\":\"Bioderma\",\"products\":[{\"name\":\"Sensibio H2O Micellar Water\",\"size\":\"500 mL\",\"barcode\":\"3401574670782\"},{\"name\":\"Sensibio H2O Micellar Water\",\"size\":\"250 mL\",\"barcode\":\"3401570394723\"},{\"name\":\"Atoderm Intensive Baume\",\"size\":\"500 mL\",\"barcode\":\"3701129802052\"}]},{\"brand\":\"Burt's Bees\",\"products\":[{\"name\":\"Beeswax Lip Balm\",\"size\":\"0.15 oz\",\"barcode\":\"0792850010015\"},{\"name\":\"Beeswax Lip Balm 4-Pack\",\"size\":\"0.6 oz\",\"barcode\":\"0792850892994\"},{\"name\":\"Lip Balm Vitamin E & Peppermint\",\"size\":\"0.15 oz\",\"barcode\":\"792850010015\"}]}]}",
+            "thoughtSignature": "EjQKMgERTTIPfy23iF096gUwyzj3/jnzUW+GQ9XO62YPkSOWaZ7d6tYOMPyeeGpg4vdWN6Jo"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "text": "{\"brands\":[{\"brand\":\"Vaseline\",\"products\":[{\"name\":\"Healing Jelly Original\",\"size\":\"13 oz\",\"barcode\":\"042100022100\"},{\"name\":\"Healing Jelly Original\",\"size\":\"7.5 oz\",\"barcode\":\"042100022209\"},{\"name\":\"Intensive Care Cocoa Radiant Lotion\",\"size\":\"20.3 fl oz\",\"barcode\":\"042100497588\"},{\"name\":\"Intensive Care Advanced Repair Unscented Lotion\",\"size\":\"20.3 fl oz\",\"barcode\":\"042100497380\"}]},{\"brand\":\"Gold Bond\",\"products\":[{\"name\":\"Ultimate Healing Hand Cream\",\"size\":\"3 oz\",\"barcode\":\"041167050163\"},{\"name\":\"Ultimate Rough & Bumpy Skin Therapy Cream\",\"size\":\"8 oz\",\"barcode\":\"041167053003\"},{\"name\":\"Diabetics' Dry Skin Relief Lotion\",\"size\":\"13 oz\",\"barcode\":\"041167053515\"}]},{\"brand\":\"Jergens\",\"products\":[{\"name\":\"Ultra Healing Extra Dry Skin Moisturizer\",\"size\":\"21 fl oz\",\"barcode\":\"019100109987\"},{\"name\":\"Original Scent Dry Skin Moisturizer\",\"size\":\"21 fl oz\",\"barcode\":\"019100109864\"},{\"name\":\"Natural Glow Daily Moisturizer Fair to Medium\",\"size\":\"7.5 fl oz\",\"barcode\":\"019100112024\"}]},{\"brand\":\"Garnier\",\"products\":[{\"name\":\"SkinActive Micellar Cleansing Water All-in-1\",\"size\":\"13.5 fl oz\",\"barcode\":\"603084459735\"},{\"name\":\"SkinActive Micellar Cleansing Water Waterproof\",\"size\":\"13.5 fl oz\",\"barcode\":\"603084459780\"}]},{\"brand\":\"L'Oréal Paris\",\"products\":[{\"name\":\"Revitalift Derm Intensives 1.5% Pure Hyaluronic Acid Serum\",\"size\":\"1.0 fl oz\",\"barcode\":\"071249387420\"},{\"name\":\"Revitalift Anti-Wrinkle + Firming Face & Neck Cream\",\"size\":\"1.7 oz\",\"barcode\":\"071249017365\"}]},{\"brand\":\"Simple\",\"products\":[{\"name\":\"Kind to Skin Micellar Cleansing Water\",\"size\":\"6.7 fl oz\",\"barcode\":\"608501000483\"},{\"name\":\"Kind to Skin Moisturizing Facial Wash\",\"size\":\"5 fl oz\",\"barcode\":\"608501000421\"}]},{\"brand\":\"Pond's\",\"products\":[{\"name\":\"Cold Cream Cleanser\",\"size\":\"6.1 oz\",\"barcode\":\"042100048735\"},{\"name\":\"Dry Skin Cream\",\"size\":\"6.5 oz\",\"barcode\":\"042100048605\"},{\"name\":\"Rejuveness Anti-Wrinkle Cream\",\"size\":\"7 oz\",\"barcode\":\"042100048704\"}]},{\"brand\":\"Clean & Clear\",\"products\":[{\"name\":\"Morning Burst Facial Cleanser\",\"size\":\"8 fl oz\",\"barcode\":\"381370016422\"},{\"name\":\"Deep Action Exfoliating Scrub\",\"size\":\"5 oz\",\"barcode\":\"381370034266\"},{\"name\":\"Essential Foaming Facial Cleanser\",\"size\":\"8 fl oz\",\"barcode\":\"381370011533\"}]},{\"brand\":\"Bioderma\",\"products\":[{\"name\":\"Sensibio H2O Micellar Water\",\"size\":\"500 mL\",\"barcode\":\"3401574670782\"},{\"name\":\"Sensibio H2O Micellar Water\",\"size\":\"250 mL\",\"barcode\":\"3401570394723\"},{\"name\":\"Atoderm Intensive Baume\",\"size\":\"500 mL\",\"barcode\":\"3701129802052\"}]},{\"brand\":\"Burt's Bees\",\"products\":[{\"name\":\"Beeswax Lip Balm\",\"size\":\"0.15 oz\",\"barcode\":\"0792850010015\"},{\"name\":\"Beeswax Lip Balm 4-Pack\",\"size\":\"0.6 oz\",\"barcode\":\"0792850892994\"},{\"name\":\"Lip Balm Vitamin E & Peppermint\",\"size\":\"0.15 oz\",\"barcode\":\"792850010015\"}]}]}"
+}

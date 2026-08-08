@@ -2,7 +2,7 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 
 import { getSql } from '@/lib/db';
-import { clerkConfigured, DEMO_USER, requireUserId } from '@/lib/auth';
+import { clerkConfigured, requireUserId } from '@/lib/auth';
 import type { Profile, ProfileInput, SkinType } from '@/lib/profile';
 
 /**
@@ -36,48 +36,25 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 }
 
 /**
- * Create or update the profile, and claim anything still owned by `DEMO_USER`.
+ * Create or update the profile. Nothing else: a new account starts empty.
  *
- * The claim is the one-time migration from before accounts existed. A build with
- * no Clerk keys writes everything as `'local'` — the demo path has to stay
- * writable (BRIEF.md) — so those rows have a real owner waiting for them, and
- * the first account to finish sign-up is it. The `not exists` guard is what
- * makes it one-time: the moment a second profile row exists, the claim matches
- * nothing, forever after.
- *
- * Both statements ride in the transaction that writes the profile, so either the
- * account exists and owns the old rows or neither happened.
+ * This used to also claim rows still owned by `DEMO_USER`, as a one-time
+ * migration from before accounts existed. That handed the first account to
+ * sign up whatever the keyless demo build had written — pre-seeded trials it
+ * never created — so the claim is gone. Rows written keyless stay on the
+ * keyless path.
  */
 export async function saveProfile(userId: string, input: ProfileInput): Promise<void> {
   const sql = getSql();
   const username = input.username.trim();
 
-  await sql.transaction([
-    sql`insert into profiles (user_id, username, skin_type, birthday)
-        values (${userId}, ${username}, ${input.skinType}::skin_type, ${input.birthday}::date)
-        on conflict (user_id) do update
-          set username = excluded.username,
-              skin_type = excluded.skin_type,
-              birthday = excluded.birthday,
-              updated_at = now()`,
-
-    // The name guard skips a collision rather than failing the save. It cannot
-    // fire on a genuine first sign-up, where the account owns no routines yet —
-    // it exists because this statement also runs on a later profile edit, by
-    // which time the sole account may have a routine named like an unclaimed
-    // one. `routines_user_name_idx` would reject that, and losing a profile edit
-    // to it would be absurd.
-    sql`update routines r set user_id = ${userId}
-         where r.user_id = ${DEMO_USER}
-           and not exists (select 1 from profiles where user_id <> ${userId})
-           and not exists (select 1 from routines o
-                            where o.user_id = ${userId}
-                              and lower(o.name) = lower(r.name))`,
-
-    sql`update trials set user_id = ${userId}
-         where user_id = ${DEMO_USER}
-           and not exists (select 1 from profiles where user_id <> ${userId})`,
-  ]);
+  await sql`insert into profiles (user_id, username, skin_type, birthday)
+      values (${userId}, ${username}, ${input.skinType}::skin_type, ${input.birthday}::date)
+      on conflict (user_id) do update
+        set username = excluded.username,
+            skin_type = excluded.skin_type,
+            birthday = excluded.birthday,
+            updated_at = now()`;
 }
 
 /**

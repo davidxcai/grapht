@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Loader2, Lock, Moon, Sun, Users } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Choice } from '@/components/choice';
@@ -208,6 +209,7 @@ export function TrialSettingsEditor({ trialId, status, startDate, settings }: Pr
         setError(result.error);
         return;
       }
+      toast.success('Trial updated');
       router.push(`/trials/${trialId}`);
       router.refresh();
     });

@@ -6,8 +6,16 @@ are in [`trial-model.md`](trial-model.md); this doc is about how the keys get
 filled in without the user typing fourteen checkboxes by hand.
 
 Status: **designed, partially built.** `src/products.mjs`, `src/inci.mjs`, and
-`src/product-targets.mjs` exist. No UI. `scripts/probe-catalog.mjs` harvests a
-local product catalog to `data/catalog/`; nothing reads from it yet.
+`src/product-targets.mjs` exist. A real lookup UI now exists for one of the
+three seed sources below: the incidecoder catalog (`/catalog`, and the product
+picker shared by trial creation and the routine editor,
+`components/product-draft-card.tsx`) — see
+["The INCIdecoder catalog"](#the-incidecoder-catalog) for the full pipeline,
+now including the daily incremental update. The other two are still unwired:
+`scripts/probe-catalog.mjs`
+harvests a local product catalog to `data/catalog/`, and `harvest-barcodes.mjs`
++ `verify-barcodes.mjs` seed a name→barcode table to `skincare-data/`.
+**Nothing reads from either of those two yet.**
 
 ---
 
@@ -318,6 +326,240 @@ Option 5 is the one that compounds, and it is why `ProductStore` records `brand`
 and `name` alongside the barcode even though neither is the cache key. Option 3
 is the one that seeds it in bulk without waiting for users.
 
+### Seeding the table from model recall
+
+Option 5's table is worthless until it has rows in it, and waiting for users to
+scan their way to coverage is a cold start with no end. `scripts/harvest-barcodes.mjs`
+seeds it up front: for each of the 120 brands in `skincare-data/skincare-brands.md`,
+ask Gemini for the barcodes it recalls, then check every code that comes back.
+
+This is **plainly a lower-grade source than anything above it**, and it is
+allowed only because of where the output lands. Nothing here touches the
+measurement path, and no harvested row may pre-fill `targets[]` — the harvest
+resolves a typed name to a *candidate identity*, and enrichment still runs from
+the ingredient list as it always did. A wrong row costs a wrong display name on
+a confirmation screen the user is already looking at.
+
+Two filters run over it, in cost order:
+
+1. **The GS1 check digit** (`validGtin` in `src/products.mjs`), free and
+   offline. It rejects ~90% of arbitrary digit strings, and a fabricated code is
+   usually fabricated digit by digit.
+2. **The INCI lookup** (`scripts/verify-barcodes.mjs`). The only thing that can
+   say a well-formed code corresponds to a product that exists.
+
+The failure that survives both is the one the design is actually aimed at: an
+invented code that is checksum-valid *and* is a real article from some other
+brand. Nothing about the code itself reveals that, so every candidate carries
+the brand and product name the model asserted, and phase 2 checks them against
+what INCI returns. That is why the harvest schema asks for a name at all.
+
+**Match on brand and name together, not brand alone.** Measured on the first 18
+real codes: `3606000537668` returns branded "FRANKEL & FRANKEL" — a distributor
+— with `name` reading "CeraVe Moisturizing Cream". Whoever registers the GTIN
+owns the brand field, and for resold stock that is the reseller, so the real
+brand lands in the name. Comparing brand-to-brand alone discarded 2 of 16 good
+products. The looser rule does not cost much: the same run's genuine miss
+(`3606000537538` → "Unknown / Mixed Berry Prebiotic Soda") still fails, because
+neither field mentions CeraVe.
+
+### Measured, 120 brands, 2026-08-07
+
+12 Gemini requests at a ceiling of 50 products per brand, then 115 INCI lookups.
+
+| Stage | Products | Brands covered |
+|---|---|---|
+| Barcodes returned by the model | 327 | — |
+| Survived the check digit → `barcodes.json` | **115 (35%)** | 41 / 120 |
+| INCI corroborated the brand → `verified.json` | **36** | 18 |
+| INCI had no record → `needs-review.json` | 78 | 34 |
+| INCI had a *different* product → discard | 1 | — |
+
+**The 65% check-digit failure rate is the headline.** Two thirds of what the
+model called recall does not survive arithmetic that needs no network and no
+database, which is the clearest available statement of how much of this is
+reconstruction. Yield also splits hard by brand: mass-market lines (CeraVe,
+Vaseline, Garnier) returned usable codes, while prestige and clinical brands
+(ZO Skin Health, Jan Marini, Alastin, Biologique Recherche) returned nothing
+usable at all. Retail web presence is what the model has memorised, not
+catalogues.
+
+**79 of the 120 brands ended with nothing at all.** Only 8 of those were brands
+the model declined outright; for the rest it produced codes that failed the
+checksum. A brand asked about is not a brand covered, and the gap is most of the
+list.
+
+Net: **36 corroborated products across 18 brands.** That is a thin seed and it
+should be read as one — worth having because it costs 12 requests and compounds
+with every user scan, not because it is a catalogue. The 78 unverified rows are
+not disproven; INCI's cosmetics coverage is thin enough that a 404 says nothing
+either way, which is why they are kept for review rather than dropped.
+`probe-catalog.mjs --gtin` remains the better source for the brands it can
+reach, because a GTIN lifted from a brand's own JSON-LD is observed rather than
+recalled; the two are complementary and neither covers the other's brands.
+
+Two things worth keeping in mind about the numbers:
+
+- **`unknown` is not failure.** INCI's cosmetics coverage is thin, as measured
+  above, so a 404 says nothing about whether the product is real. Those rows go
+  to `needs-review.json` rather than being discarded.
+- **Ask for a ceiling, never a quota.** A model told to return exactly 50 codes
+  for a brand it recalls eleven of will pad the other thirty-nine, and padding
+  is generated digit by digit. The prompt says "up to N" and states that
+  returning zero is correct; the observed yield is far below N, which is the
+  instruction working rather than failing.
+
+Raw responses are cached under `skincare-data/raw/gemini/` and `barcodes.json`
+is derived from them on every run, so tightening a filter is a free re-parse
+(`--reparse`) rather than a re-spend.
+
+---
+
+## The INCIdecoder catalog
+
+A second bulk ingredient source, independent of the INCI API and free:
+[incidecoder.com](https://incidecoder.com) publishes a name → full INCI panel
+for its own catalog, ~183k products as of 2026-08-07 (read from its sitemap,
+not extrapolated). No API exists — `scripts/scrape-incidecoder.mjs` crawls the
+sitemap for the slug index, then `/products/<slug>` per product, parsed by
+`src/incidecoder.mjs`. Self-throttled (1 req/s default, shared circuit breaker
+on any 429), resumable, and every page lands in `skincare-data/raw/incidecoder/`
+(gitignored — this is a cache, not seed data, and at this scale committing it
+would bloat the repo far past what a hackathon submission should carry).
+
+Each record carries more than the ingredient list: per-ingredient function
+tags, irritancy and comedogenicity ratings, and a community "our take" — data
+that lines up directly with what [the local ingredient dictionary](#a-local-ingredient-dictionary)
+further below wants from CosIng, except already tied to real formulations
+rather than an exhaustive regulatory list.
+
+Status: **scrape complete, fully loaded, and kept current daily.** 183,181
+products scraped from the sitemap 2026-08-07/08; 183,172 of them (9
+duplicate-slug files, see `import-catalog.mjs`'s header) are in Neon as of the
+full import 2026-08-08, alongside 20,016 unique ingredients and 25,726 unique
+brands. The Neon schema and ingest pipeline are built and working
+(`scripts/migrate-catalog.mjs`, `scripts/import-catalog.mjs`, the read path in
+`lib/catalog.ts`, browsable at `/catalog`, wired into the product picker
+shared by trial creation and the routine editor via
+`components/product-draft-card.tsx` and `components/search-combobox.tsx`).
+`scripts/sync-catalog.mjs`,
+scheduled by `.github/workflows/sync-catalog.yml`, keeps it current without a
+full re-crawl — see "Daily incremental update" below. See "Storage, measured"
+for what closed the loading question out, and "Open question" for what's
+still unresolved despite the full load.
+
+### Migrating the flat-file cache into Neon
+
+Three tables, `catalog_brands` and `catalog_ingredients` as small deduped
+dictionaries and `catalog_products` as one row per scraped product —
+deliberately namespaced `catalog_*` and kept separate from the *other*
+"products" concept (`lib/community.ts`'s `CommunityProduct`, keyed by
+`src/products.mjs`'s hash-based `productKey`): that one is products someone
+has actually put on trial; this is a reference catalog nobody has necessarily
+used. Every write is `on conflict ... do update`, so a re-run or an
+interrupted run is always safe to redo from scratch.
+
+**Ingredient occurrences are denormalized onto the product row, not a link
+table — measured, not a style choice.** The first schema had a
+`catalog_product_ingredients` table, one row per (product, ingredient)
+occurrence, ~4.9M rows for the full catalog. It hit Neon's free-tier 512MB
+project cap 45% of the way through a real import: at 2.17M rows it was
+already 377MB, and its two B-tree indexes (223MB) cost *more* than the row
+data itself (154MB) — many narrow rows is close to a worst case for Postgres
+storage overhead. The fix: `catalog_products.ingredients` (jsonb, one blob per
+product — slug/name/position per occurrence, in panel order) plus
+`catalog_products.ingredient_slugs` (text[], deduped, GIN-indexed). "Which
+products contain niacinamide" becomes `ingredient_slugs @> array['niacinamide']`
+— the same indexed-array-containment pattern `concern_tags` already uses for
+search-by-concern, not a join. Nothing about what's searchable changed, only
+how the per-occurrence detail is stored. `catalog_ingredients` still holds
+each ingredient's functions/irritancy/comedogenicity/take once (verified
+stable per ingredient slug across every product that lists it), looked up by
+slug when a product's panel renders.
+
+### Search-by-concern, deterministically
+
+`src/ingredient-concerns.mjs` hand-maps incidecoder's ingredient-function
+taxonomy to the 14 analysis concerns — viable specifically because that
+taxonomy is only **21 tags** across the entire 20,016-ingredient corpus
+(measured on the full scrape, not a sample), e.g. `emollient` → `moisture`,
+`anti-acne` → `acne`, `sunscreen` → `age_spot`. No LLM, no per-ingredient
+classification cost. `deriveConcernTags()` runs at ingest time and the result
+is stored on `catalog_products.concern_tags`, indexed. Deliberately
+one-directional: comedogenicity/irritancy ratings are real per-ingredient
+caution signals but are intentionally not folded in — mixing "helps X" and
+"may worsen X" into one tag set would make the tag meaningless. Concerns with
+no ingredient-function signal in this taxonomy (`pore`, `firmness`, `eye_bag`,
+`dark_circle_v2`, both eyelid concerns) are honestly left unreachable by this
+path rather than force-mapped to something tenuous.
+
+### Storage, measured
+
+The redesign (denormalized `jsonb`, no per-occurrence link table) was what
+made the full catalog viable at all — but it was the Neon plan upgrade, not
+the redesign, that actually closed this out. The projection below (from a
+29,994-product sample) said the full catalog would land ~15% over the
+free tier's 512MB project cap; upgrading to Launch replaced that hard cap
+with pay-as-you-go storage ($0.35/GB-month, no allocation limit), so the
+projection stopped being a blocker before it was ever tested against the cap
+directly.
+
+| Piece | Projected @ 183,181 (29,994-row sample) | Measured @ 183,172 (full load, 2026-08-08) |
+|---|---|---|
+| `catalog_products` (heap + TOAST + all indexes) | ~439MB | 516MB |
+| `catalog_ingredients` | ~15MB | 14MB |
+| `catalog_brands` | ~11MB | 10MB |
+| **database total** | ~587MB | **549MB** |
+
+Full import (`node --env-file=.env.local scripts/import-catalog.mjs`) took
+1.5 minutes end to end. All 183,172 products, 20,016 ingredients, and 25,726
+brands are loaded and searchable by name, brand, ingredient, and concern. At
+549MB, monthly storage cost on Launch is roughly $0.19 — the byte-shaving
+levers noted in the prior version of this section (dropping `brand_name` from
+the trigram index, minifying jsonb keys, shrinking the unique index) were
+never needed and remain available if storage cost ever becomes worth
+optimizing for its own sake.
+
+### Open question: is "all of it" even the right target?
+
+Raised 2026-08-08, **still unresolved** — the full catalog is now loaded, but
+that answers the storage question, not this one. It is community-uploaded and
+unmoderated; some fraction of 183k products are plausibly discontinued,
+mislabeled, or otherwise stale, and brand coverage was never curated for
+relevance to begin with — it's "every product incidecoder's users happened to
+submit," not "skincare products people currently buy." Loading everything was
+the right call once storage stopped being a forcing function for the decision
+either way, but a smaller, brand-curated, verified-current subset could still
+be more useful to *search* — result quality, not byte count, is now the
+argument for revisiting this, if it's revisited at all.
+
+### Daily incremental update
+
+Built 2026-08-08, deliberately without waiting for the loading question above
+to resolve — appending new products the same way the full import already
+loaded 183k of them doesn't foreclose revisiting curation later, and the
+catalog gaining new products daily was the more pressing gap.
+
+`scripts/sync-catalog.mjs` fetches `https://incidecoder.com/products/new`
+(~200 newest slugs, one page, no pagination, no auth — parsed by
+`parseNewProductsPage()` in `src/incidecoder.mjs`), diffs those slugs against
+`catalog_products` by `(source, source_slug)`, and fetches + upserts only
+what isn't already there. It shares its write path with the bulk importer
+(`src/catalog-ingest.mjs` — `buildProductRow()` and the three `upsert*()`
+helpers, both scripts now call the same functions instead of each carrying
+its own copy of the insert SQL) and its fetch/backoff/self-throttle contract
+with the bulk crawler (`src/incidecoder-fetch.mjs`, extracted out of
+`scripts/scrape-incidecoder.mjs` for the same reason). One difference from
+the bulk path: a newly-seen brand increments `catalog_brands.product_count`
+rather than overwriting it (`upsertBrands(sql, rows, { increment: true })`),
+since the daily job only ever sees today's handful of new products, never the
+full count the bulk import scans for.
+
+`.github/workflows/sync-catalog.yml` runs it daily — `DATABASE_URL` as a
+repo secret, a fixed cron time plus a random 0-59 minute sleep at job start so
+requests don't land at the same second every day, `concurrency: cancel-in-progress: false`
+so a manual `workflow_dispatch` run never overlaps the scheduled one.
+
 ---
 
 ## Deriving targets
@@ -562,6 +804,10 @@ by-product of normal use, the same way the name→barcode table would.
 - **Multi-product interventions.** "I started a 5-step routine" is one
   intervention or five? Five gives honest unsplittable-credit output; one is
   what the user thinks they did.
+- **Whether 18 brands of barcode coverage is worth wiring in at all.** A name
+  lookup that resolves one typed product in ten may read as more broken than
+  having no lookup. The alternative is to leave the table accumulating from user
+  scans and ship only the paths that always work.
 - **Wiring the harvested catalog in.** `data/catalog/` holds 846 products with
   official names and images and nothing reads it. The lookup path still goes
   straight to INCI by barcode. Deferred behind the MVP deliberately — it is an

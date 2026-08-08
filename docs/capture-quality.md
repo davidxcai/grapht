@@ -1,8 +1,10 @@
 # Capture quality gate — design
 
-**Status: designed, not built.** Thresholds below are measured against the 20
-reference photos in `data/`; the pipeline stage that enforces them does not
-exist yet.
+**Status: §4 and §5 are built** — the alignment guide, framing, scale and head
+pose, in `components/camera-capture.tsx` and `lib/capture-guide.ts`. §2 is built
+as a readout that never blocks, for the reason given there. Everything else is
+designed and not built. Thresholds below are measured against the 20 reference
+photos in `data/`.
 
 > **Written before the pivot to retrospective trials, and still current.**
 > Everything measured here — lighting, direction, colour, framing, sharpness —
@@ -340,6 +342,48 @@ already in the manifest.
 
 ### 5. Framing and head pose — solved by an alignment overlay, not a threshold
 
+**Built, as designed below** — `components/camera-capture.tsx` and
+`lib/capture-guide.ts`, verified by `scripts/test-capture-guide.mjs`.
+
+Perfect Corp's JS Camera Kit held this for a day and was removed (2026-08-08).
+It worked, and it was still the wrong thing: slow to load, hard to satisfy at
+STRICT's face ratio ≥ 0.75, no shutter — it auto-fired 800ms after its own checks
+passed — and visually nothing to do with the rest of the app. What it charged for
+those costs was pose tracking we can do from BlazeFace's six landmarks, which
+`detectFace()` was already discarding. The retired contract and the memory bug it
+took to make it run on a phone are kept in `docs/youcam-api.md`.
+
+**The frame is fixed and the user moves.** Every capture is cropped to the same
+window — the largest 3:4 portrait rectangle in the camera's frame — with the
+guide drawn inside it at `TARGET_FACE_FRACTION` and `FACE_CENTER_Y`. So a capture
+that passes is already normalised, and face scale is constant by construction
+rather than by correction. Nothing crops to fix a problem: a face too small means
+step closer, because cropping in to hit 0.55 discards exactly the resolution
+texture and pore are measured from.
+
+What gates the shutter, and what does not:
+
+| | | source |
+|---|---|---|
+| face present, one face | blocks | §4 |
+| face fraction 0.50–0.60 | blocks | `TARGET_FACE_FRACTION` ± the 0.05 `normalize-faces.mjs` already flags at |
+| centre within 0.06 of the guide | blocks | affordance, not a measurement threshold |
+| roll ≤ 10°, \|yaw\| ≤ 0.15 | blocks | the inferred figures below |
+| left/right light ratio | **reports only** | §2 — the baseline is the user's own, and there isn't one yet |
+
+Lighting is deliberately the odd one out. §2's ratio is the best discriminator
+measured here, but its baseline is ≈1.12 *for this user*, so there is no universal
+band to gate on — and the open question at the foot of this document already leans
+warn over block. It fires on the varied burst's extremes (0.88, 1.51) and stays
+quiet across the controlled range (1.09–1.16). Once a user has a capture history
+it should compare against their own rolling median, which is the check as
+designed and is not built.
+
+Checks 3, 6, 7 and 8 (light colour, sharpness, clipping, occlusion) remain
+unbuilt.
+
+The original design, which the above implements:
+
 **Preferred design: a fixed face-alignment guide in the camera UI, with the
 shutter enabled only while the face sits inside it.** This is prevention rather
 than detection, and it is strictly better than scoring pose after the fact: a
@@ -379,12 +423,14 @@ guide** (imports, or an archive series like the reference dataset):
 | yaw (nose offset ÷ eye distance) | −0.08 to +0.03 |
 | ear asymmetry | 0.00 to 0.32 |
 
-`detectFace()` currently discards the 6 landmarks BlazeFace already returns
-(eyes, nose, mouth, ears); these come for free once it stops. **These thresholds
-cannot be validated on the current dataset** — all 20 photos are deliberate,
-well-posed selfies, so the range shows what *good* looks like but says nothing
-about where the boundary is. Proposed starting points (roll > 10°, |yaw| > 0.15)
-are inferred from the good range, not measured against failures.
+The 6 landmarks BlazeFace already returns (eyes, nose, mouth, ears) come for
+free; `detectFace()` still discards them server-side, but the live guide reads
+them. **These thresholds cannot be validated on the current dataset** — all 20
+photos are deliberate, well-posed selfies, so the range shows what *good* looks
+like but says nothing about where the boundary is. The starting points now in
+`lib/capture-guide.ts` (roll > 10°, |yaw| > 0.15) are inferred from the good
+range, not measured against failures. `scripts/test-capture-guide.mjs` pins the
+reference range as passing, which is the most that can honestly be asserted.
 
 ### 6. Sharpness — measured, and a global threshold does NOT work
 

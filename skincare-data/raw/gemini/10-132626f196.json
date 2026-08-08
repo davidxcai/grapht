@@ -1,0 +1,37 @@
+{
+  "brands": [
+    "CeraVe",
+    "Cetaphil",
+    "Neutrogena",
+    "La Roche-Posay",
+    "The Ordinary",
+    "Olay",
+    "Aveeno",
+    "Eucerin",
+    "Nivea",
+    "Aquaphor"
+  ],
+  "harvester": {
+    "model": "gemini-3.6-flash",
+    "promptVersion": "2026-08-07.1"
+  },
+  "perBrand": 50,
+  "fetchedAt": "2026-08-07T15:48:21.616Z",
+  "promptFeedback": null,
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\"brands\":[{\"brand\":\"CeraVe\",\"products\":[{\"name\":\"Moisturizing Cream\",\"size\":\"16 oz (453 g)\",\"barcode\":\"3606000537736\"},{\"name\":\"Hydrating Facial Cleanser\",\"size\":\"12 fl oz (355 mL)\",\"barcode\":\"3606000537446\"},{\"name\":\"Foaming Facial Cleanser\",\"size\":\"12 fl oz (355 mL)\",\"barcode\":\"3606000537484\"},{\"name\":\"AM Facial Moisturizing Lotion SPF 30\",\"size\":\"3 fl oz (89 mL)\",\"barcode\":\"3606000537330\"},{\"name\":\"PM Facial Moisturizing Lotion\",\"size\":\"3 fl oz (89 mL)\",\"barcode\":\"3606000537354\"},{\"name\":\"Renewing SA Cleanser\",\"size\":\"8 fl oz (237 mL)\",\"barcode\":\"3606000537552\"}]},{\"brand\":\"Cetaphil\",\"products\":[{\"name\":\"Gentle Skin Cleanser\",\"size\":\"16 fl oz (473 mL)\",\"barcode\":\"302990110163\"},{\"name\":\"Daily Facial Cleanser\",\"size\":\"16 fl oz (473 mL)\",\"barcode\":\"302990200162\"},{\"name\":\"Moisturizing Cream\",\"size\":\"16 oz (453 g)\",\"barcode\":\"302990140160\"}]},{\"brand\":\"Neutrogena\",\"products\":[{\"name\":\"Hydro Boost Water Gel\",\"size\":\"1.7 oz (48 g)\",\"barcode\":\"070501110004\"},{\"name\":\"Oil-Free Acne Wash\",\"size\":\"9.1 fl oz (269 mL)\",\"barcode\":\"070501053004\"}]},{\"brand\":\"La Roche-Posay\",\"products\":[{\"name\":\"Toleriane Hydrating Gentle Facial Cleanser\",\"size\":\"13.52 fl oz (400 mL)\",\"barcode\":\"3337875545778\"},{\"name\":\"Lipikar Balm AP+ Intense Repair Moisturizing Cream\",\"size\":\"13.52 fl oz (400 mL)\",\"barcode\":\"3337875696548\"},{\"name\":\"Anthelios Melt-in Milk Sunscreen SPF 60\",\"size\":\"5 fl oz (150 mL)\",\"barcode\":\"3337875586119\"}]},{\"brand\":\"The Ordinary\",\"products\":[{\"name\":\"Niacinamide 10% + Zinc 1%\",\"size\":\"30 mL\",\"barcode\":\"769915190311\"},{\"name\":\"Hyaluronic Acid 2% + B5\",\"size\":\"30 mL\",\"barcode\":\"769915190199\"},{\"name\":\"Caffeine Solution 5% + EGCG\",\"size\":\"30 mL\",\"barcode\":\"769915190113\"}]},{\"brand\":\"Olay\",\"products\":[{\"name\":\"Regenerist Micro-Sculpting Cream\",\"size\":\"1.7 oz (48 g)\",\"barcode\":\"037000104104\"}]},{\"brand\":\"Aveeno\",\"products\":[{\"name\":\"Daily Moisturizing Lotion\",\"size\":\"18 fl oz (532 mL)\",\"barcode\":\"038137003610\"}]},{\"brand\":\"Eucerin\",\"products\":[{\"name\":\"Advanced Repair Lotion\",\"size\":\"16.9 fl oz (500 mL)\",\"barcode\":\"072140024442\"},{\"name\":\"Daily Hydration Lotion SPF 15\",\"size\":\"16.9 fl oz (500 mL)\",\"barcode\":\"072140633835\"}]},{\"brand\":\"Nivea\",\"products\":[{\"name\":\"Essentially Enriched Body Lotion\",\"size\":\"16.9 fl oz (500 mL)\",\"barcode\":\"072140818119\"}]},{\"brand\":\"Aquaphor\",\"products\":[{\"name\":\"Healing Ointment\",\"size\":\"14 oz (396 g)\",\"barcode\":\"072140633729\"}]}]}",
+            "thoughtSignature": "EjQKMgERTTIPtLJYbOZr1nA0v1l1dMHcowGuBIG8zDDWyptK3GIgGLTaH2xwDTLMdn99xkAC"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "text": "{\"brands\":[{\"brand\":\"CeraVe\",\"products\":[{\"name\":\"Moisturizing Cream\",\"size\":\"16 oz (453 g)\",\"barcode\":\"3606000537736\"},{\"name\":\"Hydrating Facial Cleanser\",\"size\":\"12 fl oz (355 mL)\",\"barcode\":\"3606000537446\"},{\"name\":\"Foaming Facial Cleanser\",\"size\":\"12 fl oz (355 mL)\",\"barcode\":\"3606000537484\"},{\"name\":\"AM Facial Moisturizing Lotion SPF 30\",\"size\":\"3 fl oz (89 mL)\",\"barcode\":\"3606000537330\"},{\"name\":\"PM Facial Moisturizing Lotion\",\"size\":\"3 fl oz (89 mL)\",\"barcode\":\"3606000537354\"},{\"name\":\"Renewing SA Cleanser\",\"size\":\"8 fl oz (237 mL)\",\"barcode\":\"3606000537552\"}]},{\"brand\":\"Cetaphil\",\"products\":[{\"name\":\"Gentle Skin Cleanser\",\"size\":\"16 fl oz (473 mL)\",\"barcode\":\"302990110163\"},{\"name\":\"Daily Facial Cleanser\",\"size\":\"16 fl oz (473 mL)\",\"barcode\":\"302990200162\"},{\"name\":\"Moisturizing Cream\",\"size\":\"16 oz (453 g)\",\"barcode\":\"302990140160\"}]},{\"brand\":\"Neutrogena\",\"products\":[{\"name\":\"Hydro Boost Water Gel\",\"size\":\"1.7 oz (48 g)\",\"barcode\":\"070501110004\"},{\"name\":\"Oil-Free Acne Wash\",\"size\":\"9.1 fl oz (269 mL)\",\"barcode\":\"070501053004\"}]},{\"brand\":\"La Roche-Posay\",\"products\":[{\"name\":\"Toleriane Hydrating Gentle Facial Cleanser\",\"size\":\"13.52 fl oz (400 mL)\",\"barcode\":\"3337875545778\"},{\"name\":\"Lipikar Balm AP+ Intense Repair Moisturizing Cream\",\"size\":\"13.52 fl oz (400 mL)\",\"barcode\":\"3337875696548\"},{\"name\":\"Anthelios Melt-in Milk Sunscreen SPF 60\",\"size\":\"5 fl oz (150 mL)\",\"barcode\":\"3337875586119\"}]},{\"brand\":\"The Ordinary\",\"products\":[{\"name\":\"Niacinamide 10% + Zinc 1%\",\"size\":\"30 mL\",\"barcode\":\"769915190311\"},{\"name\":\"Hyaluronic Acid 2% + B5\",\"size\":\"30 mL\",\"barcode\":\"769915190199\"},{\"name\":\"Caffeine Solution 5% + EGCG\",\"size\":\"30 mL\",\"barcode\":\"769915190113\"}]},{\"brand\":\"Olay\",\"products\":[{\"name\":\"Regenerist Micro-Sculpting Cream\",\"size\":\"1.7 oz (48 g)\",\"barcode\":\"037000104104\"}]},{\"brand\":\"Aveeno\",\"products\":[{\"name\":\"Daily Moisturizing Lotion\",\"size\":\"18 fl oz (532 mL)\",\"barcode\":\"038137003610\"}]},{\"brand\":\"Eucerin\",\"products\":[{\"name\":\"Advanced Repair Lotion\",\"size\":\"16.9 fl oz (500 mL)\",\"barcode\":\"072140024442\"},{\"name\":\"Daily Hydration Lotion SPF 15\",\"size\":\"16.9 fl oz (500 mL)\",\"barcode\":\"072140633835\"}]},{\"brand\":\"Nivea\",\"products\":[{\"name\":\"Essentially Enriched Body Lotion\",\"size\":\"16.9 fl oz (500 mL)\",\"barcode\":\"072140818119\"}]},{\"brand\":\"Aquaphor\",\"products\":[{\"name\":\"Healing Ointment\",\"size\":\"14 oz (396 g)\",\"barcode\":\"072140633729\"}]}]}"
+}
