@@ -17,7 +17,7 @@ each day and watch your metrics move, for as long as you want to. When you
 decide you've seen enough, the app tells you what measurably changed, what
 didn't, and what it could not tell either way — then writes a plain-language
 summary of the whole run, which you annotate in your own words and keep. If you want, you publish it: a review backed by daily
-photographs, fourteen quantitative metrics, a compliance record, and an explicit
+photographs, fifteen quantitative metrics, a compliance record, and an explicit
 statement of measurement error.
 
 The thing being tested is **your routine**, not a brand's claim. Nobody is
@@ -322,9 +322,9 @@ The demo shows a finished six-month trial with a real arc, not a seven-day
 delta. Judges see the full trajectory immediately, with no live API key and no
 waiting — the requirement in `BRIEF.md`.
 
-Note the demo trial carries **7 metrics**, not 14: the cached analysis predates
-this design. Backfilling the other seven would cost roughly 400 of ~468
-remaining units, so it isn't happening. Live trials collect all 14.
+Note the demo trial carries **7 metrics**, not 15: the cached analysis predates
+this design. Backfilling the other eight would cost roughly 400 of ~468
+remaining units, so it isn't happening. Live trials collect all 15.
 
 ---
 

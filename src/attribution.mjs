@@ -146,7 +146,7 @@ export function attributeMetric(metric, routine, { windowStart = null } = {}) {
 /**
  * Attribute every metric in one pass.
  *
- * Defaults to all 14 concerns rather than only the targeted ones, on purpose:
+ * Defaults to all concerns rather than only the targeted ones, on purpose:
  * the `unexplained` row only exists if you look at metrics nobody targeted, and
  * that row is where side effects live. See CLAUDE.md, rule 8.
  */

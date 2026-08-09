@@ -16,6 +16,15 @@ export const SKIN_TYPES = ['oily', 'dry', 'combination', 'normal', 'sensitive'] 
 export type SkinType = (typeof SKIN_TYPES)[number];
 
 /**
+ * Collected at onboarding and editable on `/profile`. Stored, not yet
+ * enforced — nothing in the community surfaces (search, `/products`, comments)
+ * reads it. It exists so the field isn't asked for twice once that gating is
+ * built.
+ */
+export const PROFILE_VISIBILITIES = ['public', 'private'] as const;
+export type ProfileVisibility = (typeof PROFILE_VISIBILITIES)[number];
+
+/**
  * The half of an account Clerk has no opinion about.
  *
  * Clerk owns email, password, Google and the avatar. This owns the username,
@@ -32,10 +41,12 @@ export interface Profile {
   skinType: SkinType;
   /** YYYY-MM-DD. A plain calendar date — no instant, no timezone. */
   birthday: string;
+  visibility: ProfileVisibility;
 }
 
 export interface ProfileInput {
   username: string;
   skinType: SkinType;
   birthday: string;
+  visibility: ProfileVisibility;
 }

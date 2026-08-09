@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { put, get } from '@vercel/blob';
 
 import { clientFromEnv } from '@/src/youcam.mjs';
-import { ANALYSIS_CONCERNS, toHd } from '@/src/concerns.mjs';
+import { ANALYSIS_CONCERNS, toRequestAction } from '@/src/concerns.mjs';
 import { downloadResult, normalizeScores, readScoreInfo } from '@/src/results.mjs';
 
 /**
@@ -15,7 +15,7 @@ import { downloadResult, normalizeScores, readScoreInfo } from '@/src/results.mj
  *
  * Two rules from CLAUDE.md are enforced here rather than left to call sites.
  *
- * **All fourteen concerns, on every capture that gets analysed** (rule 8).
+ * **All fifteen concerns, on every capture that gets analysed** (rule 8).
  * Billing is tiered per task, not per metric, so narrowing to what the trial
  * targets saves nothing; side effects turn up in metrics nobody chose; and you
  * cannot retroactively ask a question of data you never collected. What the
@@ -29,9 +29,9 @@ import { downloadResult, normalizeScores, readScoreInfo } from '@/src/results.mj
  * A series that mixes them is worthless and nothing downstream can detect it.
  */
 
-const ACTIONS = (ANALYSIS_CONCERNS as string[]).map((c) => toHd(c) as string);
+const ACTIONS = (ANALYSIS_CONCERNS as string[]).map((c) => toRequestAction(c) as string);
 
-/** HD is 16 units for up to 7 concerns; the 14-concern tier is unmeasured. */
+/** HD is 16 units for up to 7 concerns; the 15-concern tier is unmeasured. */
 export const ESTIMATED_UNITS_PER_CAPTURE = 20;
 
 export const RESOLUTION = 'hd';

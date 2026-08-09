@@ -1,4 +1,5 @@
-import { TrialEditor, type RoutineOption } from "@/components/trial-editor";
+import { TrialEditorStepper } from "@/components/trial-editor-stepper";
+import type { RoutineOption } from "@/components/trial-editor-stepper";
 import { listRoutines, routineCoverage } from "@/lib/routines";
 import { requireOnboardedUserId } from "@/lib/profile-store";
 
@@ -36,7 +37,7 @@ export default async function NewTrial() {
 
     return (
         <main className="w-full px-5 py-10 lg:px-10">
-            <TrialEditor routines={routines} routinesError={error} />
+            <TrialEditorStepper routines={routines} routinesError={error} />
         </main>
     );
 }

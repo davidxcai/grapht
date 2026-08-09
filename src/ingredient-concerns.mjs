@@ -17,7 +17,8 @@
  * this concern" signals, and are intentionally not folded in here — mixing
  * "helps X" and "may worsen X" into one tag set would make the tag
  * meaningless. Concerns with no ingredient-function signal in this taxonomy
- * (`pore`, `firmness`, `eye_bag`, `dark_circle_v2`, both eyelid concerns) are
+ * (`pore`, `firmness`, `eye_bag`, `dark_circle_v2`, both eyelid concerns,
+ * `tear_trough`) are
  * left unreachable by this path rather than force-mapped to something
  * tenuous — consistent with this repo's "don't invent signal" stance
  * (CLAUDE.md rule 9).
@@ -59,7 +60,7 @@ export const FUNCTION_TO_CONCERN = {
  * of concerns its ingredients' functions target, in canonical order.
  *
  * Routed through `normalizeConcerns()` so this can never emit a key outside
- * the 14-concern vocabulary, even if `FUNCTION_TO_CONCERN` is later edited to
+ * the 15-concern vocabulary, even if `FUNCTION_TO_CONCERN` is later edited to
  * contain a typo.
  */
 export function deriveConcernTags(ingredients) {

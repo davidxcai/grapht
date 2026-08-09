@@ -26,6 +26,13 @@ const STATEMENTS = [
      create type skin_type as enum ('oily', 'dry', 'combination', 'normal', 'sensitive');
    exception when duplicate_object then null; end $$`,
 
+  // Collected at onboarding, stored, and not yet enforced anywhere — nothing
+  // in the community surfaces reads it. It exists so the field isn't asked for
+  // twice once the gating logic is built.
+  `do $$ begin
+     create type profile_visibility as enum ('public', 'private');
+   exception when duplicate_object then null; end $$`,
+
   // No email column: Clerk holds it, and a copy here would go stale the moment
   // someone changes it. `username` is the only identity this table adds.
   `create table if not exists profiles (
@@ -33,9 +40,14 @@ const STATEMENTS = [
      username    text not null,
      skin_type   skin_type not null,
      birthday    date not null,
+     visibility  profile_visibility not null default 'public',
      created_at  timestamptz not null default now(),
      updated_at  timestamptz not null default now()
    )`,
+
+  // `create table if not exists` skips the column on a database that already
+  // had the table before `visibility` existed.
+  `alter table profiles add column if not exists visibility profile_visibility not null default 'public'`,
 
   // Case-insensitive, so "Ada" and "ada" are the same person's claim. Matches
   // how `routines_user_name_idx` treats a routine name.

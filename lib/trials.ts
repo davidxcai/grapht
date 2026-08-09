@@ -66,8 +66,8 @@ export interface Capture {
    * would shrink or exaggerate depending on where the score happens to sit.
    *
    * `synthetic` marks a value that was never measured. The reference series
-   * covers seven concerns; the other seven are invented by `seed-trials.mjs` so
-   * the UI has fourteen to lay out. Never strip the flag.
+   * covers seven concerns; the other eight are invented by `seed-trials.mjs` so
+   * the UI has fifteen to lay out. Never strip the flag.
    */
   concerns?: Record<string, { raw: number; ui: number | null; synthetic?: boolean }> | null;
   /** Live captures, in private Vercel Blob. Needs a signed URL to render. */

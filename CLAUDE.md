@@ -49,11 +49,33 @@ locks for good. See `docs/trial-analysis.md` for what this did to the
 detection gate, and rule 8 below for the collection-scope rule this replaces.
 
 The fixture now carries **scores as well as timestamps**, so the detail page
-renders with no `data/` directory. Seven of the fourteen concerns per capture are
+renders with no `data/` directory. Eight of the fifteen concerns per capture are
 **invented** by `seed-trials.mjs` — the reference series only ever measured seven
 and backfilling costs ~400 of the ~468 remaining units. Every fabricated value
 carries `synthetic: true`; never strip that flag. Photos live under gitignored
 `public/captures/`, regenerated from `data/normalized/`.
+
+**The live vocabulary is fifteen concerns, not fourteen, as of 2026-08-09.**
+A live capture was 400ing (`"9 is not one of the accepted values."`) because
+`lib/capture.ts` built its `dst_actions` with plain `toHd()`, which sends
+`hd_dark_circle_v2` — the API rejects that name outright and wants
+`hd_dark_circle`; `toRequestAction()` in `src/concerns.mjs` already existed to
+fix this but `lib/capture.ts` had never been switched over to it. Chasing that
+bug down turned up a real sample payload from Perfect Corp naming a concern,
+`tear_trough`, that was missing from the app's vocabulary entirely — it is now
+the fifteenth entry in `ANALYSIS_CONCERNS`, measurable but with no confirmed
+simulation counterpart, and no reference-series measurement, so
+`seed-trials.mjs` synthesises it like `eye_bag`. That same payload also named
+`hd_skin_type`, which is **deliberately excluded**: it is confirmed
+categorical (Normal/Oily/Dry/Combination/Redness and compound forms, per
+`whole`/`t_zone`/`u_zone` subcategory) rather than a `raw_score`, so folding it
+into this numeric vocabulary would violate rule 1 below. It needs its own
+category-aware path, not yet built. `scripts/migrate-routines.mjs` now runs
+`alter type analysis_concern add value if not exists` for every concern on
+every re-run, because `create type` only fires once — a second run used to
+silently swallow any concern `ANALYSIS_CONCERNS` had gained since the enum was
+first created in a given database, which is exactly how `tear_trough` almost
+shipped without a database column value to hold it.
 
 ```bash
 npm install                              # Node 22+, macOS (sips is used for HEIC)
@@ -305,7 +327,7 @@ this repo.
    nothing guards a series, so this one is on you.
 
 5. **Route every concern name through `src/concerns.mjs`.** It is the canonical
-   vocabulary for all 14 analysis concerns, and intervention `targets[]` must
+   vocabulary for all 15 analysis concerns, and intervention `targets[]` must
    use those keys rather than free text. Use `normalizeConcerns()`, which throws
    on an unrecognised key — pass `{ drop: true }` only for raw model output,
    where one bad suggestion should cost that suggestion rather than the whole
@@ -331,7 +353,7 @@ this repo.
    `clampScore()` in `src/concerns.mjs` exists for the retired forecast path and
    should not be applied to observations.
 
-8. **Collect all 14 concerns on every capture that gets analysed**, regardless
+8. **Collect all 15 concerns on every capture that gets analysed**, regardless
    of what the trial targets. Billing is tiered per task, not per metric, so
    narrowing saves nothing; side effects appear in metrics nobody targeted; and
    you cannot retroactively ask a question of data you never collected.
@@ -372,14 +394,15 @@ by deliberate 4xx probing a legitimate and free tool — `scripts/probe.mjs` is
 how most of `docs/youcam-api.md` was recovered.
 
 Pricing is **tiered per task**: HD is 16 units for up to 7 concerns, so the 7th
-was free and an 8th likely crosses into the next tier. The 14-concern price is
+was free and an 8th likely crosses into the next tier. The 15-concern price is
 unknown; one photo would reveal it for ~20 units.
 
-**The reference dataset will not be backfilled to 14 concerns.** At ~20 units
+**The reference dataset will not be backfilled to 15 concerns.** At ~20 units
 per photo that is ~400 of the remaining 468, for a demo asset that already
-works. The demo runs on 7 metrics; live trials collect 14. Consequence to
-remember: `moisture`, `wrinkle`, `dark_circle_v2`, `eye_bag`, `firmness`, and
-both eyelid metrics have **no measured noise floor and no device offset**.
+works. The demo runs on 7 metrics; live trials collect 15. Consequence to
+remember: `moisture`, `wrinkle`, `dark_circle_v2`, `eye_bag`, `firmness`,
+`tear_trough`, and both eyelid metrics have **no measured noise floor and no
+device offset**.
 
 Everything is cached to disk. Prefer replaying fixtures over re-hitting the live
 API, always. If a task times out locally it may still complete and bill you —

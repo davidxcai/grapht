@@ -3,7 +3,7 @@
 How a product gets from "the bottle in your hand" to a set of analysis concern
 keys in `Intervention.targets[]`. The attribution rules that consume those keys
 are in [`trial-model.md`](trial-model.md); this doc is about how the keys get
-filled in without the user typing fourteen checkboxes by hand.
+filled in without the user typing fifteen checkboxes by hand.
 
 Status: **designed, partially built.** `src/products.mjs`, `src/inci.mjs`, and
 `src/product-targets.mjs` exist. A real lookup UI now exists for one of the
@@ -129,7 +129,7 @@ safety checker and should not start acting like one.
 | `parsedIngredients[].irritancyPotential` | Weak signal toward `redness` |
 | `compatibilityConflicts` / `incompatibilities` | Trial-creation warnings, not targets |
 | `flags.lowConfidence`, `coverage`, `evidenceCoverage.ratio` | How much of the panel they actually recognised. Thin coverage should weaken everything above |
-| `skinTypeCompatibility`, `skinTypeRecommendations` | Marginal — skin *type* is not one of the 14 concerns |
+| `skinTypeCompatibility`, `skinTypeRecommendations` | Marginal — skin *type* is not one of the 15 concerns, and confirmed categorical (not a score) on the analysis side too — see `docs/youcam-api.md`, "Concerns" |
 | `overallSafetyScore`, `cleanBeautyScore`, `allergenFlags`, `pregnancySafe`, `pfasIngredients` | **Ignore.** Real information, wrong product |
 
 ### Two shape traps, both found by running it
@@ -480,7 +480,7 @@ slug when a product's panel renders.
 ### Search-by-concern, deterministically
 
 `src/ingredient-concerns.mjs` hand-maps incidecoder's ingredient-function
-taxonomy to the 14 analysis concerns — viable specifically because that
+taxonomy to the 15 analysis concerns — viable specifically because that
 taxonomy is only **21 tags** across the entire 20,016-ingredient corpus
 (measured on the full scrape, not a sample), e.g. `emollient` → `moisture`,
 `anti-acne` → `acne`, `sunscreen` → `age_spot`. No LLM, no per-ingredient
@@ -567,12 +567,12 @@ so a manual `workflow_dispatch` run never overlaps the scheduled one.
 The chain, unchanged in spirit from [`trial-model.md`](trial-model.md):
 
 1. The user enters, scans, or photographs the product.
-2. A classifier maps it to a **ranked** subset of the 14 analysis concerns.
+2. A classifier maps it to a **ranked** subset of the 15 analysis concerns.
 3. **The user confirms or edits.** Always.
 
 This is constrained classification into a fixed vocabulary with a human in the
 loop. It is not open generation: the model picks from a schema `enum`, so it
-cannot emit a concern name that isn't one of the 14, and anything that somehow
+cannot emit a concern name that isn't one of the 15, and anything that somehow
 escapes is dropped by `src/concerns.mjs` on the way out.
 
 The classifier is **Gemini 3.6 Flash** (`gemini-3.6-flash`), via `@google/genai`,
@@ -593,7 +593,7 @@ attribution table.
 
 Ingredient data pushes hard toward broad. A serum with niacinamide, hyaluronic
 acid, and a BHA has a defensible ingredient-level story for eight of the
-fourteen concerns. If the classifier's output drives checkboxes directly, most
+fifteen concerns. If the classifier's output drives checkboxes directly, most
 of the list gets pre-ticked, the user accepts the default, and every metric
 comes back "shared, unsplittable" — which carries the same information as having
 no attribution at all.
@@ -747,7 +747,7 @@ The honest limits: it only helps for ingredients someone has already curated,
 the long tail of botanical extracts is effectively unbounded, and concentration
 matters in ways an ingredient name does not capture (2% salicylic acid and a
 trace preservative amount are the same string). So the realistic shape is a
-dictionary for the ~200 actives that actually drive the 14 metrics, with the
+dictionary for the ~200 actives that actually drive the 15 metrics, with the
 INCI API and the classifier as the fallback for everything else — not a
 replacement for either.
 
@@ -764,7 +764,7 @@ moves — that part still comes from `efficacySummary` or from our own trials.
 
 Two caveats worth knowing before leaning on it: it is explicitly non-binding
 reference data, and it is *exhaustive* (tens of thousands of entries, most of
-them fragrance components and colourants that will never touch the 14 metrics).
+them fragrance components and colourants that will never touch the 15 metrics).
 The useful subset is small.
 
 A pragmatic seeding order:

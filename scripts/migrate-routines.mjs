@@ -7,9 +7,17 @@
  *
  * The concern enum is generated from `src/concerns.mjs` rather than typed out
  * here, so the database vocabulary cannot drift from the canonical one (rule 5).
- * The 14 keys are fixed by the analysis API, so an enum is the honest encoding:
- * a bad target key is rejected by the database as well as by
+ * The keys are fixed by the analysis API, so an enum is the honest encoding: a
+ * bad target key is rejected by the database as well as by
  * `normalizeConcerns()`, and neither layer can silently accept `pores`.
+ *
+ * `create type` only runs once — Postgres has no `create type if not exists`,
+ * so a second run hits `duplicate_object` and the `do $$ ... exception` block
+ * swallows it *without* adding any labels a since-updated `ANALYSIS_CONCERNS`
+ * might have gained (this bit the app on 2026-08-09, when `tear_trough` was
+ * added to the vocabulary after the enum already existed in every deployed
+ * database). The `alter type ... add value if not exists` loop below is what
+ * actually keeps an existing enum in sync on every re-run.
  */
 
 import { neon } from '@neondatabase/serverless';
@@ -21,10 +29,19 @@ const PROVENANCE_ENUM = Object.values(PROVENANCE)
   .map((p) => `'${p}'`)
   .join(', ');
 
+// Plain top-level statements, not wrapped in `do $$ ... $$`: `alter type ...
+// add value` cannot always be combined with PL/pgSQL blocks, but `if not
+// exists` (PG12+) already makes each one idempotent on its own.
+const ADD_CONCERN_VALUES = ANALYSIS_CONCERNS.map(
+  (c) => `alter type analysis_concern add value if not exists '${c}'`,
+);
+
 const STATEMENTS = [
   `do $$ begin
      create type analysis_concern as enum (${CONCERN_ENUM});
    exception when duplicate_object then null; end $$`,
+
+  ...ADD_CONCERN_VALUES,
 
   `do $$ begin
      create type target_provenance as enum (${PROVENANCE_ENUM});

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { currentUserId } from '@/lib/auth';
-import { SKIN_TYPES, type SkinType } from '@/lib/profile';
+import { PROFILE_VISIBILITIES, SKIN_TYPES, type ProfileVisibility, type SkinType } from '@/lib/profile';
 import { saveProfile } from '@/lib/profile-store';
 import type { ActionResult } from '@/app/routines/actions';
 
@@ -11,6 +11,7 @@ export interface ProfileFormInput {
   username: string;
   skinType: string;
   birthday: string;
+  visibility: string;
 }
 
 /** Postgres unique-violation, i.e. somebody already has that username. */
@@ -74,6 +75,10 @@ export async function saveProfileDetails(input: ProfileFormInput): Promise<Actio
     return { ok: false, error: 'Pick a skin type.' };
   }
 
+  if (!PROFILE_VISIBILITIES.includes(input.visibility as ProfileVisibility)) {
+    return { ok: false, error: 'Pick who can see your profile.' };
+  }
+
   const birthdayError = checkBirthday(input.birthday ?? '');
   if (birthdayError) return { ok: false, error: birthdayError };
 
@@ -82,6 +87,7 @@ export async function saveProfileDetails(input: ProfileFormInput): Promise<Actio
       username,
       skinType: input.skinType as SkinType,
       birthday: input.birthday,
+      visibility: input.visibility as ProfileVisibility,
     });
 
     revalidatePath('/');

@@ -236,9 +236,9 @@ test('an unnamed routine entry is rejected', () => {
 
 console.log('\nwhole-trial pass');
 
-test('attributeAll covers all 14 concerns by default, not just targeted ones', () => {
+test('attributeAll covers all concerns by default, not just targeted ones', () => {
   const r = attributeAll(isotretinoinTrial);
-  eq(Object.keys(r.byMetric).length, 14, 'metric count');
+  eq(Object.keys(r.byMetric).length, ANALYSIS_CONCERNS.length, 'metric count');
   eq(Object.keys(r.byMetric).sort(), [...ANALYSIS_CONCERNS].sort(), 'metric keys');
 });
 
@@ -246,7 +246,7 @@ test('the untargeted majority lands in unexplained — where side effects live',
   const r = attributeAll(isotretinoinTrial);
   eq(r.counts[VERDICTS.ATTRIBUTED], 1, 'acne');
   eq(r.counts[VERDICTS.CONFOUNDED], 1, 'moisture');
-  eq(r.counts[VERDICTS.UNEXPLAINED], 12, 'the other twelve');
+  eq(r.counts[VERDICTS.UNEXPLAINED], ANALYSIS_CONCERNS.length - 2, 'the untargeted rest');
   eq(r.counts[VERDICTS.SHARED], 0, 'nothing shared');
 });
 
@@ -278,7 +278,7 @@ test('cleanlyResolvable names only interventions with no shared metric', () => {
 
 test('an empty routine is valid and reports everything unexplained', () => {
   const r = attributeAll({ baseline: [], interventions: [] });
-  eq(r.counts[VERDICTS.UNEXPLAINED], 14, 'all 14');
+  eq(r.counts[VERDICTS.UNEXPLAINED], ANALYSIS_CONCERNS.length, 'all of them');
 });
 
 /* ---------- summary ---------- */

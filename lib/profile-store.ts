@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { getSql } from '@/lib/db';
 import { clerkConfigured, requireUserId } from '@/lib/auth';
-import type { Profile, ProfileInput, SkinType } from '@/lib/profile';
+import type { Profile, ProfileInput, ProfileVisibility, SkinType } from '@/lib/profile';
 
 /**
  * The profile row in Neon. Types and the skin-type list live in `lib/profile.ts`
@@ -21,7 +21,7 @@ function asDay(value: unknown): string {
 export async function getProfile(userId: string): Promise<Profile | null> {
   const sql = getSql();
   const rows = (await sql`
-    select user_id, username, skin_type, birthday
+    select user_id, username, skin_type, birthday, visibility
       from profiles where user_id = ${userId}`) as Record<string, unknown>[];
 
   const row = rows[0];
@@ -32,6 +32,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     username: row.username as string,
     skinType: row.skin_type as SkinType,
     birthday: asDay(row.birthday),
+    visibility: row.visibility as ProfileVisibility,
   };
 }
 
@@ -48,12 +49,13 @@ export async function saveProfile(userId: string, input: ProfileInput): Promise<
   const sql = getSql();
   const username = input.username.trim();
 
-  await sql`insert into profiles (user_id, username, skin_type, birthday)
-      values (${userId}, ${username}, ${input.skinType}::skin_type, ${input.birthday}::date)
+  await sql`insert into profiles (user_id, username, skin_type, birthday, visibility)
+      values (${userId}, ${username}, ${input.skinType}::skin_type, ${input.birthday}::date, ${input.visibility}::profile_visibility)
       on conflict (user_id) do update
         set username = excluded.username,
             skin_type = excluded.skin_type,
             birthday = excluded.birthday,
+            visibility = excluded.visibility,
             updated_at = now()`;
 }
 

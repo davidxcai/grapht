@@ -93,7 +93,7 @@ nothing and the dashboard already renders `−`.
 
 **`targets[]` must be analysis concern keys**, routed through
 [`../src/concerns.mjs`](../src/concerns.mjs) — never free text. Getting these
-from a product name is an LLM classification into a fixed 14-way vocabulary with
+from a product name is an LLM classification into a fixed 15-way vocabulary with
 user confirmation, not open generation. See
 [Deriving targets](#deriving-targets-from-a-product) below.
 
@@ -165,7 +165,7 @@ Trying to split it would be invention.
 **`unexplained` is often the most valuable row.** Nothing was targeting it, and
 it moved anyway. Isotretinoin drying your skin out shows up here — as a real,
 large, unpredicted change in a metric the trial was never about. This is the
-entire argument for collecting all 14 metrics on every scan regardless of what
+entire argument for collecting all 15 metrics on every scan regardless of what
 the trial targets.
 
 ### Attribution is correlational, always
@@ -267,7 +267,7 @@ do it.
 Full design in [`product-identity.md`](product-identity.md). The chain:
 
 1. The user enters, scans, or photographs the product.
-2. A classifier maps it to a **ranked** subset of the 14 analysis concerns, and
+2. A classifier maps it to a **ranked** subset of the 15 analysis concerns, and
    — if the label makes a time-bound claim — proposes an end date.
 3. **The user confirms or edits.** Always.
 
@@ -305,10 +305,13 @@ outside the YouCam surface entirely, and off the unit budget.
 
 ---
 
-## The 14 metrics
+## The 15 metrics
 
 Every capture records all of them. Canonical keys and mapping live in
-[`../src/concerns.mjs`](../src/concerns.mjs).
+[`../src/concerns.mjs`](../src/concerns.mjs). `skin_type` is a real
+`dst_actions` value too, but it returns a category (Normal/Oily/Dry/
+Combination/Redness and compounds), not a score — deliberately excluded from
+this table and from `ANALYSIS_CONCERNS` until it has its own path.
 
 | Concern | In the reference dataset? |
 |---|---|
@@ -326,19 +329,21 @@ Every capture records all of them. Canonical keys and mapping live in
 | `firmness` | ❌ |
 | `droopy_upper_eyelid` | ❌ |
 | `droopy_lower_eyelid` | ❌ |
+| `tear_trough` | ❌ |
 
 The cached 20-photo reference set contains only the first seven — the analysis
-pass predates this design. **It will not be backfilled**: HD is 16 units for up
-to 7 concerns and an 8th likely crosses a tier, so re-analysing 20 photos at 14
+pass predates this design (and predates `tear_trough` entirely, added
+2026-08-09). **It will not be backfilled**: HD is 16 units for up to 7
+concerns and an 8th likely crosses a tier, so re-analysing 20 photos at 15
 concerns costs roughly 400 of ~468 remaining units.
 
-Consequence, and it is a real one: the seven un-cached metrics have **no
+Consequence, and it is a real one: the eight un-cached metrics have **no
 measured noise floor and no device offset**. Moisture — the metric that
 motivates the whole baseline-routine concept — cannot currently be validated on
-real data. The demo runs on 7 metrics; live trials collect 14 and derive their
+real data. The demo runs on 7 metrics; live trials collect 15 and derive their
 floors per-user (below).
 
-If the 14-concern tier price is needed before committing, one photo at 14
+If the 15-concern tier price is needed before committing, one photo at 15
 concerns reveals it for ~20 units.
 
 ---

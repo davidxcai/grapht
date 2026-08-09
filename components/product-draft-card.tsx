@@ -127,14 +127,14 @@ export function ProductDraftCard({
 
     return (
         <Card className="gap-3 p-4">
-            <div className={cn(item.image && "flex gap-3 max-sm:flex-col")}>
+            <div className={cn(item.image && "flex gap-4 max-sm:flex-col")}>
                 {item.image && (
-                    <div className="aspect-square w-full max-w-[400px] max-h-[400px] shrink-0 self-start overflow-hidden rounded-lg bg-white sm:w-24">
+                    <div className="aspect-square w-full max-w-sm max-h-sm shrink-0 self-start overflow-hidden rounded-lg bg-white sm:self-stretch sm:max-h-none sm:max-w-none sm:w-auto">
                         <Image
                             src={item.image}
                             alt=""
-                            width={96}
-                            height={96}
+                            width={160}
+                            height={160}
                             unoptimized
                             className="size-full object-contain"
                         />
@@ -208,12 +208,9 @@ export function ProductDraftCard({
 
                     <ConcernPicker
                         targets={item.targets}
-                        ranked={item.ranked}
-                        busy={item.busy}
                         note={item.note}
                         label={concernLabel}
                         onChange={(targets) => onChange({ targets })}
-                        onSuggest={onSuggest}
                     />
                 </div>
             </div>

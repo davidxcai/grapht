@@ -215,10 +215,10 @@ before spending, and confirm before any batch run.
 
 Pricing is **tiered per task, not per metric**: HD is 16 units for up to 7
 concerns, so the 7th was free and an 8th likely crosses into the next tier. This
-is why live captures should request all 14 concerns rather than only what a
+is why live captures should request all 15 concerns rather than only what a
 trial targets — narrowing the set saves nothing and throws away side-effect data.
 
-**The reference dataset will not be backfilled to 14 concerns.** At ~20 units per
+**The reference dataset will not be backfilled to 15 concerns.** At ~20 units per
 photo that's ~400 of the remaining 468, for a demo asset that already works.
 
 Never re-run the analysis pass to "refresh" results. Changing the face crop or
@@ -245,7 +245,7 @@ measurement, which is why it's in the cache key.
 | `attribution.mjs` | Per-metric: who may be named next to an observed change |
 | `products.mjs` | Product identity, derived-targets cache, provenance, freezing |
 | `inci.mjs` | INCI API client; deterministic ingredient → concern signals |
-| `product-targets.mjs` | Constrained Gemini classification into the 14-concern vocabulary |
+| `product-targets.mjs` | Constrained Gemini classification into the 15-concern vocabulary |
 
 Three things are load-bearing and easy to get wrong:
 
@@ -272,8 +272,8 @@ Three things are load-bearing and easy to get wrong:
 | `lib/routines.ts` | Saved routines — queries, coverage, and the trial snapshot |
 | `lib/auth.ts` | Who is asking. Clerk session → the owner every query is scoped to |
 | `lib/profile-store.ts` | Username, skin type, birthday — and the one-time claim of pre-account rows |
-| `lib/capture.ts` | A live capture: 14 concerns in HD, then private Vercel Blob |
-| `lib/concerns.ts` | Display labels for the 14 concerns. Labels only, never keys |
+| `lib/capture.ts` | A live capture: 15 concerns in HD, then private Vercel Blob |
+| `lib/concerns.ts` | Display labels for the 15 concerns. Labels only, never keys |
 | `fixtures/trials.json` | Seeded trials. Committed, and carries no pixels |
 | `scripts/seed-trials.mjs` | Rebuilds that fixture from `data/manifest.json` |
 | `scripts/migrate-routines.mjs` | Creates the routine tables. Idempotent |

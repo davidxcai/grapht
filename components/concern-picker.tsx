@@ -1,9 +1,8 @@
 'use client';
 
-import { Loader2, Sparkles, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { MultiSelect } from '@/components/multi-select';
 import { CONCERNS, concernLabel, orderConcerns } from '@/lib/concerns';
 import type { RankedConcern } from '@/lib/routines';
@@ -16,38 +15,23 @@ import type { RankedConcern } from '@/lib/routines';
  */
 export function ConcernPicker({
   targets,
-  ranked,
-  busy,
   note,
   label,
   onChange,
-  onSuggest,
 }: {
   targets: string[];
-  ranked: RankedConcern[];
-  busy: boolean;
   note: string | null;
   label: string;
   onChange: (targets: string[]) => void;
-  onSuggest: () => void;
 }) {
-  const suggested = new Set(ranked.map((r) => r.concern));
-
   const options = CONCERNS.map((concern) => ({
     value: concern,
     label: concernLabel(concern),
-    hint: !targets.includes(concern) && suggested.has(concern) ? 'suggested' : null,
   }));
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <Button variant="ghost" size="xs" onClick={onSuggest} disabled={busy}>
-          {busy ? <Loader2 className="animate-spin" aria-hidden /> : <Sparkles aria-hidden />}
-          Suggest
-        </Button>
-      </div>
+      <p className="text-xs text-muted-foreground">{label}</p>
 
       <MultiSelect
         value={targets}

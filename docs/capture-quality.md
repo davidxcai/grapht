@@ -506,7 +506,7 @@ Skin is in a different state morning and evening. Sebum accumulates across
 waking hours (`oiliness`, `radiance`); overnight recumbency redistributes
 periorbital fluid (`eye_bag`, `dark_circle_v2`); pillow contact and overnight
 hydration move `texture`. The *direction* of these is uncontroversial; their
-**magnitude on these 14 metrics is unmeasured here**, and that is precisely the
+**magnitude on these 15 metrics is unmeasured here**, and that is precisely the
 argument for holding the slot constant rather than trying to correct for it.
 There is no `correctForTimeOfDay()` and there should not be one until somebody
 measures the offset.
@@ -570,7 +570,7 @@ photographed is gone permanently. Compliance (`docs/trial-model.md`) is a
 property of the *capture* timestamps, not of when analysis ran.
 
 This matters concretely at current quota. At 16 units per HD capture with ~468
-remaining, the whole budget buys **~29 analyses**, fewer at 14 concerns — well
+remaining, the whole budget buys **~29 analyses**, fewer at 15 concerns — well
 short of a 100-day daily trial, and it is the same pool the demo needs. The
 photographs are not subject to that limit.
 

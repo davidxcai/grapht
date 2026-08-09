@@ -117,6 +117,22 @@ shape documented for v1.0 is rejected by v2.0 with *"src_file_id is required but
 wasn't included in your request"*. `src_file_url` may be substituted for
 `src_file_id` when the image is publicly reachable.
 
+**`hd_dark_circle_v2` is rejected outright — send `hd_dark_circle`.** Confirmed
+by probe 2026-08-09: an invalid `dst_actions` entry fails with `"<n> is not one
+of the accepted values."`, where `<n>` is that entry's array index (`"0"` when
+it is the only entry, `"9"` when it was the 10th of 14). `hd_dark_circle` (no
+`_v2`) passes the same probe. `toRequestAction()` in `src/concerns.mjs` applies
+this rename; the canonical analysis name stays `dark_circle_v2` because that is
+what the response echoes (see "Score shape" below). This is the only one of the
+fifteen where the request-side name differs from the response-side name.
+
+**Two more valid `dst_actions` values were found the same way, by probing a
+real sample payload from Perfect Corp's own docs:** `hd_tear_trough` and
+`hd_skin_type`. `tear_trough` is a fifteenth ordinary concern (0–100
+`raw_score`, added to `ANALYSIS_CONCERNS`). `hd_skin_type` is **not** — it
+returns a category, not a score (see "Concerns" below) — and is deliberately
+excluded from the analysis vocabulary until it gets its own code path.
+
 ### 4. Poll
 
 ```
@@ -173,13 +189,24 @@ your original upload — scale them before overlaying.
 
 ### Concerns
 
-SD and HD are the same fourteen names, HD prefixed with `hd_`. **SD and HD cannot
-be mixed in one request** — the task is rejected.
+SD and HD are the same fifteen names, HD prefixed with `hd_` (`dark_circle_v2`
+excepted — its HD request action is `hd_dark_circle`, see above). **SD and HD
+cannot be mixed in one request** — the task is rejected.
 
 ```
 wrinkle  droopy_upper_eyelid  droopy_lower_eyelid  firmness  acne  moisture
 eye_bag  dark_circle_v2  age_spot  radiance  redness  oiliness  pore  texture
+tear_trough
 ```
+
+**`skin_type` is a sixteenth `dst_actions` value that is not in this list on
+purpose.** It is confirmed categorical, not scored: `whole` / `t_zone` /
+`u_zone` subcategories, each one of Normal, Oily, Dry, Combination, Redness, or
+a compound of Redness with one of the other four (e.g. "Oily & Redness").
+There is no `raw_score` and no higher-is-healthier direction, so it does not
+fit `ANALYSIS_TO_SIMULATION` or anything downstream that assumes a 0–100
+concern score. Treat it as a distinct, unbuilt feature rather than the
+fifteenth analysis concern.
 
 Measured on one image, **SD and HD return bit-identical `raw_score` for
 `redness`, `oiliness`, and `age_spot`** — same model, different label, no benefit

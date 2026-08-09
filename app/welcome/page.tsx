@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-import { ProfileForm } from '@/components/profile-form';
+import { OnboardingStepper } from '@/components/onboarding-stepper';
 import { AuthUnavailable } from '@/components/auth-parts';
 import { clerkConfigured, requireUserId } from '@/lib/auth';
 import { getProfile } from '@/lib/profile-store';
@@ -46,12 +46,7 @@ export default async function Welcome() {
 
   return (
     <main className="mx-auto w-full max-w-sm px-5 py-16">
-      <h1 className="text-2xl font-semibold tracking-tight">Finish signing up</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        The last bit, then you can start a trial.
-      </p>
-
-      <ProfileForm mode="welcome" />
+      <OnboardingStepper />
     </main>
   );
 }

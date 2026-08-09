@@ -49,11 +49,11 @@ export default async function ProfilePage() {
       {session && <p className="mt-1 text-sm text-muted-foreground">{session.name}</p>}
 
       <ProfileForm
-        mode="profile"
         initial={{
           username: profile.username,
           skinType: profile.skinType,
           birthday: profile.birthday,
+          visibility: profile.visibility,
         }}
       />
 

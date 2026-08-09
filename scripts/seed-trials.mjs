@@ -68,13 +68,13 @@ function buildUiCurve() {
 const toUi = buildUiCurve();
 
 /**
- * The seven concerns the reference series never captured.
+ * The eight concerns the reference series never captured.
  *
  * `measurements.md` explains why they are absent and why backfilling them is not
  * happening: at ~20 units per photo, re-analysing 20 photos costs ~400 of the
  * ~468 remaining, for a demo asset that already works.
  *
- * **These numbers are invented.** They exist so the detail page has fourteen
+ * **These numbers are invented.** They exist so the detail page has fifteen
  * metrics to lay out instead of seven. Every synthesised value carries
  * `synthetic: true` so nothing downstream can mistake it for a measurement —
  * that flag is the only thing standing between test data and a fabricated
@@ -83,6 +83,12 @@ const toUi = buildUiCurve();
  * Slopes are per day and deliberately small; on a five-day window the jitter
  * dominates, which is the correct outcome. Moisture is the one with a real
  * story — isotretinoin dries skin, so it declines across the long trial.
+ *
+ * `tear_trough` was added to `ANALYSIS_CONCERNS` on 2026-08-09 after the
+ * `hd_dark_circle_v2` naming bug turned up a live sample payload showing it was
+ * a real, request-valid concern the app had never collected. It has no
+ * reference-series measurement either, so it gets the same eye-area treatment
+ * as `eye_bag` and `dark_circle_v2`.
  */
 const SYNTHETIC = {
   moisture: { at0: 74, perDay: -0.09, jitter: 3.0 },
@@ -92,6 +98,7 @@ const SYNTHETIC = {
   firmness: { at0: 80, perDay: -0.006, jitter: 1.5 },
   droopy_upper_eyelid: { at0: 86, perDay: 0.0, jitter: 1.0 },
   droopy_lower_eyelid: { at0: 83, perDay: 0.006, jitter: 1.0 },
+  tear_trough: { at0: 64, perDay: 0.03, jitter: 2.0 },
 };
 
 /** Deterministic, so reseeding never silently changes the demo. */

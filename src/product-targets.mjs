@@ -1,5 +1,5 @@
 /**
- * Map a product onto a ranked subset of the 14 analysis concerns, using Gemini.
+ * Map a product onto a ranked subset of the 15 analysis concerns, using Gemini.
  *
  * This is constrained classification into a fixed vocabulary with a human in the
  * loop — never open generation. The model picks from a schema `enum`; it cannot
@@ -37,14 +37,14 @@ import { ANALYSIS_CONCERNS, normalizeConcerns } from './concerns.mjs';
  * derivations are identifiable rather than silently mixed in with current ones
  * — the same discipline as the `hd_f055_*` analysis cache key.
  */
-export const PROMPT_VERSION = '2026-08-04.2-gemini';
+export const PROMPT_VERSION = '2026-08-09.1-gemini';
 
 export const CLASSIFIER = { model: MODEL, promptVersion: PROMPT_VERSION };
 
 /** How many concerns get pre-ticked, at most. See the narrow-bias note above. */
 export const MAX_PRETICKED = 3;
 
-const SYSTEM = `You classify skincare products against a fixed vocabulary of 14 skin-analysis metrics.
+const SYSTEM = `You classify skincare products against a fixed vocabulary of ${ANALYSIS_CONCERNS.length} skin-analysis metrics.
 
 The metrics are measured from standardised daily selfies. A product "targets" a metric if using it would plausibly change what that metric measures — in EITHER direction. A comedogenic oil targets acne just as a salicylic acid does; a drying retinoid targets moisture. Direction is not your concern, only whether the metric is in play.
 

@@ -97,7 +97,7 @@ export function concernsFromText(text) {
 }
 
 /**
- * Reduce an INCI analysis payload to the handful of fields that bear on the 14
+ * Reduce an INCI analysis payload to the handful of fields that bear on the 15
  * concerns.
  *
  * Most of the response belongs to a different product — safety scores, allergen

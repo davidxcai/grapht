@@ -13,12 +13,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { ThemeSelector } from '@/components/theme-selector';
 import { saveProfileDetails } from '@/app/profile/actions';
-import { SKIN_TYPES } from '@/lib/profile';
+import { PROFILE_VISIBILITIES, SKIN_TYPES, type ProfileVisibility } from '@/lib/profile';
+import { cn } from '@/lib/utils';
 
 export interface ProfileValues {
   username: string;
   skinType: string;
   birthday: string;
+  visibility: string;
 }
 
 const SKIN_TYPE_LABELS: Record<string, string> = {
@@ -28,6 +30,11 @@ const SKIN_TYPE_LABELS: Record<string, string> = {
   normal: 'Normal',
   sensitive: 'Sensitive',
 };
+
+const VISIBILITY_OPTIONS: { id: ProfileVisibility; label: string; description: string }[] = [
+  { id: 'public', label: 'Public', description: 'Shown on trials and comments you publish' },
+  { id: 'private', label: 'Private', description: 'Hidden from search and community pages' },
+];
 
 /** 4MB. Clerk's own limit is 10MB; this is a small square on a navbar. */
 const MAX_AVATAR_BYTES = 4 * 1024 * 1024;
@@ -48,26 +55,24 @@ function toIsoDate(date: Date): string {
 }
 
 /**
- * The §2 fields, on both the last step of sign-up and the profile screen.
+ * The §2 fields, on the profile screen. Sign-up collects the same fields
+ * through `OnboardingStepper` instead — one flat form reads as a wall of
+ * inputs on somebody's first screen, but is the right shape once there's
+ * only ever one thing to change at a time.
  *
  * The avatar is Clerk's — `setProfileImage()` writes it and `user.imageUrl`
  * reads it, so Google accounts arrive with one already and nothing has to be
  * stored twice. It is a plain avatar: it never goes near the analysis pipeline
  * and has no framing or lighting requirement.
  */
-export function ProfileForm({
-  initial,
-  mode,
-}: {
-  initial?: ProfileValues;
-  mode: 'welcome' | 'profile';
-}) {
+export function ProfileForm({ initial }: { initial: ProfileValues }) {
   const { user } = useUser();
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const [username, setUsername] = useState(initial?.username ?? '');
-  const [skinType, setSkinType] = useState(initial?.skinType ?? '');
-  const [birthday, setBirthday] = useState(initial?.birthday ?? '');
+  const [username, setUsername] = useState(initial.username);
+  const [skinType, setSkinType] = useState(initial.skinType);
+  const [birthday, setBirthday] = useState(initial.birthday);
+  const [visibility, setVisibility] = useState(initial.visibility);
   const [birthdayOpen, setBirthdayOpen] = useState(false);
   const [avatar, setAvatar] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -114,18 +119,11 @@ export function ProfileForm({
       }
     }
 
-    const result = await saveProfileDetails({ username, skinType, birthday });
+    const result = await saveProfileDetails({ username, skinType, birthday, visibility });
 
     if (!result.ok) {
       setError(result.error);
       setBusy(false);
-      return;
-    }
-
-    if (mode === 'welcome') {
-      /** A full load, not `router.push` — the navbar reads the session and the
-       *  profile on the server. */
-      window.location.href = '/dashboard';
       return;
     }
 
@@ -184,6 +182,32 @@ export function ProfileForm({
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Profile visibility</Label>
+        <div className="grid grid-cols-2 gap-2">
+          {VISIBILITY_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={visibility === option.id}
+              onClick={() => setVisibility(option.id)}
+              className={cn(
+                'flex flex-col gap-0.5 rounded-lg border p-3 text-left transition-colors',
+                'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
+                visibility === option.id
+                  ? 'border-primary bg-primary/10'
+                  : 'border-input hover:bg-slate-100/50',
+              )}
+            >
+              <span className={cn('text-sm font-semibold', visibility === option.id && 'text-primary')}>
+                {option.label}
+              </span>
+              <span className="text-xs text-muted-foreground">{option.description}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -259,7 +283,7 @@ export function ProfileForm({
 
       <Button type="submit" size="lg" className="w-full" disabled={busy}>
         {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
-        {mode === 'welcome' ? 'Finish' : 'Save'}
+        Save
       </Button>
     </form>
   );

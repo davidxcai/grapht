@@ -50,12 +50,29 @@ export const ANALYSIS_TO_SIMULATION = {
   firmness: null,
   droopy_upper_eyelid: null,
   droopy_lower_eyelid: null,
+
+  // Confirmed as a valid `dst_actions` value by probe 2026-08-09 (`hd_tear_trough`
+  // is accepted; see `toRequestAction`), but never exercised against a real
+  // response, so whether it has a simulation counterpart is unknown. Left
+  // unmapped like the other measurable-only concerns rather than guessed.
+  tear_trough: null,
 };
 
 /**
- * The canonical 14-concern analysis vocabulary. Every concern name anywhere in
+ * The canonical 15-concern analysis vocabulary. Every concern name anywhere in
  * the product — intervention `targets[]`, summary rows, cache keys — resolves
  * through this list.
+ *
+ * `hd_skin_type` is also a valid `dst_actions` value (confirmed by the same
+ * probe) but is deliberately excluded here. **Confirmed categorical, not a
+ * score**: it classifies skin into Normal / Oily / Dry / Combination / Redness
+ * and the four compound forms (e.g. "Oily & Redness"), each broken into
+ * `whole` / `t_zone` / `u_zone` subcategories — there is no `raw_score` and no
+ * "higher is healthier" direction. Folding it into `ANALYSIS_CONCERNS` as an
+ * ordinary concern would violate rule 1 and corrupt every chart, slope and
+ * attribution row that touches it. It needs its own category-aware path (a
+ * label per zone, not a number) rather than a place in this numeric vocabulary
+ * — not yet built.
  */
 export const ANALYSIS_CONCERNS = Object.keys(ANALYSIS_TO_SIMULATION);
 
@@ -119,12 +136,12 @@ export const toHd = (concern) => `hd_${concern}`;
 /**
  * `dst_actions` (the analysis *request*) rejects `hd_dark_circle_v2` outright —
  * confirmed by probe 2026-08-08: sending it alone returns `"0 is not one of
- * the accepted values."`, and in the full 14-concern list the same error names
- * its array index (`"9 is not one of the accepted values."`). `hd_dark_circle`
- * (no `_v2`) is accepted. This is the only one of the fourteen where the
- * request-side action name differs from the canonical analysis name — every
- * other concern round-trips through plain `toHd`. Use this instead of `toHd`
- * wherever the full concern set is sent as `dst_actions`.
+ * the accepted values."`, and in the (then 14-concern) full list the same error
+ * named its array index (`"9 is not one of the accepted values."`).
+ * `hd_dark_circle` (no `_v2`) is accepted. This is the only one of the fifteen
+ * where the request-side action name differs from the canonical analysis name
+ * — every other concern round-trips through plain `toHd`. Use this instead of
+ * `toHd` wherever the full concern set is sent as `dst_actions`.
  */
 const REQUEST_ACTION_OVERRIDES = { dark_circle_v2: 'dark_circle' };
 export const toRequestAction = (concern) => `hd_${REQUEST_ACTION_OVERRIDES[concern] ?? concern}`;

@@ -14,7 +14,7 @@ this is wrong.
 | 2 | Sign-up | **resolved and built** |
 | 3 | Dashboard | **resolved, built** |
 | 3.1 | Routines | **resolved, built** |
-| 4 | New trial | **resolved, built** |
+| 4 | New trial | **resolved, built**; stepper prototype added 2026-08-09 |
 | 5 | In-trial / daily capture | **resolved and built**; quality gate not built |
 | 6 | Trial end and summary | **built**, including the Gemini summary |
 | 7 | Share and privacy | per-trial visibility built; face censoring deferred |
@@ -44,12 +44,14 @@ choice. Add any future full-bleed region to `.page-width`, not a new
 
 ## 2. Sign-up
 
-**Status: resolved 2026-08-05, built 2026-08-06.** `app/login`, `app/signup`,
-`app/welcome`, `app/profile`, `components/profile-form.tsx`, `lib/auth.ts`,
-`lib/profile-store.ts`.
+**Status: resolved 2026-08-05, built 2026-08-06; onboarding split into a
+stepper 2026-08-09.** `app/login`, `app/signup`, `app/welcome`, `app/profile`,
+`components/onboarding-stepper.tsx`, `components/profile-form.tsx`,
+`lib/auth.ts`, `lib/profile-store.ts`.
 
-**username** (unique), **email**, **password**, **skin type**, **birthday**, and
-an **optional profile picture**.
+**first and last name**, **username** (unique), **email**, **password**,
+**skin type**, **birthday**, **profile visibility**, and an **optional
+profile picture**.
 
 - Auth is email + password — no email delivery in the loop, which matters when
   demoing.
@@ -57,8 +59,19 @@ an **optional profile picture**.
   Google arrives with no password and no chance to have filled a form, so one
   post-account step is the only version of this that isn't written twice. The
   profile row existing *is* the "finished signing up" flag.
-- Clerk owns email, password, Google and the picture; Neon owns the rest. The
-  picture is Clerk's `setProfileImage()`, so a Google account brings one with it.
+- `/welcome` is a 4-step stepper (`OnboardingStepper`), not a flat form — name
+  + birthday, picture, username + visibility, skin type — built on the same
+  REUI `Stepper` primitives as `components/trial-editor-stepper.tsx`, with a
+  checkmark-on-completed treatment on the nav (`indicators={{completed: ...}}`)
+  rather than that component's plain numbers. `/profile` keeps the original
+  flat `ProfileForm` for edits after the fact — one screen at a time only
+  matters the first time, when every field is empty.
+- Clerk owns email, password, Google, the picture, **and now first/last
+  name** (`user.update()`, alongside the existing `setProfileImage()`); Neon
+  owns username, skin type, birthday and visibility. Google prefills the name
+  through Clerk; it does not prefill birthday — no OAuth scope this app
+  requests carries one, so that field always starts empty regardless of
+  sign-up method.
 - Ownership is enforced in the data layer, where every query takes the owner as
   an argument — the proxy only redirects. A build with no Clerk keys writes as
   one implicit local owner, which is what keeps the keyless demo writable; those
@@ -67,6 +80,10 @@ an **optional profile picture**.
 - Skin type is oily / dry / combination / normal / sensitive. Fitzpatrick is
   more clinically precise but most users don't know their number, and it answers
   a UV question this product isn't asking.
+- Profile visibility is public / private, defaulting to public. **It is
+  collected and persisted (`profiles.visibility`) but not yet enforced** —
+  nothing in search, `/products`, or comments reads it. It exists so the field
+  isn't asked for twice once that gating gets built.
 - The profile picture is a plain avatar. It never goes near the analysis
   pipeline, isn't a capture, and has no framing or lighting requirement.
 
@@ -216,7 +233,7 @@ Three things this screen must keep straight:
   Editing `[Night]` in October must not move a metric between `confounded` and
   `unexplained` in a trial that started in August. Same rule as `targets[]` and
   the end date; deleting a routine likewise leaves running trials untouched.
-- **All fourteen concerns are offered per product**, not a plausible subset. The
+- **All fifteen concerns are offered per product**, not a plausible subset. The
   moisturiser nobody thought about is the entire argument for baselines
   (`trial-model.md`), so the picker must not hide the metric that confounds you.
 
@@ -240,7 +257,9 @@ than one trial references it.
 
 ## 4. New trial
 
-**Status: resolved and built, 2026-08-05.** `app/trials/new/`,
+**Status: resolved and built, 2026-08-05; a second, stepper-based
+implementation of this same screen coexists as of 2026-08-09 behind a toggle —
+see "The stepper flow" below.** `app/trials/new/`,
 `app/trials/actions.ts`, `components/trial-editor.tsx`, `lib/capture.ts`,
 `lib/trial-store.ts`, `scripts/migrate-trials.mjs`. The tracked-product row
 (§3.1) is `components/product-draft-card.tsx`, not local to this screen — and
@@ -269,7 +288,7 @@ Carried in from the model, non-negotiable:
   or edits every time.
 - `targets[]` bias narrow (pre-tick ≤3 high-confidence concerns) and freeze at
   creation.
-- All 14 concerns are collected regardless. "Metrics to track" chooses what gets
+- All 15 concerns are collected regardless. "Metrics to track" chooses what gets
   *narrated*, never what gets *collected*.
 - **The screen sets no expectations.** No resolvable-effect statement, no "a
   14-day window can't resolve this," no predicted outcome. The user is here to
@@ -301,7 +320,7 @@ schedule doesn't change the rules, only the error bars.
 ### Metrics attach to the product, not the trial
 
 The chip picker is per tracked product — the same control as the routine editor,
-all fourteen offered, ≤3 pre-ticked. The trial tracks the union.
+all fifteen offered, ≤3 pre-ticked. The trial tracks the union.
 
 With one tracked product the distinction is invisible, which is the common case.
 It exists so that two products don't collapse into one undifferentiated target
@@ -339,7 +358,7 @@ without the product, leave the tracked list empty, name it *No vitamin C*. See
 ### The first photo
 
 Taken here on the live camera — there is no upload, §5 — and **analysed on
-save**, establishing day-1 values for all 14 concerns. HD, always — mixing HD and SD within a series shifts acne,
+save**, establishing day-1 values for all 15 concerns. HD, always — mixing HD and SD within a series shifts acne,
 texture and pore by 13–18 points, several times any real change (rule 4).
 Images live in Vercel Blob, private; they are never committed and never enter
 the fixture.
@@ -354,6 +373,90 @@ figures with a visible caveat, refined from the user's own consecutive captures
 as the trial accrues. This is defensible: burst noise is 1.1–3.4× *smaller* than
 day-to-day scatter (`measurements.md` Finding 5), and the gate uses the
 conservative day-to-day figure, which a burst can't measure anyway.
+
+### The stepper flow (2026-08-09)
+
+A second implementation of this whole screen, `components/trial-editor-stepper.tsx`,
+now exists **alongside** the one-screen form described above rather than
+replacing it. `components/trial-creation-flow-switch.tsx` renders both behind a
+`Switch` (`app/trials/new/page.tsx` mounts the switch, not either editor
+directly) and defaults to the stepper — explicitly a prototype-comparison
+device, per that file's own comment: pick one and delete the switch and the
+loser once the stepper is settled. Nothing below is authoritative over the
+one-screen form; it is what the stepper does instead, screen by screen.
+
+Both editors share `components/product-draft-card.tsx`'s `ProductDraft` type,
+`blankProductDraft()` and `provenanceOfDraft()` — but not the card component
+itself. The stepper has its own `ProductStepCard`, local to
+`trial-editor-stepper.tsx`, so its card layout could be redesigned without
+touching what `routine-editor.tsx` and the classic `trial-editor.tsx` render.
+
+Split into six steps rather than one screen: track (product/routine toggles +
+time of day) → product(s) → routine → schedule (duration + frequency) → photo
+→ review. Product and routine are each skippable, so the step count is 5 or 6.
+
+**Every field lives in the top-level `TrialEditorStepper` state, never inside a
+step's own JSX.** REUI's `StepperContent` (`src/components/reui/stepper.tsx`)
+unmounts a step's subtree the moment it isn't active — state that lived there
+instead would be lost the moment the user clicked Back. This is what makes
+Back non-destructive across the whole flow; there is no separate "preserve on
+back" mechanism to maintain, only the rule that nothing stateful may be
+declared below the step-render boundary.
+
+- **Track:** a checkbox to the left of each row (`components/ui/checkbox.tsx`,
+  new — built on `@base-ui/react/checkbox`, since nothing in the repo wrapped
+  it before) rather than a switch inside the row. Time of day keeps its wire
+  values (`TimeOfDay` is still `"am" | "pm"`) but reads **Day** / **Night** on
+  screen — `TIMES_OF_DAY` maps the label only, the stored value doesn't change.
+- **Product:** the `SearchCombobox` bar above the list (described under "Open"
+  below) is gone in this flow. Each `ProductStepCard` searches inline —
+  typing into either the Brand or the Name input debounces a call to
+  `searchCatalogForPicker` (250ms, guarded against out-of-order responses by a
+  request-id ref, the same pattern `SearchCombobox` itself uses); the dropdown
+  sits under both fields and works from either one, since the query is just
+  `` `${brand} ${name}`.trim() `` and the underlying SQL already matches against
+  both `brand_name` and `name` (`lib/catalog.ts`). Picking a match fills brand,
+  name, image and the real INCI list — a free catalog read. **It does not call
+  `suggestConcerns()`.** That classifier is a paid Gemini call, and firing it
+  automatically on every catalog pick was the previous behaviour; now it only
+  runs when the user presses "Suggest" in `ConcernPicker`, same as manual entry.
+  Metrics are the one field a catalog pick no longer autofills, on purpose.
+  Cards carry a fixed image/placeholder slot on the left (`Package` icon when
+  there's no image yet) so a picked photo never reflows the fields beside it,
+  and reorder via drag using REUI's `Sortable` / `SortableItem` /
+  `SortableItemHandle` (`src/components/reui/sortable.tsx`, new — the same
+  registry as `stepper.tsx`, backed by `@dnd-kit/core` + `@dnd-kit/sortable` +
+  `@dnd-kit/utilities`, newly added dependencies). This replaced an earlier
+  pass built on the bare HTML5 drag-and-drop API, which worked but felt
+  noticeably less smooth than a real sensor-driven sort. "+ Add own" is now
+  "+ Add product," sized up and outlined in the primary colour.
+- **Routine:** unchanged from the shared design.
+- **Schedule:** unchanged from the shared design; still due a spacing/visual
+  pass, not yet done.
+- **Photo:** heading is "AI Skin Analysis," with subtext naming what happens to
+  it — analysed to score trouble areas, so change over time is measurable.
+  Camera and nav buttons are sized up on mobile (`h-12` vs. the desktop `h-9`)
+  since the default `Button` sizes read as too small a thumb target on a phone.
+- **Review:** "Review" sits above the trial name. Visibility options read
+  "Only me" / "Everyone" (still `TrialVisibility`'s `"private" | "public"`
+  underneath) and the subtext is the flat "You can change this at any time" —
+  no longer conditional on which option is selected. The photo reappears here
+  in a two-column layout on desktop (`lg:grid-cols-[minmax(0,260px)_1fr]`,
+  capped at 260px so it doesn't dominate the screen) and stacks as
+  details → photo → visibility on mobile, via Tailwind's `order-*` plus
+  `col-start-*`/`row-start-*` grid placement rather than raw arbitrary-property
+  bracket syntax.
+
+The step-nav bar itself got two fixes that apply regardless of which editor is
+mounted, since both use `src/components/reui/stepper.tsx`: a step's name used
+to be `hidden` below the `sm` breakpoint, which meant a phone showed numbered
+bubbles with no labels at all; `StepperTrigger` is now `flex-col` on mobile so
+the label sits below the bubble instead of disappearing (`sm:flex-row` restores
+the side-by-side layout once there's room), and the connector line is pinned to
+the bubble's own vertical centre (`self-start` + a 12px offset, half the
+bubble's `size-6`) rather than drifting to the middle of the now-taller
+two-row trigger. A plain "New Trial" heading sits above the nav bar in the
+stepper flow.
 
 ### Open
 
@@ -541,12 +644,12 @@ sets `captured_at` directly, which only a dev script may ever do.
 **Progress** carries the calendar, metrics, and **End trial**. Metrics are
 split into what you're tracking (intervention `targets[]`) and what's merely
 confounded (the baseline routine's coverage) — but that's the only split
-shown. A concern with none of the fourteen wired to it, tracked or confounded,
-is not rendered at all (2026-08-09): all fourteen are always *collected*
-(rule 8) and, on the seeded fixture, all fourteen have data — but rendering
+shown. A concern with none of the fifteen wired to it, tracked or confounded,
+is not rendered at all (2026-08-09): all fifteen are always *collected*
+(rule 8) and, on the seeded fixture, all fifteen have data — but rendering
 every metric the trial never targeted and no product in the routine covers
 just restates "everything else," which the "Untracked" heading already said
-without help from ten more rows. `metricChanges()` still returns all fourteen
+without help from ten more rows. `metricChanges()` still returns all fifteen
 with data (`lib/trial-detail.ts`); the tab is what filters to
 `tracked || confounded` (`components/trial-detail-tabs.tsx`).
 

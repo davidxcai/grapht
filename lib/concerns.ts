@@ -2,7 +2,7 @@ import { ANALYSIS_CONCERNS, normalizeConcerns } from '@/src/concerns.mjs';
 
 export type Concern = string;
 
-/** The canonical 14, in the canonical order. Never re-sort for display. */
+/** The canonical 15, in the canonical order. Never re-sort for display. */
 export const CONCERNS: Concern[] = ANALYSIS_CONCERNS as Concern[];
 
 /**
@@ -26,6 +26,7 @@ const LABELS: Record<string, string> = {
   firmness: 'Firmness',
   droopy_upper_eyelid: 'Upper eyelid',
   droopy_lower_eyelid: 'Lower eyelid',
+  tear_trough: 'Tear troughs',
 };
 
 export function concernLabel(key: string): string {

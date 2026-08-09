@@ -71,8 +71,11 @@ function correct(raw: number, metric: string, device: string): number {
  * deliberately and it produced a 57.6-point texture spread in 39 seconds. That
  * is a capture failure, not a noise floor, and `docs/capture-quality.md` owns it.
  *
- * The synthesised seven have no measured basis at all. Their values here are
- * placeholders in the same spirit as their scores.
+ * The synthesised eight have no measured basis at all. Their values here are
+ * placeholders in the same spirit as their scores. `tear_trough` (added
+ * 2026-08-09) falls back to the same generic 5-point placeholder the lookup
+ * site already used for any concern missing from this table, made explicit
+ * here rather than left implicit.
  */
 export const WOBBLE: Record<string, number> = {
   acne: 14,
@@ -89,6 +92,7 @@ export const WOBBLE: Record<string, number> = {
   firmness: 4,
   droopy_upper_eyelid: 3,
   droopy_lower_eyelid: 3,
+  tear_trough: 5,
 };
 
 export interface MetricChange {
