@@ -88,25 +88,3 @@ for (const photo of todo) {
           id: photo.id,
           set: photo.set,
           capturedAt: photo.capturedAt,
-          device: photo.device,
-          iso: photo.iso,
-          mode: MODE,
-          concerns: CONCERNS,
-          ...normalized,
-        },
-        null,
-        2,
-      ),
-    );
-
-    spent += UNITS_PER_CALL;
-    const acne = normalized.concerns.acne?.raw?.toFixed(1) ?? '-';
-    console.log(`ok  acne ${acne}  skin_age ${normalized.skinAge}`);
-  } catch (err) {
-    failed++;
-    console.log(`FAILED: ${err.message}`);
-  }
-}
-
-console.log(`\nDone. ~${spent} units spent, ${failed} failed.`);
-console.log(`${manifest.photos.filter((p) => isCached(p.id)).length}/${manifest.photos.length} now cached.`);

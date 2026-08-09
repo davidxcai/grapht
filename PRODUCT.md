@@ -74,9 +74,18 @@ Full data model in [`docs/trial-model.md`](docs/trial-model.md). The shape:
 | **Baseline routine** | What you were already using. Acknowledged, never attributed. |
 | **Tracked interventions** | What you're adding. Empty on a removal trial. |
 | **Window** | A start date. An end date if you want one, otherwise it runs until you end it. |
-| **Baseline capture** | Day 1. Optionally a burst, which measures your own noise floor. |
-| **Daily captures** | The measurement. |
+| **Initial photo** | Day 1, analysed immediately — the trial's starting measurement. |
+| **Daily logs** | A photo every day, encouraged throughout — stored and shown in the timeline, but not analysed. Cost is the reason: see §5. |
+| **Final photo** | Analysed once, when you end the trial — fresh if you take one there, otherwise the most recently logged photo. |
 | **Summary** | Generated when you end the trial, annotated by you, optionally published. |
+
+**Amended 2026-08-08: only the initial and final photo are ever analysed.**
+Every daily capture used to run the full analysis; at real usage (twice a day
+for a month) that's roughly $60/user/month, which the product cannot charge
+anyone. A trial now costs a flat ~2 analyses no matter how long it runs or how
+often you log — see §5 and §6 for what this changed, and §8 for the reasoning
+that got retired along with it (the daily-analysed series was also what made
+"shape, not slope" possible; a two-point trial has no shape to narrate).
 
 Three things make this model work.
 
@@ -118,55 +127,48 @@ every time rather than only what the trial is about.
 
 ## 5. Measurement discipline
 
-### Every metric, every scan
+### Every metric, on both analysed scans
 
-Fourteen analysis concerns are recorded on every capture, regardless of what the
-trial targets. Billing is tiered per task, not per metric, so narrowing the set
-saves nothing; side effects live in untargeted metrics; and you cannot
-retroactively ask a question of data you never collected. Targeting decides what
-gets *narrated*, never what gets *collected*.
+Fourteen analysis concerns are recorded on every capture that gets analysed,
+regardless of what the trial targets. Billing is tiered per task, not per
+metric, so narrowing the set saves nothing; side effects live in untargeted
+metrics; and you cannot retroactively ask a question of data you never
+collected. Targeting decides what gets *narrated*, never what gets
+*collected*. Since 2026-08-08 that's a maximum of two scans per trial — the
+initial and final photo — never a daily log; see §4.
 
-### Compliance is part of the result
+### Daily logging is for engagement and for choosing your final photo, not statistics
 
-Logging 8 of 14 days is not one number. Slope precision goes as
-`σ / (sd_x · √n)`, so *when* you logged matters as much as how often. Against a
-perfectly-logged 14-day trial:
+Before the pivot, logging 8 of 14 days fed directly into the maths — *when*
+you logged changed the precision of a fitted slope. That machinery never
+actually shipped in the live app (`docs/trial-analysis.md`), and it's moot
+regardless now: with only two analysed points, there's no slope to fit and no
+sampling pattern to weight.
 
-| What you logged | Error bars |
-|---|---|
-| 14 of 14, daily | 1.00× |
-| 8 days, spread across the window | 1.25× |
-| 8 days, all in the first week | **2.33×** |
+What daily logging still buys you: a photo record of the whole run, worth
+having on its own; and, practically, it's what "final photo" falls back to —
+end a trial without taking a fresh photo and the app uses whichever one you
+logged most recently, so logging more often means a fresher, more relevant
+final measurement if you forget to take one on purpose. A trial with nothing
+logged past day one has nothing to fall back to and ends **inconclusive** —
+see §6.
 
-Identical `8/14` badges, more than a 2× spread in credibility. Clustering
-shortens the lever arm.
+### Detection is a before/after comparison against the camera's own wobble
 
-So the app shows the ratio, because people read `8/14` instantly, but the
-summary's *language* is gated by the minimum detectable effect computed from the
-real capture timestamps. And the summary says so out loud — "your captures were
-front-loaded, so the second half of this window is thinly sampled" — rather than
-burying it. Transparency about the sampling is what makes the conclusion
-trustworthy.
+There is no fitted trend and no minimum-detectable-effect-from-timestamps
+calculation — that was only ever designed, never live (`docs/trial-analysis.md`).
+The real gate, in `lib/trial-detail.ts`, is simpler: **initial score vs. final
+score**, called measurable only if it moved further than the camera's own
+measurement wobble (2× the spread between two photos taken seconds apart under
+held lighting — `WOBBLE` in that file, sourced from `docs/measurements.md`,
+Finding 5). Below that, it's reported as *no measurable change* — a statement
+about the instrument, never about whether something happened.
 
-### Detection depends on effect size, not on a fixed number of days
-
-There is no universal waiting period, and the app must never imply one. Whether
-a change is measurable is a comparison between **how much it moved** and **how
-much this user's captures scatter** — nothing else. A big fast change resolves in
-days; a slow drift takes months. Both are ordinary.
-
-`docs/measurements.md`, Finding 5 tabulates how long *the reference dataset's own
-very slow slopes* would take to separate from noise (acne moved +0.074
-points/day, so ~131 days). That table describes one series' effect sizes and is
-routinely misread as a claim about skin in general. It is not one. Read the
-warning attached to it before quoting any number from it.
-
-**Every window length is legitimate and every result is worth having.** Fourteen
-days answers the question for changes big enough to see in fourteen days. If it
-returns "no measurable change," that is a real finding about that window — and
-the same product logged for forty days by someone else is how the two windows
-begin to inform each other. The app's job is to report what this window could and
-could not resolve, never to talk someone out of running it.
+**Every trial length is legitimate.** A big fast change clears the wobble in a
+week; a slow drift needs the gap between initial and final to be wide enough
+to separate from camera noise. The app's job is to report what the two photos
+it has could and could not resolve, never to talk someone out of running a
+trial at whatever length they choose.
 
 **Nothing about resolvability is stated at trial creation.** The user is there to
 find out what happens, not to be told in advance what they are unlikely to find
@@ -180,13 +182,25 @@ Generated when the user ends the trial — a retrospective on the log, not the
 reason the log existed. Three layers, in order:
 
 1. **The numbers.** Per-metric start, end, delta, and whether it cleared the
-   detection bar. Graphs. The photo timeline.
-2. **The narrative.** An LLM-written account of the *shape* of the run, not just
-   its endpoints — "your acne score dropped for the first three weeks, bottomed
-   out around January 8, then improved steadily through April." Shape, not
-   slope, is what people recognise as their own experience.
+   detection bar. The photo timeline.
+2. **The narrative.** An LLM-written account of what the two measured photos —
+   initial and final — say. **Amended 2026-08-08:** with only two analysed
+   points there is no shape to narrate, only a before/after; the earlier design
+   here described a fitted trend finding a purge/trough mid-run, which needed a
+   daily-analysed series that no longer exists (and, per
+   `docs/trial-analysis.md`, was never actually wired into the live app in the
+   first place). The daily photos and notes the user logged in between are
+   still real and still shown in the timeline — the narrative just can't put a
+   number on them.
 3. **Your words.** A free-text note. How it felt, what the numbers missed, what
    you'd tell someone considering the same thing.
+
+**A fourth, non-narrative outcome: inconclusive.** If the trial ends with
+nothing analysed beyond the initial photo — no final photo taken and nothing
+logged since day one to fall back to — there is no second measurement to
+compare against. The app says so plainly rather than writing a summary from
+one data point, and offers a standing invitation to add a final photo later,
+which resolves it retroactively.
 
 The narrative is constrained by the measurement, not free-running. Rules in
 [`docs/trial-analysis.md`](docs/trial-analysis.md):
@@ -195,10 +209,10 @@ The narrative is constrained by the measurement, not free-running. Rules in
   never receives a story, a percentage, or a direction.
 - A metric with more than one targeting intervention is never credited to one.
 - A metric the background routine touches is never credited to the trial.
-- Compliance and clustering are stated, not omitted.
 
 This is what keeps the summary from being fiction. The generator can only narrate
-what survived the gate.
+what survived the gate — and, since 2026-08-08, is refused outright on an
+inconclusive trial rather than asked to narrate a single point.
 
 ---
 
@@ -258,13 +272,34 @@ retired on evidence, not taste.
 - A trial is single-device by default, so the cross-device confound that
   dominates the historical dataset mostly disappears. It only returns when
   someone changes phones mid-trial.
-- The purge-trough detector, formerly a liability for forecasting, becomes the
-  primary narrative device for the summary. Shape is what a retrospective wants.
 
-**What survived intact:** the entire capture and analysis pipeline, the noise
-floor, device-offset correction, and the trend-estimation engine — the last with
-a new job, estimating a *past* trend and its uncertainty rather than projecting a
-future one.
+**What survived intact:** the entire capture and analysis pipeline and
+device-offset correction. The purge-trough/regression/Kalman trend-estimation
+engine this section originally said would become "the primary narrative
+device for the summary" **did not** — see the next amendment. It was never
+actually wired into the live app's summary path in the first place
+(`docs/trial-analysis.md`), and the second pivot below made a multi-point
+narrative impossible regardless.
+
+### Amended 2026-08-08: daily analysis retired
+
+The retrospective pivot above kept analysing every daily capture — it just
+stopped projecting the series forward. That's still $60/user/month at real
+usage (twice a day, a month), which nobody can be charged. Retired a second
+time, on cost rather than evidence about what's measurable:
+
+| Retired | Why |
+|---|---|
+| Analysing every daily capture | ~20 units/photo, unaffordable at real usage. Only the initial and final photo are analysed now — §4, §5. |
+| "Shape, not slope" narration (purge/trough detection, the fitted trend line) | Needs a multi-point analysed series. Two points have no shape, only a delta. The engine this described (`src/regression.mjs`, `src/kalman.mjs`) was diagnostic tooling that never ran in the live app anyway — see `docs/trial-analysis.md`. |
+| Compliance/clustering feeding the detection maths | That design was never live either (the shipped gate in `lib/trial-detail.ts` was always a plain first-vs-latest comparison). Daily logging still matters — for the photo record and as the fallback source for the final photo — just not for statistical precision. |
+
+**What the second pivot bought:** a trial now costs a flat ~2 analyses no
+matter its length, which is the difference between a feature that can ship to
+real users and one that can't. **What it cost:** no mid-trial quantitative
+trend, and a new failure mode — **inconclusive** — when a trial ends with
+nothing to compare its starting photo against. Both are named plainly in §6
+rather than papered over.
 
 ---
 

@@ -15,6 +15,15 @@ photos in `data/`.
 > A few passages still say "forecast" where the product now says "detect." The
 > measured content is unaffected; see `docs/trial-analysis.md` for the current
 > framing.
+>
+> **Also still current after the 2026-08-08 daily-analysis pivot** (only a
+> trial's initial and final photo are ever analysed — `CLAUDE.md`, "Repository
+> state"), for a reason worth stating: every capture goes through this same
+> guided camera, daily logs included, even though most of them are never
+> analysed. That has to stay true, because a daily log can retroactively
+> become the *final* analysed photo (`endTrial()`'s "use my latest photo"
+> fallback, `app/trials/actions.ts`) — so quality still matters on a photo the
+> app doesn't yet know will end up measured.
 
 Parked with a protocol ready to run: **§3c, screen flash as a controlled light
 source** — ~12 units, needs new photos, cannot be answered from the cache.

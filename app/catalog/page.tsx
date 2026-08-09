@@ -12,8 +12,9 @@ import { searchCatalog, type CatalogSearchResult } from '@/lib/catalog';
 import { formatCount } from '@/lib/format';
 
 /**
- * The full incidecoder product catalog (docs/product-identity.md), separate
- * from /products (community — products someone has actually put on trial).
+ * The full incidecoder product catalog (docs/product-identity.md) — browse and
+ * search over all 183k rows. Detail pages live at /products/[id] (merged with
+ * the community's trial history for the same product, when there is any).
  * Every filter here is index-driven at the scale of the full catalog, so
  * combining name + brand + ingredient + concern stays a plain query, never a
  * scan — see lib/catalog.ts.
@@ -42,7 +43,7 @@ function buildHref(current: SearchParams, overrides: Record<string, string | nul
 
 function ProductCard({ product }: { product: CatalogSearchResult }) {
   return (
-    <Link href={`/catalog/${product.id}`} className="group block">
+    <Link href={`/products/${product.id}`} className="group block">
       <Card className="flex-row gap-4 overflow-hidden p-0 transition-colors group-hover:bg-accent/40 max-sm:flex-col">
         <div className="flex aspect-square shrink-0 items-center justify-center bg-muted max-sm:h-40 max-sm:w-full">
           {product.image ? (

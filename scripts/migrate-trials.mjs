@@ -138,6 +138,26 @@ const STATEMENTS = [
   `alter table trial_captures
      add column if not exists note text`,
 
+  // FK into `catalog_products`, set only when the intervention came from a
+  // catalog pick — mirrors `routine_items.catalog_product_id` (see that
+  // migration's comment). Read-only enrichment for display (a thumbnail);
+  // `targets[]` stay the frozen identity the item was added under and never
+  // re-derive from this, so `on delete set null` rather than cascade.
+  //
+  // README's setup order runs this migration before migrate-catalog.mjs, so
+  // catalog_products may not exist yet on a fresh install — add the column
+  // plain in that case and skip the constraint rather than failing the script.
+  `do $$ begin
+     if to_regclass('catalog_products') is not null then
+       alter table trial_interventions
+         add column if not exists catalog_product_id
+           uuid references catalog_products(id) on delete set null;
+     else
+       alter table trial_interventions
+         add column if not exists catalog_product_id uuid;
+     end if;
+   end $$`,
+
   // Whether readers of a public trial may comment. The owner's switch.
   `alter table trials
      add column if not exists comments_enabled boolean not null default true`,

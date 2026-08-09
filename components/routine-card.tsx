@@ -18,8 +18,8 @@ export function RoutineCard({ routine }: { routine: Routine }) {
   const coverage = routineCoverage(routine);
 
   return (
-    <Link href={`/routines/${routine.id}`} className="group block">
-      <Card className="gap-3 p-5 transition-colors group-hover:bg-accent/40">
+    <Link href={`/routines/${routine.id}`} className="group block h-full">
+      <Card className="gap-3 p-5 transition-colors group-hover:bg-accent/40 h-full">
         <RoutineSummary
           routine={{ name: routine.name, coverage, items: routine.items }}
           trailing={

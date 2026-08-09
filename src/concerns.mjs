@@ -116,6 +116,19 @@ export const RENDERABLE_ANALYSIS_CONCERNS = Object.keys(ANALYSIS_TO_SIMULATION).
 /** Convert an SD analysis concern to its HD equivalent. HD needs short side >= 1080px. */
 export const toHd = (concern) => `hd_${concern}`;
 
+/**
+ * `dst_actions` (the analysis *request*) rejects `hd_dark_circle_v2` outright —
+ * confirmed by probe 2026-08-08: sending it alone returns `"0 is not one of
+ * the accepted values."`, and in the full 14-concern list the same error names
+ * its array index (`"9 is not one of the accepted values."`). `hd_dark_circle`
+ * (no `_v2`) is accepted. This is the only one of the fourteen where the
+ * request-side action name differs from the canonical analysis name — every
+ * other concern round-trips through plain `toHd`. Use this instead of `toHd`
+ * wherever the full concern set is sent as `dst_actions`.
+ */
+const REQUEST_ACTION_OVERRIDES = { dark_circle_v2: 'dark_circle' };
+export const toRequestAction = (concern) => `hd_${REQUEST_ACTION_OVERRIDES[concern] ?? concern}`;
+
 /** SD and HD concerns cannot be mixed in one request — the API rejects the task. */
 export function assertUniformResolution(actions) {
   const hd = actions.filter((a) => a.startsWith('hd_')).length;

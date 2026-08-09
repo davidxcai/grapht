@@ -16,7 +16,11 @@ import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server
 /**
  * Screens that cannot render anything for a signed-out visitor. Everything else
  * is public, and deliberately so: `/` and `/trials/[id]` carry the reference
- * series, which is a published sample that reads without an account.
+ * series, which is a published sample that reads without an account, and
+ * `/routines/[id]` is the same shape now that a routine can be published
+ * (`lib/routines.ts`'s `getPublicRoutine()`) — `/routines/new` stays gated
+ * because creating one always needs an owner, but `/routines/(.*)` is
+ * deliberately not listed so a public routine's link works signed out.
  *
  * This is an optimistic check and not the security boundary. It reads the
  * session cookie and redirects, nothing more — ownership is enforced in
@@ -27,7 +31,6 @@ import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server
 const requiresAccount = createRouteMatcher([
   '/trials/new',
   '/routines/new',
-  '/routines/(.*)',
   '/welcome',
   '/profile',
 ]);

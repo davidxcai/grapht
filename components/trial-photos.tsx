@@ -387,6 +387,14 @@ export function TrialPhotos({
             </p>
           )}
 
+          {/* A daily log between the initial and final photo carries no
+              scores — only those two are ever analysed (see CLAUDE.md rule 8).
+              Without this, the blank overlay above reads as a bug rather than
+              the intended cost-saving trade. */}
+          {current.kind === 'capture' && !current.capture.concerns && (
+            <p className="text-xs text-white/60">Logged — not scored</p>
+          )}
+
           {/* The dot is 8px; the button around it is not, or the roll can only be
               driven by dragging. */}
           {slots.length > 1 && (

@@ -24,15 +24,29 @@ incidecoder's `/products/new` rather than re-crawling the sitemap; see
 In the web app the dashboard (`/dashboard`),
 saved routines, trial creation, the trial detail page, daily capture, accounts,
 the Gemini trial summary, and the community surfaces (the published-trial index
-at `/`, `/products`, `/search`, comments, saves, views) are built — trial
-creation and daily capture both analyse a live capture, so they are the only
-screens that spend units; extra per-day photos upload straight to Blob and cost
-nothing. The capture quality gate is **partly** built: the camera is ours
+at `/`, `/products`, `/search`, comments, saves, views) are built. The capture
+quality gate is **partly** built: the camera is ours
 (`components/camera-capture.tsx`, `lib/capture-guide.ts`) and enforces framing,
 face scale and head pose live, with uneven lighting reported but never blocking;
 light colour, sharpness, clipping and occlusion are not built. Perfect Corp's JS
 Camera Kit held this for a day and was removed on 2026-08-08 —
 `docs/capture-quality.md` §5 for why.
+
+**Only two photos per trial are ever analysed, as of 2026-08-08.** Every
+daily capture used to run the full YouCam analysis (~20 units), which at
+twice a day for a month is ~$60/user/month — not something the product can
+charge anyone. Now only the **initial** photo (trial creation) and the
+**final** photo (trial end) spend units; every daily log in between is stored
+in Blob and shown in the timeline exactly as before, it just carries no scores
+(`lib/capture.ts` `storeCapturePhoto()` vs. `analyzeAndStore()`). Ending a
+trial offers a fresh final photo or falls back to analysing whichever photo
+was logged most recently (`analyzeStoredCapture()`); a trial that ends with
+nothing beyond its initial photo is **inconclusive** — a derived state
+(`isInconclusive()` in `lib/trials.ts`), not a stored one — and gets one
+standing exception to "ended is immutable": `addFinalPhoto()` lets it accept
+exactly one more analysed photo, which converts it to conclusive and then
+locks for good. See `docs/trial-analysis.md` for what this did to the
+detection gate, and rule 8 below for the collection-scope rule this replaces.
 
 The fixture now carries **scores as well as timestamps**, so the detail page
 renders with no `data/` directory. Seven of the fourteen concerns per capture are
@@ -317,11 +331,14 @@ this repo.
    `clampScore()` in `src/concerns.mjs` exists for the retired forecast path and
    should not be applied to observations.
 
-8. **Collect all 14 concerns on every live capture**, regardless of what the
-   trial targets. Billing is tiered per task, not per metric, so narrowing saves
-   nothing; side effects appear in metrics nobody targeted; and you cannot
-   retroactively ask a question of data you never collected. Targeting decides
-   what gets *narrated*, never what gets *collected*.
+8. **Collect all 14 concerns on every capture that gets analysed**, regardless
+   of what the trial targets. Billing is tiered per task, not per metric, so
+   narrowing saves nothing; side effects appear in metrics nobody targeted; and
+   you cannot retroactively ask a question of data you never collected.
+   Targeting decides what gets *narrated*, never what gets *collected*. Since
+   the daily-analysis pivot (2026-08-08), "every capture that gets analysed" is
+   just two per trial — the **initial** and **final** photo — never a daily
+   log; see "Repository state" above.
 
 9. **Intervention `targets[]` bias narrow, and freeze at trial creation.** The
    two failure modes are not symmetric. Too narrow pushes a real effect into the
@@ -341,6 +358,13 @@ Units are metered against a limited hackathon quota. The analysis pass is the
 largest single spend in the project. Roughly **572 of 1040 units are already
 consumed** (~468 left); check the console before spending more, and confirm with
 the user before any batch run.
+
+**A trial now costs a flat ~2 analyses, not one per day.** Before the
+2026-08-08 pivot a 30-day trial logged daily could spend ~30 analyses
+(~600 units) on its own; now every trial costs the same ~40 units regardless
+of how long it runs or how often the user logs, because only the initial and
+final photo are ever analysed. This is the whole reason the pivot happened —
+see "Repository state" above, not just a budget-discipline footnote.
 
 **Only successful tasks are billed.** Authentication, uploads, polling,
 malformed requests, and failed tasks are all free. This makes schema discovery

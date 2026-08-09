@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import './site-nav.css';
 
 type NavLink = { href: string; label: string };
 
@@ -20,10 +22,9 @@ const SIGNED_OUT: NavLink[] = [
 const SIGNED_IN: NavLink[] = [
   { href: '/', label: 'Home' },
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/profile', label: 'Profile' },
 ];
 
-export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
+export function SiteNav({ signedIn = false, avatar }: { signedIn?: boolean; avatar?: string }) {
   const links = signedIn ? SIGNED_IN : SIGNED_OUT;
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -78,7 +79,7 @@ export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
         <div className="page-width flex h-14 items-center justify-between gap-4 px-5">
           <Link
             href="/"
-            className="rounded-sm text-base font-semibold tracking-tight outline-none focus-visible:ring-3 focus-visible:ring-ring/50 flex-shrink-0"
+            className="dongle-logo outline-none focus-visible:ring-3 focus-visible:ring-ring/50 flex-shrink-0"
           >
             Grapht
           </Link>
@@ -88,7 +89,7 @@ export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
             nav item is a link, and Base UI's button primitive puts
             `role="button"` on whatever it renders once `nativeButton` is false.
           */}
-          <nav className="hidden items-center gap-1 sm:flex ml-auto">
+          <nav className="hidden items-center gap-4 sm:flex ml-auto">
             {links.map((link) => (
               <Link
                 key={link.href}
@@ -97,12 +98,33 @@ export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
                 className={cn(
                   buttonVariants({ variant: 'ghost', size: 'sm' }),
                   'text-muted-foreground',
-                  isActive(link.href) && 'bg-muted text-foreground',
+                  isActive(link.href) && 'text-primary-500',
                 )}
               >
                 {link.label}
               </Link>
             ))}
+            {signedIn && (
+              <Link
+                href="/profile"
+                aria-current={isActive('/profile') ? 'page' : undefined}
+                className="rounded-full overflow-hidden outline-none focus-visible:ring-3 focus-visible:ring-ring/50 flex-shrink-0 ml-2"
+              >
+                {avatar ? (
+                  <Image
+                    src={avatar}
+                    alt="Profile"
+                    width={32}
+                    height={32}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <User className="size-4 text-muted-foreground" />
+                  </div>
+                )}
+              </Link>
+            )}
           </nav>
 
           <Button
@@ -151,6 +173,34 @@ export function SiteNav({ signedIn = false }: { signedIn?: boolean }) {
                 {link.label}
               </Link>
             ))}
+            {signedIn && (
+              <Link
+                href="/profile"
+                aria-current={isActive('/profile') ? 'page' : undefined}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  'rounded-lg px-2 py-3 font-medium transition-all duration-300 ease-out outline-none focus-visible:ring-3 focus-visible:ring-ring/50 flex items-center gap-3',
+                  isActive('/profile') ? 'text-foreground' : 'text-muted-foreground',
+                  open ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0',
+                )}
+                style={{ transitionDelay: open ? `${100 + links.length * 40}ms` : '0ms' }}
+              >
+                {avatar ? (
+                  <Image
+                    src={avatar}
+                    alt="Profile"
+                    width={32}
+                    height={32}
+                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                    <User className="size-4 text-muted-foreground" />
+                  </div>
+                )}
+                <span>Profile</span>
+              </Link>
+            )}
           </nav>
         </div>
       </div>

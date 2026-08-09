@@ -378,7 +378,8 @@ conservative day-to-day figure, which a burst can't measure anyway.
 
 ## 5. In-trial / daily capture
 
-**Status: resolved and built, 2026-08-06.** `app/trials/[id]/page.tsx`,
+**Status: resolved and built, 2026-08-06; daily capture stopped analysing,
+2026-08-08.** `app/trials/[id]/page.tsx`,
 `components/trial-detail-tabs.tsx`, `components/trial-photos.tsx`,
 `components/trial-calendar.tsx`, `components/metric-list.tsx`,
 `components/trial-gauge.tsx`, `components/trial-details.tsx`,
@@ -447,7 +448,14 @@ what the Camera Kit did and it took the moment away from the user — the whole
 point of a guide is that the frame is already right when you press.
 
 Capture does not spend units. Every frame is still reviewed before it is sent,
-because an unreviewed capture costs ~20 units *and* joins the series either way.
+because it joins the timeline either way — and on the day that photo happens
+to be analysed (day one, always; end-trial, sometimes — see §6), an
+unreviewed one costs ~20 units on top of that. Since the 2026-08-08
+daily-analysis pivot, most reviewed frames cost nothing at all: only a
+trial's initial and final photo are ever analysed, so a typical daily log
+spends zero units regardless of review. The review step stays for the same
+reason either way — a mis-framed photo is a bad measurement long before it's
+a bad picture, and it might yet be the one that gets analysed.
 
 Resolution asks for 1920×2560 and falls back to 2560×1920, taking whichever the
 device grants and cropping the tallest 3:4 window from it — 1920×2560 whole, or
@@ -551,6 +559,15 @@ the word — never whether the user may see their own measurement.
 With a single capture nothing is called flat, because nothing has been asked yet.
 The copy is *"No progress yet — come back and take another photo tomorrow."*
 
+**This "single capture" state is now the normal state for the trial's entire
+active duration (2026-08-08)**, not just its first day — since only the
+initial and final photo are ever analysed, Progress reads this way every day
+in between, regardless of how many daily logs have been taken, until a final
+photo lands at end-trial. The photo roll's per-frame overlay follows the same
+rule: a capture with no scores at all (every daily log) shows the caption
+*"Logged — not scored"* instead of an empty overlay, so a blank frame reads
+as intended rather than as a bug (`components/trial-photos.tsx`).
+
 ### The calendar
 
 Month grid, a dot under every day with a capture, opening on the month holding
@@ -569,8 +586,12 @@ trial finishes. The copy avoids *stop early* and *quit* — there is nothing to 
 early for — and never says *stop the treatment*, because it doesn't mean that.
 The log closes; the routine is the user's own business.
 
-It cannot be undone, and the confirmation says so. The `status = 'active'` guard
-in `closeTrial()` is what enforces it: a second call matches no rows.
+It cannot be undone, and the confirmation says so — with one narrow exception
+for an inconclusive result. The `status = 'active'` guard in `closeTrial()` is
+what enforces the general rule: a second call matches no rows. Since
+2026-08-08, ending is also where the trial's final analysed photo gets
+decided — see §6, "Ending, since the daily-analysis pivot," for the full
+flow.
 
 ### The day counter
 
@@ -621,20 +642,28 @@ local day boundary with a grace window isn't the same as backdating).
 
 ## 6. Trial end and summary
 
-**Status: built 2026-08-07** (`lib/summary.ts`, `components/trial-summary.tsx`).
-On a completed trial the owner asks for the summary; Gemini writes it from a
-gated prompt — a metric inside its wobble reaches the model as "no measurable
-change" with no delta or direction to narrate — and the user's own review sits
-beneath it, editable. Regeneration is allowed: the window is closed, so the
-numbers it describes cannot drift. On a running trial the tab is always visible
-— hiding it would shift the layout when a trial closes — and states why it is
-empty:
+**Status: built 2026-08-07, ending flow rebuilt 2026-08-08**
+(`lib/summary.ts`, `components/trial-summary.tsx`, `components/end-trial-button.tsx`,
+`components/add-final-photo.tsx`). On a completed trial the owner asks for the
+summary; Gemini writes it from a gated prompt — a metric inside its wobble
+reaches the model as "no measurable change" with no delta or direction to
+narrate — and the user's own review sits beneath it, editable. Regeneration is
+allowed: the window is closed, so the numbers it describes cannot drift. On a
+running trial the tab is always visible — hiding it would shift the layout
+when a trial closes — and states why it is empty:
 
 - **running, fixed duration** — `3 more days until complete.`
 - **running, past its end date** — end it whenever you're ready
 - **running, open-ended** — `No summary until you stop this trial. It runs as
   long as you want it to.`
-- **ended** — the summary, and the review beneath it
+- **ended, conclusive** — the summary, and the review beneath it
+- **ended, inconclusive** — no summary generator at all (`generateSummary()`
+  refuses it — the gate would silently read every metric as "no measurable
+  change," indistinguishable from a real null result, when actually nothing
+  was ever measured a second time). Instead: a plain explanation and an "Add
+  a final photo" control (`AddFinalPhoto`). Succeeding there converts the tab
+  to "ended, conclusive" on the next render — there's no separate "resolved"
+  state to design for.
 
 An open-ended trial is not excluded from having a summary. It has no *scheduled*
 completion, so there is nothing to count down to, but stopping one produces
@@ -655,6 +684,40 @@ narrate.
 Regenerable, resolved: the inputs are frozen when the trial closes, so
 regenerating can only rephrase, never re-litigate. Open: the photo/metric
 browser.
+
+### Ending, since the daily-analysis pivot (2026-08-08)
+
+Only a trial's initial and final photo are ever analysed (`CLAUDE.md`,
+"Repository state"), so ending a trial is also the moment its final
+measurement gets decided. The confirmation dialog (`EndTrialButton`) offers
+two paths, not one:
+
+- **Take final photo** — opens the same live camera used for daily capture,
+  reviews it, then ends the trial with that photo analysed fresh. The most
+  accurate option, since it's a photo taken right at the close of the window.
+- **End without a new photo** — falls back to whichever photo was logged most
+  recently (analysed retroactively from storage, no re-upload) if anything
+  was logged past day one; otherwise nothing is analysed and the trial ends
+  **inconclusive**.
+
+Copy states which fallback applies before the user confirms, so "end without
+a new photo" is never a surprise about which photo — or lack of one — will
+end up as the result.
+
+**Inconclusive is not a stored status.** `status` stays `active`/`completed`;
+inconclusive is "completed and fewer than two of its captures carry scores"
+(`isInconclusive()`, `lib/trials.ts`), computed the same way `tracked` and
+`confounded` are elsewhere in this model. It shows as an outline "Inconclusive"
+badge wherever "Completed" would otherwise render (dashboard card, community
+card, the detail page header) — deliberately not `--complete`'s green fill,
+since nothing was resolved.
+
+**The one exception to "ended is immutable":** an inconclusive trial can take
+exactly one more photo, from the Summary tab (`AddFinalPhoto`,
+"ended, inconclusive" above). The guard enforcing this lives in the store
+(`addFollowUpCapture()`, `lib/trial-store.ts`) — it only inserts while fewer
+than two captures carry scores, so it closes itself the moment it succeeds
+once. No UI-side bookkeeping needed to prevent a second use.
 
 ---
 

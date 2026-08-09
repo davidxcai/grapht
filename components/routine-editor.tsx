@@ -1,14 +1,19 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+/** `nextjs-toploader/app`, not `next/navigation` — the loader hooks anchor
+ *  clicks on its own, but a programmatic push needs its wrapped router to
+ *  start the bar. */
+import { useRouter } from "nextjs-toploader/app";
 import { useState, useTransition } from "react";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Lock, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Choice } from "@/components/choice";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -38,7 +43,12 @@ import {
     type Suggestion,
 } from "@/app/routines/actions";
 import type { CatalogPickerMatch } from "@/lib/catalog";
-import type { RankedConcern, Routine } from "@/lib/routines";
+import type { RankedConcern, Routine, RoutineVisibility } from "@/lib/routines";
+
+const VISIBILITIES: { id: RoutineVisibility; label: string; icon: typeof Lock }[] = [
+    { id: "private", label: "Private", icon: Lock },
+    { id: "public", label: "Public", icon: Users },
+];
 
 function fromRoutine(routine: Routine): ProductDraft[] {
     return routine.items.map((i) => ({
@@ -64,6 +74,10 @@ function fromRoutine(routine: Routine): ProductDraft[] {
 export function RoutineEditor({ routine }: { routine?: Routine }) {
     const router = useRouter();
     const [name, setName] = useState(routine?.name ?? "");
+    const [description, setDescription] = useState(routine?.description ?? "");
+    const [visibility, setVisibility] = useState<RoutineVisibility>(
+        routine?.visibility ?? "private",
+    );
     const [items, setItems] = useState<ProductDraft[]>(
         routine ? fromRoutine(routine) : [blankProductDraft("draft")],
     );
@@ -145,6 +159,8 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
             const result = await saveRoutine({
                 id: routine?.id,
                 name,
+                description: description.trim() || null,
+                visibility,
                 items: items
                     .filter((i) => i.name.trim())
                     .map((i) => ({
@@ -199,6 +215,21 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                     value={name}
                     placeholder="e.g Morning"
                     onChange={(e) => setName(e.target.value)}
+                />
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="routine-description">
+                    Description{" "}
+                    <span className="text-muted-foreground font-normal">
+                        (optional)
+                    </span>
+                </Label>
+                <Textarea
+                    id="routine-description"
+                    value={description}
+                    placeholder="What this routine is for, or anything worth remembering about it"
+                    onChange={(e) => setDescription(e.target.value)}
                 />
             </div>
 
@@ -262,6 +293,32 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                     className="mt-3"
                     empty="Nothing tracked yet"
                 />
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+                <h2 className="text-sm font-medium">Who can see this?</h2>
+
+                <div className="flex gap-1.5">
+                    {VISIBILITIES.map((v) => (
+                        <Choice
+                            key={v.id}
+                            on={visibility === v.id}
+                            onClick={() => setVisibility(v.id)}
+                            className="flex flex-1 items-center justify-center gap-1.5 py-2"
+                        >
+                            <v.icon className="size-3.5" />
+                            {v.label}
+                        </Choice>
+                    ))}
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                    {visibility === "public"
+                        ? "Anyone with the link can view this routine. You can make it private again at any time."
+                        : "Only you can see this routine. You can share it with anyone at any time."}
+                </p>
             </div>
 
             {error && (

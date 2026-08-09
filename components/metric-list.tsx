@@ -59,6 +59,24 @@ function Sparkline({ points }: { points: { day: number; value: number }[] }) {
 }
 
 function MetricRow({ metric }: { metric: MetricChange }) {
+  // A single capture is a starting point, not a change — never render it as
+  // "no change", which would claim something was compared when nothing was.
+  if (metric.series.length < 2) {
+    return (
+      <li className="flex items-center gap-4 py-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{concernLabel(metric.concern)}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Baseline{metric.confounded && ' · also covered by your routine'}
+          </p>
+        </div>
+        <div className="w-28 shrink-0 text-right text-sm font-medium tabular-nums">
+          {Math.round(metric.first)}
+        </div>
+      </li>
+    );
+  }
+
   // Round first, then read the sign off the rounded value, so the arrow can
   // never point somewhere the printed number doesn't go.
   const rounded = Math.round(metric.latest) - Math.round(metric.first);

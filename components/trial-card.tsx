@@ -6,7 +6,12 @@ import { CompletedBadge } from '@/components/completed-badge';
 import { TimeOfDayBadge } from '@/components/time-of-day-badge';
 import { ConcernChips } from '@/components/concern-chips';
 import { TrialRing } from '@/components/trial-ring';
-import { interventionLabel, interventionTargets, type TrialCardData } from '@/lib/trials';
+import {
+  interventionLabel,
+  interventionTargets,
+  isInconclusive,
+  type TrialCardData,
+} from '@/lib/trials';
 
 /**
  * The whole dashboard, repeated. Ring, name, what it tracks, today's log state.
@@ -32,7 +37,7 @@ export function TrialCard({ data }: { data: TrialCardData }) {
             <h2 className="truncate text-base font-medium">{trial.name}</h2>
             <div className="flex shrink-0 items-center gap-1.5">
               <TimeOfDayBadge timeOfDay={trial.timeOfDay} />
-              {isCompleted && <CompletedBadge />}
+              {isCompleted && <CompletedBadge inconclusive={isInconclusive(trial)} />}
             </div>
           </div>
 

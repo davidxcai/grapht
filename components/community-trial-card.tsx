@@ -6,7 +6,7 @@ import { CompletedBadge } from '@/components/completed-badge';
 import { TimeOfDayBadge } from '@/components/time-of-day-badge';
 import { ConcernChips } from '@/components/concern-chips';
 import { formatCount } from '@/lib/format';
-import { interventionLabel, interventionTargets, toCardData } from '@/lib/trials';
+import { interventionLabel, interventionTargets, isInconclusive, toCardData } from '@/lib/trials';
 import type { PublicTrial } from '@/lib/community';
 
 /**
@@ -28,7 +28,7 @@ export function CommunityTrialCard({ entry }: { entry: PublicTrial }) {
           <h2 className="truncate text-base font-medium">{trial.name}</h2>
           <div className="flex shrink-0 items-center gap-1.5">
             <TimeOfDayBadge timeOfDay={trial.timeOfDay} />
-            {isCompleted && <CompletedBadge />}
+            {isCompleted && <CompletedBadge inconclusive={isInconclusive(trial)} />}
           </div>
         </div>
 

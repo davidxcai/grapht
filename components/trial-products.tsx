@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { ConcernChips } from '@/components/concern-chips';
-import { concernLabel } from '@/lib/concerns';
-import { interventionLabel, type Trial } from '@/lib/trials';
+import { ProductCard } from '@/components/product-card';
+import type { Trial } from '@/lib/trials';
 import type { RoutineSnapshot } from '@/lib/routines';
 
 interface Props {
@@ -67,20 +67,11 @@ export function TrialProducts({ trial }: Props) {
     <div className="space-y-6">
       <section>
         <h3 className="text-sm font-medium">Products</h3>
-        <ul className="mt-2 space-y-1">
+        <div className="mt-2 space-y-2">
           {interventions.map((i) => (
-            <li key={i.name} className="text-sm">
-              {interventionLabel(i)}
-              {i.dosage && <span className="text-muted-foreground"> · {i.dosage} per use</span>}
-              {i.targets.length > 0 && (
-                <span className="text-muted-foreground">
-                  {' '}
-                  · {i.targets.map(concernLabel).join(', ')}
-                </span>
-              )}
-            </li>
+            <ProductCard key={i.name} intervention={i} />
           ))}
-        </ul>
+        </div>
       </section>
 
       {/* Said even when empty. A trial started without a routine has nothing

@@ -7,7 +7,8 @@ import { MetricList } from '@/components/metric-list';
 import { TrialDetails } from '@/components/trial-details';
 import { TrialSummary } from '@/components/trial-summary';
 import { EndTrialButton } from '@/components/end-trial-button';
-import type { Trial } from '@/lib/trials';
+import { AddFinalPhoto } from '@/components/add-final-photo';
+import { isInconclusive, type Trial } from '@/lib/trials';
 import type { LogRecord, MetricChange } from '@/lib/trial-detail';
 
 /**
@@ -107,14 +108,30 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
 
         {!isCompleted && canEdit && (
           <div className="border-t pt-6">
-            <EndTrialButton trialId={trial.id} daysLogged={record.daysLogged} />
+            <EndTrialButton
+              trialId={trial.id}
+              daysLogged={record.daysLogged}
+              hasLoggedSince={trial.captures.length > 1}
+            />
           </div>
         )}
       </TabsContent>
 
       {/* --------------------------------------------------------- summary */}
       <TabsContent value="summary" className="mt-5">
-        {isCompleted ? (
+        {isCompleted && isInconclusive(trial) ? (
+          <div className="rounded-lg border border-dashed px-6 py-14 text-center">
+            <p className="text-sm text-muted-foreground">
+              This trial is inconclusive — only your starting photo was ever analysed, so there's
+              nothing to compare it against.
+            </p>
+            {canEdit && (
+              <div className="mt-4 flex justify-center">
+                <AddFinalPhoto trialId={trial.id} />
+              </div>
+            )}
+          </div>
+        ) : isCompleted ? (
           <TrialSummary trial={trial} canEdit={canEdit} />
         ) : (
           <div className="rounded-lg border border-dashed px-6 py-14 text-center">

@@ -1,3 +1,5 @@
+import { isClerkAPIResponseError, isReverificationCancelledError } from '@clerk/nextjs/errors';
+
 /**
  * Structural rather than imported. Clerk's `Errors<T>` is generic over the
  * field set, which differs between sign-in and sign-up, and these two pieces
@@ -5,6 +7,21 @@
  */
 type ClerkFieldError = { code: string; message: string; longMessage?: string } | null;
 type ClerkErrors = { global: { message: string }[] | null };
+
+/**
+ * For calls made directly on a resource (`user.updatePassword()`,
+ * `emailAddress.attemptVerification()`, …) rather than through `useSignIn` /
+ * `useSignUp`, which is the only place Clerk hands back the structured
+ * `errors` shape `FieldError` and `FormError` read. Those calls throw
+ * instead, so this is the `catch` counterpart.
+ */
+export function clerkErrorMessage(cause: unknown): string {
+  if (isReverificationCancelledError(cause)) return 'Verification cancelled.';
+  if (isClerkAPIResponseError(cause)) {
+    return cause.errors[0]?.longMessage ?? cause.errors[0]?.message ?? cause.message;
+  }
+  return cause instanceof Error ? cause.message : 'Something went wrong.';
+}
 
 /** Shown when the app is running from fixtures with no Clerk keys set. */
 export function AuthUnavailable() {

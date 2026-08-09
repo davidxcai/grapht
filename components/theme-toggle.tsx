@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/lib/theme-provider';
 
 export function ThemeToggle() {
-  const { theme, toggleTheme, mounted } = useTheme();
+  const { theme, setTheme, mounted } = useTheme();
 
   if (!mounted) {
     return (
@@ -19,7 +19,7 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon"
-      onClick={toggleTheme}
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
     >
       {theme === 'dark' ? (

@@ -1,10 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Plus } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CardGrid } from "@/components/card-grid";
+import { CardGrid, EmptyCard } from "@/components/card-grid";
 import { TrialCard } from "@/components/trial-card";
 import { CommunityTrialCard } from "@/components/community-trial-card";
 import { RoutineCard } from "@/components/routine-card";
@@ -36,24 +33,13 @@ function EmptyState({ children }: { children: React.ReactNode }) {
     );
 }
 
-function NewTrialButton() {
-    return (
-        <Link
-            href="/trials/new"
-            className={buttonVariants({ size: "lg", className: "w-full" })}
-        >
-            <Plus className="size-4" aria-hidden />
-            New trial
-        </Link>
-    );
-}
-
 /**
  * Both database reads degrade the same way. Saved routines and saved trials
- * need Neon; the reference series is read off disk by `loadTrials()` and always
- * renders. A missing or unreachable `DATABASE_URL` therefore costs what the
- * user created and never the demo path, which must run with no network at all
- * (BRIEF.md) — a requirement, not a nicety.
+ * need Neon; `loadTrials()` also unions in `fixtures/trials.json` off disk, but
+ * that fixture is empty as of 2026-08-08 (CLAUDE.md, "Repository state") — the
+ * two hardcoded reference trials it used to carry were deleted. A missing or
+ * unreachable `DATABASE_URL` still fails soft rather than throwing, it just now
+ * means an empty dashboard rather than a demo one.
  */
 async function loadRoutines(userId: string): Promise<{
     routines: Routine[];
@@ -117,7 +103,7 @@ export default async function Dashboard({
             </header>
 
             <Tabs defaultValue={tab} className="mt-8">
-                <TabsList className="w-full sm:w-fit">
+                <TabsList className="w-full grid grid-cols-4">
                     <TabsTrigger value="active">Active</TabsTrigger>
                     <TabsTrigger value="completed">Completed</TabsTrigger>
                     <TabsTrigger value="routines">Routines</TabsTrigger>
@@ -125,21 +111,19 @@ export default async function Dashboard({
                 </TabsList>
 
                 <TabsContent value="active" className="mt-5 space-y-3">
-                    {active.length === 0 ? (
-                        <EmptyState>No trials in progress.</EmptyState>
-                    ) : (
-                        <CardGrid>
-                            {active.map((d) => (
-                                <TrialCard key={d.trial.id} data={d} />
-                            ))}
-                        </CardGrid>
-                    )}
-                    <NewTrialButton />
+                    <CardGrid>
+                        {active.map((d) => (
+                            <TrialCard key={d.trial.id} data={d} />
+                        ))}
+                        <EmptyCard href="/trials/new" label="New trial" />
+                    </CardGrid>
                 </TabsContent>
 
                 <TabsContent value="completed" className="mt-5 space-y-3">
                     {completed.length === 0 ? (
-                        <EmptyState>No trials completed yet.</EmptyState>
+                        <EmptyState>
+                            Nothing completed yet — finish a trial and it lands here.
+                        </EmptyState>
                     ) : (
                         <CardGrid>
                             {completed.map((d) => (
@@ -147,7 +131,6 @@ export default async function Dashboard({
                             ))}
                         </CardGrid>
                     )}
-                    <NewTrialButton />
                 </TabsContent>
 
                 <TabsContent value="routines" className="mt-5 space-y-3">
@@ -155,30 +138,13 @@ export default async function Dashboard({
                         <EmptyState>
                             Routines are unavailable — {error}
                         </EmptyState>
-                    ) : routines.length === 0 ? (
-                        <EmptyState>
-                            No routines saved. Group what you already use, then
-                            pick it when you start a trial.
-                        </EmptyState>
                     ) : (
                         <CardGrid>
                             {routines.map((r) => (
                                 <RoutineCard key={r.id} routine={r} />
                             ))}
+                            <EmptyCard href="/routines/new" label="New routine" />
                         </CardGrid>
-                    )}
-
-                    {!error && (
-                        <Link
-                            href="/routines/new"
-                            className={buttonVariants({
-                                size: "lg",
-                                className: "w-full",
-                            })}
-                        >
-                            <Plus className="size-4" aria-hidden />
-                            New routine
-                        </Link>
                     )}
                 </TabsContent>
 

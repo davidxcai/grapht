@@ -17,6 +17,7 @@ import {
   type TrialComment,
 } from '@/lib/community';
 import { logRecord, metricChanges } from '@/lib/trial-detail';
+import { isInconclusive } from '@/lib/trials';
 import { currentUserId } from '@/lib/auth';
 
 /**
@@ -78,7 +79,7 @@ export default async function TrialDetail({ params }: { params: Promise<{ id: st
       <header className="relative">
         {isCompleted && (
           <div className="absolute right-0 top-0">
-            <CompletedBadge />
+            <CompletedBadge inconclusive={isInconclusive(trial)} />
           </div>
         )}
 

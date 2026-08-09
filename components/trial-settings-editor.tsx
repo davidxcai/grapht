@@ -1,6 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+/** `nextjs-toploader/app`, not `next/navigation` — see routine-editor.tsx. */
+import { useRouter } from 'nextjs-toploader/app';
 import { useState, useTransition } from 'react';
 import { Loader2, Lock, Moon, Sun, Users } from 'lucide-react';
 import { toast } from 'sonner';

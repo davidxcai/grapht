@@ -7,6 +7,38 @@ engine that is no longer the product.
 Everything with a number attached was measured against the real 20-photo
 reference dataset and is reproducible offline with no API calls and no units.
 
+> **Correction, 2026-08-08: this document describes an engine that was never
+> the live one, and a second pivot has since made it moot regardless.**
+>
+> Everything below the next section — sessions, noise floor, regression,
+> Kalman, purge/trough detection, the MDE-from-timestamps gate, compliance
+> clustering — is the design of an offline analysis toolchain
+> (`scripts/summarize.mjs`, `forecast.mjs`, `kalman-forecast.mjs`,
+> `test-scenarios.mjs`, `src/regression.mjs`, `src/kalman.mjs`,
+> `src/noise-floor.mjs`, `src/sessions.mjs`, `src/device-offset.mjs`). It was
+> never imported by `lib/summary.ts` or anything under `app/` — the **live**
+> detection gate has always been the much simpler comparison in
+> `lib/trial-detail.ts` `metricChanges()`: day-1 value vs. most-recent value,
+> called measurable only if it moved further than a fixed per-metric wobble
+> (`WOBBLE`, 2× the spread between two photos taken seconds apart). No
+> session grouping, no OLS, no Kalman filter, no timestamp-weighted MDE.
+>
+> As of 2026-08-08 (see `CLAUDE.md`, "Repository state"), only a trial's
+> **initial** and **final** photo are ever analysed — every daily log in
+> between carries no score. That makes the live gate's two-point design the
+> *only* one that still fits: `series[0]`/`series[last]` in `metricChanges()`
+> already resolve to exactly those two captures once daily logs stop carrying
+> concerns, no code change required. It also makes the offline
+> multi-point-series engine below doubly inapplicable to the product, since
+> there is no multi-point analysed series left to feed it — not just unused,
+> but structurally without input.
+>
+> The offline toolchain isn't deleted — its measured findings
+> (noise floor, device offsets, the wobble constants) are real and some still
+> feed the live gate indirectly, and `test-scenarios.mjs`'s scenario taxonomy
+> is still a useful reference. But nothing below should be read as "what the
+> product does." See `PRODUCT.md` §5–6 for what the product does now.
+
 ---
 
 ## The job changed

@@ -51,6 +51,7 @@ export interface CatalogProductDetail extends CatalogSearchResult {
 export interface CatalogIngredientOption {
   slug: string;
   name: string;
+  functions: string[];
 }
 
 export interface CatalogBrandOption {
@@ -218,13 +219,17 @@ export async function searchCatalogIngredients(q: string, limit = 8): Promise<Ca
   if (!trimmed) return [];
   const sql = getSql();
   const rows = await sql.query(
-    `select slug, name from catalog_ingredients
+    `select slug, name, functions from catalog_ingredients
       where name ilike $1
       order by similarity(name, $2) desc
       limit $3`,
     [`%${trimmed}%`, trimmed, limit],
   );
-  return (rows as { slug: string; name: string }[]).map((r) => ({ slug: r.slug, name: r.name }));
+  return (rows as { slug: string; name: string; functions: string[] }[]).map((r) => ({
+    slug: r.slug,
+    name: r.name,
+    functions: r.functions,
+  }));
 }
 
 export async function searchCatalogBrands(q: string, limit = 8): Promise<CatalogBrandOption[]> {

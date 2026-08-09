@@ -17,6 +17,16 @@ const nextConfig = {
 
   allowedDevOrigins: lanAddresses,
 
+  images: {
+    // Captures live in a private Vercel Blob store (lib/capture.ts,
+    // app/trials/actions.ts) — every store gets its own random hostname under
+    // this suffix, so the pattern has to be a wildcard rather than one fixed host.
+    remotePatterns: [
+      { protocol: 'https', hostname: '*.private.blob.vercel-storage.com' },
+      { protocol: 'https', hostname: 'img.clerk.com' },
+    ],
+  },
+
   experimental: {
     // Server actions cap request bodies at 1MB, and a capture is a full-size
     // photo — HD analysis needs at least 1080px on the short side, so anything

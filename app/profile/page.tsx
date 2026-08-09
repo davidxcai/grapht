@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 
 import { ProfileForm } from '@/components/profile-form';
+import { AccountSecurityForm } from '@/components/account-security-form';
 import { AuthUnavailable } from '@/components/auth-parts';
 import { Button } from '@/components/ui/button';
 import { clerkConfigured, getSession, requireUserId } from '@/lib/auth';
@@ -55,6 +56,8 @@ export default async function ProfilePage() {
           birthday: profile.birthday,
         }}
       />
+
+      <AccountSecurityForm />
 
       <div className="mt-8">
         <Link href="/logout">

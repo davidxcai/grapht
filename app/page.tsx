@@ -1,7 +1,11 @@
 import { HeroSearch } from '@/components/hero-search';
+import { BrandMarquee } from '@/components/brand-marquee';
 import { CommunityTrialCard } from '@/components/community-trial-card';
-import { listPublicTrials, type PublicTrial } from '@/lib/community';
-import { fuzzyRank } from '@/lib/fuzzy';
+import { TrendingProductCard } from '@/components/trending-product-card';
+import { CardGrid } from '@/components/card-grid';
+import { listRecentPublicTrials, listTrendingProducts } from '@/lib/community';
+
+const HOME_SECTION_LIMIT = 4;
 
 /**
  * The front door: search over the front of the page, every published trial
@@ -10,16 +14,11 @@ import { fuzzyRank } from '@/lib/fuzzy';
  * first-time visitor lands on the trials themselves rather than on a page
  * describing them.
  *
- * Ordering is recency; the only count shown is views.
+ * The search box never changes what renders here — it only navigates away,
+ * to a product page or to /search (components/hero-search.tsx). Ordering is
+ * recency; the only count shown is views.
  */
 export const dynamic = 'force-dynamic';
-
-function searchableText(entry: PublicTrial): string {
-  const products = entry.trial.routine.interventions
-    .map((i) => [i.brand, i.name].filter(Boolean).join(' '))
-    .join(' ');
-  return `${entry.trial.name} ${products}`;
-}
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
@@ -29,19 +28,12 @@ function Empty({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
-  const { q = '' } = await searchParams;
-
-  let entries = await listPublicTrials();
-  if (q) entries = fuzzyRank(q, entries, searchableText);
-
-  const ongoing = entries.filter((e) => e.trial.status === 'active');
-  const completed = entries.filter((e) => e.trial.status === 'completed');
-  const filtered = Boolean(q);
+export default async function Home() {
+  const [ongoing, completed, trending] = await Promise.all([
+    listRecentPublicTrials('active', HOME_SECTION_LIMIT),
+    listRecentPublicTrials('completed', HOME_SECTION_LIMIT),
+    listTrendingProducts(HOME_SECTION_LIMIT),
+  ]);
 
   return (
     <main className="w-full px-5 py-10 lg:px-10">
@@ -57,30 +49,43 @@ export default async function Home({
         </div>
       </section>
 
+      <BrandMarquee />
+
+      {trending.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">Trending products</h2>
+          <CardGrid className="mt-5">
+            {trending.map((product) => (
+              <TrendingProductCard key={product.key} product={product} />
+            ))}
+          </CardGrid>
+        </section>
+      )}
+
       <section className="mt-8">
-        <h2 className="text-sm font-medium text-foreground/60">Ongoing ({ongoing.length})</h2>
-        <div className="mt-5 space-y-3">
-          {ongoing.length === 0 ? (
-            <Empty>
-              {filtered ? 'No ongoing trials match.' : 'No ongoing public trials right now.'}
-            </Empty>
-          ) : (
-            ongoing.map((entry) => <CommunityTrialCard key={entry.trial.id} entry={entry} />)
-          )}
-        </div>
+        <h2 className="text-lg font-semibold">Ongoing</h2>
+        {ongoing.length === 0 ? (
+          <div className="mt-5">
+            <Empty>Nothing to show</Empty>
+          </div>
+        ) : (
+          <CardGrid className="mt-5">
+            {ongoing.map((entry) => <CommunityTrialCard key={entry.trial.id} entry={entry} />)}
+          </CardGrid>
+        )}
       </section>
 
       <section className="mt-8">
-        <h2 className="text-sm font-medium text-foreground/60">Completed ({completed.length})</h2>
-        <div className="mt-5 space-y-3">
-          {completed.length === 0 ? (
-            <Empty>
-              {filtered ? 'No completed trials match.' : 'No completed public trials yet.'}
-            </Empty>
-          ) : (
-            completed.map((entry) => <CommunityTrialCard key={entry.trial.id} entry={entry} />)
-          )}
-        </div>
+        <h2 className="text-lg font-semibold">Completed</h2>
+        {completed.length === 0 ? (
+          <div className="mt-5">
+            <Empty>Nothing to show</Empty>
+          </div>
+        ) : (
+          <CardGrid className="mt-5">
+            {completed.map((entry) => <CommunityTrialCard key={entry.trial.id} entry={entry} />)}
+          </CardGrid>
+        )}
       </section>
     </main>
   );

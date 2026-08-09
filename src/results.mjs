@@ -22,6 +22,13 @@ import { join } from 'node:path';
  *
  * `whole` is the headline figure; other zones are kept separately so regional
  * trends stay available without complicating the main series.
+ *
+ * One name is asymmetric between request and response: the `dst_actions`
+ * request must say `hd_dark_circle` (see `toRequestAction` in
+ * `src/concerns.mjs` — `hd_dark_circle_v2` is rejected outright), but it is
+ * unconfirmed whether the response echoes that same shortened name or the
+ * documented `dark_circle_v2`. Remap defensively so either lands on the
+ * canonical analysis key.
  */
 export function normalizeScores(scoreInfo) {
   const concerns = {};
@@ -31,7 +38,8 @@ export function normalizeScores(scoreInfo) {
     if (key === 'all' || key === 'skin_age' || key === 'resize_image') continue;
     if (!value || typeof value !== 'object') continue;
 
-    const name = key.replace(/^hd_/, '');
+    const stripped = key.replace(/^hd_/, '');
+    const name = stripped === 'dark_circle' ? 'dark_circle_v2' : stripped;
 
     if ('raw_score' in value) {
       concerns[name] = { raw: value.raw_score, ui: value.ui_score ?? null };

@@ -1,8 +1,10 @@
 import 'server-only';
+import { clerkClient } from '@clerk/nextjs/server';
 
 import { getSql } from '@/lib/db';
-import { assembleTrials, getFixtureTrials } from '@/lib/trial-store';
-import type { Trial } from '@/lib/trials';
+import { clerkConfigured } from '@/lib/auth';
+import { assembleTrials, getFixtureTrials, INTERVENTION_COLUMNS, CATALOG_JOIN } from '@/lib/trial-store';
+import type { Trial, TrialStatus } from '@/lib/trials';
 
 /**
  * The community read path: every trial whose owner set `visibility = 'public'`,
@@ -24,6 +26,10 @@ export interface PublicTrial {
   handle: string | null;
   /** The owner's self-reported skin type — browsing context, never maths. */
   skinType: string | null;
+  /** The owner's Clerk profile image, null when unavailable (no Clerk key,
+   *  lookup failure, or an owner with no photo). Never a src for face photos —
+   *  this is only ever an account avatar. */
+  avatar: string | null;
   /** True for the committed reference series. */
   sample: boolean;
 }
@@ -32,7 +38,33 @@ export interface PublicTrial {
 function fixturePublicTrials(): PublicTrial[] {
   return getFixtureTrials()
     .filter((t) => t.visibility === 'public')
-    .map((trial) => ({ trial, handle: 'grapht', skinType: null, sample: true }));
+    .map((trial) => ({ trial, handle: 'grapht', skinType: null, avatar: null, sample: true }));
+}
+
+/**
+ * Batch-resolves Clerk avatars for a set of owners in one Backend API call
+ * rather than one round trip per card. Best-effort: a Clerk outage or missing
+ * key degrades to no avatars, never to a failed page (same posture as the rest
+ * of this module's database catches).
+ */
+async function avatarsFor(userIds: string[]): Promise<Map<string, string>> {
+  const distinct = [...new Set(userIds)];
+  if (!clerkConfigured || distinct.length === 0) return new Map();
+
+  try {
+    const client = await clerkClient();
+    const avatars = new Map<string, string>();
+    for (let i = 0; i < distinct.length; i += 100) {
+      const batch = distinct.slice(i, i + 100);
+      const { data } = await client.users.getUserList({ userId: batch, limit: batch.length });
+      for (const user of data) {
+        if (user.imageUrl) avatars.set(user.id, user.imageUrl);
+      }
+    }
+    return avatars;
+  } catch {
+    return new Map();
+  }
 }
 
 async function storedPublicTrials(where: string, params: unknown[]): Promise<PublicTrial[]> {
@@ -51,11 +83,10 @@ async function storedPublicTrials(where: string, params: unknown[]): Promise<Pub
         params,
       ),
       sql.query(
-        `select v.id, v.trial_id, v.position, v.direction, v.brand, v.name,
-                v.started_on, v.targets::text[] as targets, v.ranked, v.provenance,
-                v.classifier, v.product_key, v.dosage
+        `select ${INTERVENTION_COLUMNS}
            from trial_interventions v
            join trials t on t.id = v.trial_id
+           ${CATALOG_JOIN}
           where ${where}
           order by v.position asc`,
         params,
@@ -96,16 +127,20 @@ async function storedPublicTrials(where: string, params: unknown[]): Promise<Pub
     trialRows.map((t) => [
       t.id as string,
       {
+        userId: t.user_id as string,
         handle: (t.owner_handle as string | null) ?? null,
         skinType: (t.owner_skin_type as string | null) ?? null,
       },
     ]),
   );
 
+  const avatars = await avatarsFor(trialRows.map((t) => t.user_id as string));
+
   return trials.map((trial) => ({
     trial,
     handle: meta.get(trial.id)?.handle ?? null,
     skinType: meta.get(trial.id)?.skinType ?? null,
+    avatar: (meta.get(trial.id)?.userId && avatars.get(meta.get(trial.id)!.userId)) || null,
     sample: false,
   }));
 }
@@ -121,6 +156,32 @@ export async function listPublicTrials(): Promise<PublicTrial[]> {
     return [...stored, ...fixturePublicTrials()];
   } catch {
     return fixturePublicTrials();
+  }
+}
+
+/**
+ * The homepage feed: the N most recently created public trials in the given
+ * status, straight from the database — no fixture, since the sample series
+ * is a fixed demo asset rather than part of the live recency stream. Fetches
+ * matching ids first so the LIMIT applies before the capture/intervention
+ * joins in `storedPublicTrials` pull in a whole trial's history.
+ */
+export async function listRecentPublicTrials(
+  status: TrialStatus,
+  limit: number,
+): Promise<PublicTrial[]> {
+  try {
+    const sql = getSql();
+    const idRows = (await sql`
+      select id from trials
+       where visibility = 'public' and status = ${status}
+       order by created_at desc
+       limit ${limit}`) as Record<string, unknown>[];
+    const ids = idRows.map((r) => r.id as string);
+    if (ids.length === 0) return [];
+    return await storedPublicTrials(`t.visibility = 'public' and t.id = any($1)`, [ids]);
+  } catch {
+    return [];
   }
 }
 
@@ -281,6 +342,18 @@ export interface CommunityProduct {
   /** Distinct owners who have trialled it. */
   users: number;
   trials: PublicTrial[];
+  /** Joined from `catalog_products.image_url` via an intervention's
+   *  `catalogProductId`, when any contributing trial picked it from the
+   *  catalog. Null for products only ever added by typed name, barcode, or
+   *  ingredient photo. */
+  image: string | null;
+  /** The catalog row this product resolves to, when any contributing trial
+   *  picked it from the catalog picker. This is what makes `/products/[key]`
+   *  able to show catalog identity (description, ingredient panel) alongside
+   *  community trial history for the same product — see app/products/[key]/page.tsx.
+   *  Null for products only ever added by typed name, barcode, or ingredient
+   *  photo, which have no catalog row to point at. */
+  catalogProductId: string | null;
 }
 
 function productSlug(brand: string | null, name: string): string {
@@ -293,17 +366,14 @@ function productSlug(brand: string | null, name: string): string {
 }
 
 /**
- * The product database, derived entirely from published trials — a product
- * exists here because someone actually trialled it, and the "rating" is the
- * trials themselves rather than stars. Aggregation stops at listing: averaging
- * outcomes across different faces is the easiest place to fabricate confidence
- * (docs/app-ui.md §8), so the page shows the trials and lets them speak.
+ * Shared by `listCommunityProducts()` and `listTrendingProducts()` — the same
+ * roll-up over whichever slice of public trials the caller passes in, sorted
+ * most-trialled first.
  */
-export async function listCommunityProducts(): Promise<CommunityProduct[]> {
-  const publicTrials = await listPublicTrials();
+function aggregateProducts(entries: PublicTrial[]): CommunityProduct[] {
   const byKey = new Map<string, CommunityProduct & { owners: Set<string>; targetCounts: Map<string, number> }>();
 
-  for (const entry of publicTrials) {
+  for (const entry of entries) {
     for (const item of entry.trial.routine.interventions) {
       const key = productSlug(item.brand ?? null, item.name);
       if (!key) continue;
@@ -317,6 +387,8 @@ export async function listCommunityProducts(): Promise<CommunityProduct[]> {
           targets: [],
           users: 0,
           trials: [],
+          image: null,
+          catalogProductId: null,
           owners: new Set(),
           targetCounts: new Map(),
         };
@@ -325,6 +397,8 @@ export async function listCommunityProducts(): Promise<CommunityProduct[]> {
       product.trials.push(entry);
       product.owners.add(entry.handle ?? entry.trial.id);
       if (item.dosage && !product.dosages.includes(item.dosage)) product.dosages.push(item.dosage);
+      if (!product.image && item.image) product.image = item.image;
+      if (!product.catalogProductId && item.catalogProductId) product.catalogProductId = item.catalogProductId;
       for (const target of item.targets) {
         product.targetCounts.set(target, (product.targetCounts.get(target) ?? 0) + 1);
       }
@@ -340,9 +414,89 @@ export async function listCommunityProducts(): Promise<CommunityProduct[]> {
     .sort((a, b) => b.trials.length - a.trials.length || a.name.localeCompare(b.name));
 }
 
+/**
+ * Backfills `image` (display only — never `catalogProductId`, which drives
+ * attribution and the canonical-URL redirect) for products whose contributing
+ * trials picked them by typed name, barcode, or ingredient photo before this
+ * exact brand+name existed in the catalog, or without going through the
+ * catalog picker at all. A name+brand match here is cosmetic: it fixes a
+ * product card showing the generic package icon when a real product photo is
+ * one exact-name lookup away, and never touches `targets[]` or attribution.
+ */
+async function fillMissingImages(products: CommunityProduct[]): Promise<CommunityProduct[]> {
+  const missing = products.filter((p) => !p.image);
+  if (missing.length === 0) return products;
+
+  const sql = getSql();
+  const brands = missing.map((p) => p.brand ?? '');
+  const names = missing.map((p) => p.name);
+  const rows = (await sql.query(
+    `select t.b as brand, t.n as name, cp.image_url as image
+       from unnest($1::text[], $2::text[]) as t(b, n)
+       join catalog_products cp
+         on lower(coalesce(cp.brand_name, '')) = lower(t.b)
+        and lower(cp.name) = lower(t.n)
+      where cp.image_url is not null`,
+    [brands, names],
+  )) as { brand: string; name: string; image: string }[];
+  if (rows.length === 0) return products;
+
+  const byKey = new Map(rows.map((r) => [`${r.brand.toLowerCase()}|${r.name.toLowerCase()}`, r.image]));
+  for (const p of missing) {
+    const image = byKey.get(`${(p.brand ?? '').toLowerCase()}|${p.name.toLowerCase()}`);
+    if (image) p.image = image;
+  }
+  return products;
+}
+
+/**
+ * The product database, derived entirely from published trials — a product
+ * exists here because someone actually trialled it, and the "rating" is the
+ * trials themselves rather than stars. Aggregation stops at listing: averaging
+ * outcomes across different faces is the easiest place to fabricate confidence
+ * (docs/app-ui.md §8), so the page shows the trials and lets them speak.
+ */
+export async function listCommunityProducts(): Promise<CommunityProduct[]> {
+  return fillMissingImages(aggregateProducts(await listPublicTrials()));
+}
+
 export async function getCommunityProduct(key: string): Promise<CommunityProduct | null> {
   const products = await listCommunityProducts();
   return products.find((p) => p.key === key) ?? null;
+}
+
+/** Community trial history for a catalog product, looked up by the catalog's
+ *  own id rather than the slug key — how `/products/[key]` attaches trial
+ *  history onto a catalog-identified product page. Null just means nobody has
+ *  trialled it yet, not an error. */
+export async function getCommunityProductByCatalogId(
+  catalogProductId: string,
+): Promise<CommunityProduct | null> {
+  const products = await listCommunityProducts();
+  return products.find((p) => p.catalogProductId === catalogProductId) ?? null;
+}
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * The homepage's "Trending" rail: products from trials with real activity in
+ * the last 7 days — a capture logged or a routine check-in — ranked by how
+ * many such trials used them. "Used" means evidence of actual use, not merely
+ * a trial that happens to still be open; a trial nobody has touched in a
+ * month doesn't make its products trending just by existing.
+ */
+export async function listTrendingProducts(limit: number): Promise<CommunityProduct[]> {
+  const publicTrials = await listPublicTrials();
+  const since = Date.now() - WEEK_MS;
+
+  const recentlyUsed = publicTrials.filter(
+    (entry) =>
+      entry.trial.captures.some((c) => Date.parse(c.capturedAt) >= since) ||
+      (entry.trial.applications ?? []).some((a) => Date.parse(a) >= since),
+  );
+
+  const products = await fillMissingImages(aggregateProducts(recentlyUsed));
+  return products.slice(0, limit);
 }
 
 /* ---------- people ---------- */

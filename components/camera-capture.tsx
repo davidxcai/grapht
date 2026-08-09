@@ -78,6 +78,26 @@ const RESOLUTIONS = [
 const FRAME_TIMEOUT_MS = 5000;
 
 /**
+ * Continuity Camera surfaces an iPhone's rear lens as a Mac webcam, and it
+ * often reports no `facingMode` at all — so a `facingMode: 'user'` request
+ * doesn't exclude it, and the browser is free to default to it instead of the
+ * Mac's own front-facing camera. Once permission has been granted once,
+ * device labels are available and we can steer around it by name instead.
+ * Returns null pre-permission (labels are blank) or when no better device is
+ * visible, and the caller falls back to `facingMode`.
+ */
+async function preferredVideoDeviceId(): Promise<string | null> {
+  if (!navigator.mediaDevices?.enumerateDevices) return null;
+  const cams = (await navigator.mediaDevices.enumerateDevices()).filter(
+    (d) => d.kind === 'videoinput',
+  );
+  const builtIn = cams.find((d) => /facetime|built.?in/i.test(d.label));
+  if (builtIn) return builtIn.deviceId;
+  const notContinuity = cams.find((d) => d.label && !/iphone|continuity/i.test(d.label));
+  return notContinuity?.deviceId ?? null;
+}
+
+/**
  * Camera acquisition is serialised across the whole module.
  *
  * React mounts an effect, tears it down and mounts it again in development, so
@@ -255,13 +275,17 @@ export function CameraCapture({ onCapture, onCancel }: Props) {
       { stream: MediaStream } | { message: string } | { abandoned: true }
     > => {
       let best: { width: number; height: number } | null = null;
+      const preferredDeviceId = await preferredVideoDeviceId();
+      if (!live) return { abandoned: true };
 
       for (const size of RESOLUTIONS) {
         let candidate: MediaStream;
         try {
           candidate = await navigator.mediaDevices.getUserMedia({
             video: {
-              facingMode: 'user',
+              ...(preferredDeviceId
+                ? { deviceId: { exact: preferredDeviceId } }
+                : { facingMode: 'user' }),
               width: { ideal: size.width },
               height: { ideal: size.height },
             },
@@ -300,14 +324,23 @@ export function CameraCapture({ onCapture, onCancel }: Props) {
         return;
       }
 
-      const result = await claimCamera(acquire);
+      // The abandoned-session release has to happen *inside* the locked call:
+      // releasing it after `claimCamera` resolves would let the next session's
+      // `acquire()` start first, and on Safari — where both calls can return the
+      // same underlying source — that races this session's `track.stop()`
+      // against the next session's already-playing video.
+      const result = await claimCamera(async () => {
+        const acquired = await acquire();
+        if ('abandoned' in acquired || 'message' in acquired) return acquired;
+        if (!live) {
+          acquired.stream.getTracks().forEach((t) => t.stop());
+          return { abandoned: true } as const;
+        }
+        return acquired;
+      });
       if ('abandoned' in result) return;
       if ('message' in result) {
         fail(result.message);
-        return;
-      }
-      if (!live) {
-        result.stream.getTracks().forEach((t) => t.stop());
         return;
       }
 

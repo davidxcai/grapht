@@ -7,6 +7,7 @@ import {
   deleteRoutine,
   updateRoutine,
   type RoutineItemInput,
+  type RoutineVisibility,
 } from '@/lib/routines';
 import { classifyProduct, productIdentity } from '@/lib/product-classifier';
 import { currentUserId } from '@/lib/auth';
@@ -22,6 +23,8 @@ export async function searchCatalogForPicker(q: string): Promise<CatalogPickerMa
 export interface SaveRoutineInput {
   id?: string;
   name: string;
+  description?: string | null;
+  visibility?: RoutineVisibility;
   items: RoutineItemInput[];
 }
 
@@ -50,10 +53,10 @@ export async function saveRoutine(input: SaveRoutineInput): Promise<ActionResult
   try {
     let id = input.id;
     if (id) {
-      const updated = await updateRoutine(userId, id, name, items);
+      const updated = await updateRoutine(userId, id, name, items, input.description, input.visibility);
       if (!updated) return { ok: false, error: 'That routine no longer exists.' };
     } else {
-      id = await createRoutine(userId, name, items);
+      id = await createRoutine(userId, name, items, input.description, input.visibility);
     }
 
     revalidatePath('/');

@@ -5,10 +5,17 @@ import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { del, put } from '@vercel/blob';
 
-import { analyzeAndStore, checkImage, RESOLUTION } from '@/lib/capture';
+import {
+  analyzeAndStore,
+  analyzeStoredCapture,
+  checkImage,
+  storeCapturePhoto,
+  RESOLUTION,
+} from '@/lib/capture';
 import {
   addCapture,
   addCapturePhoto,
+  addFollowUpCapture,
   captureOwnedBy,
   closeTrial,
   createTrial,
@@ -20,13 +27,14 @@ import {
   setCaptureNote,
   setSummary,
   setUserReview,
+  updateCaptureAnalysis,
   updateTrialSettings,
   type InterventionInput,
 } from '@/lib/trial-store';
 import { getRoutine, snapshotRoutine } from '@/lib/routines';
 import { writeSummary } from '@/lib/summary';
 import { currentUserId } from '@/lib/auth';
-import type { BaselineEntry, Frequency, Trial } from '@/lib/trials';
+import { isInconclusive, type BaselineEntry, type Frequency, type Trial } from '@/lib/trials';
 import type { ActionResult } from '@/app/routines/actions';
 import { searchCatalogForPicker as searchCatalog, type CatalogPickerMatch } from '@/lib/catalog';
 
@@ -158,14 +166,16 @@ export async function startTrial(
 }
 
 /**
- * Log today's photo against a running trial — the daily loop the product is for.
+ * Log today's photo against a running trial — the daily loop the product is
+ * for. **Never analysed.** Only a trial's initial photo (`startTrial()`) and
+ * final photo (`endTrial()`, or `addFinalPhoto()` on an inconclusive trial)
+ * spend YouCam units — every other capture, this one included, is stored and
+ * shown in the timeline but carries no scores. That's the whole fix for
+ * "daily logging shouldn't cost $60/user/month."
  *
- * Same order as `startTrial()`, for the same reason: everything that can be
- * refused for free is refused before the analysis, because the analysis is the
- * only step that spends YouCam units. A signed-out caller, a fixture id, a trial
- * belonging to somebody else, an ended trial and an unusable file are all caught
- * here, at no cost. Failed tasks are free, so even a photo the API rejects costs
- * nothing but a retake.
+ * Guards mirror `startTrial()`'s ordering out of habit — refuse what's free to
+ * refuse before doing any work — even though there's no unit spend here to
+ * protect anymore.
  */
 export async function logCapture(
   trialId: string,
@@ -195,38 +205,36 @@ export async function logCapture(
     return { ok: false, error: 'This trial has ended, so no more photos can be added to it.' };
   }
 
-  let capture;
+  let stored;
   try {
-    capture = await analyzeAndStore(photo, slugify(header.name));
+    stored = await storeCapturePhoto(photo, slugify(header.name));
   } catch (error) {
-    return { ok: false, error: describeCaptureFailure(error as Error) };
+    return { ok: false, error: `That photo could not be saved — ${(error as Error).message}` };
   }
 
   try {
     const id = await addCapture(userId, trialId, {
       device,
       resolution: RESOLUTION,
-      blobUrl: capture.blobUrl,
-      blobPathname: capture.blobPathname,
-      concerns: capture.concerns,
-      zones: capture.zones,
-      skinAge: capture.skinAge,
+      blobUrl: stored.blobUrl,
+      blobPathname: stored.blobPathname,
+      concerns: null,
+      zones: null,
+      skinAge: null,
     });
 
-    // The note rides along when one was written at upload. Its failure is not
-    // the capture's failure — the units are spent and the row is in.
+    // The note rides along when one was written at upload.
     const trimmedNote = note?.trim();
     if (id && trimmedNote) {
       await setCaptureNote(userId, trialId, id, trimmedNote).catch(() => {});
     }
 
     // The write is guarded on `status = 'active'`, so no row means the trial was
-    // ended between the check above and here. The units are gone either way and
-    // the message says so rather than reading as a photo worth retaking.
+    // ended between the check above and here.
     if (!id) {
       return {
         ok: false,
-        error: 'Your photo was analysed but this trial has since ended, so it was not saved.',
+        error: 'This trial has since ended, so that photo was not saved.',
       };
     }
 
@@ -237,7 +245,7 @@ export async function logCapture(
   } catch (error) {
     return {
       ok: false,
-      error: `Your photo was analysed but could not be saved — ${(error as Error).message}`,
+      error: `That photo could not be saved — ${(error as Error).message}`,
     };
   }
 }
@@ -250,32 +258,187 @@ export async function logCapture(
  * (`docs/app-ui.md` §5). The end date is rewritten to today so the window
  * matches what was actually logged.
  *
- * **This cannot be undone.** An ended trial is not reopenable; picking the
- * routine back up is a new trial (`docs/trial-model.md`). The reason is that its
- * summary describes a closed window, and admitting captures afterwards would let
- * a published retrospective drift out of step with its own data.
+ * **This cannot be undone** — with one exception, `addFinalPhoto()` below, for
+ * a trial that ends up inconclusive. Otherwise an ended trial is not
+ * reopenable; picking the routine back up is a new trial
+ * (`docs/trial-model.md`).
+ *
+ * This is also where the trial's **final** analysed capture comes from — the
+ * second and last of the two photos a trial ever spends units on:
+ *
+ * - `finalPhoto` given: analysed fresh, exactly like the initial capture.
+ * - No `finalPhoto`, but something was logged after day one: the most
+ *   recently logged (unanalysed) photo is analysed retroactively — "otherwise
+ *   it'll use the latest photo."
+ * - No `finalPhoto` and nothing logged after day one: nothing to analyse.
+ *   The trial still ends, but `isInconclusive()` (lib/trials.ts) reads true —
+ *   only the starting photo was ever measured. `addFinalPhoto()` is the way
+ *   out of that state.
  *
  * Fixture trials have no database row, so ending one is refused rather than
  * silently doing nothing.
  */
-export async function endTrial(id: string): Promise<ActionResult<{ id: string }>> {
+export async function endTrial(
+  id: string,
+  finalPhoto?: File | null,
+  device?: string | null,
+): Promise<ActionResult<{ id: string; inconclusive: boolean }>> {
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Log in to end a trial.' };
+
+  if (isFixtureTrial(id)) {
+    return { ok: false, error: 'This is the built-in sample trial and cannot be ended.' };
+  }
+
+  let trial: Trial | undefined;
+  try {
+    const { trials } = await loadTrials(userId);
+    trial = trials.find((t) => t.id === id);
+  } catch (error) {
+    return { ok: false, error: `Could not read that trial — ${(error as Error).message}` };
+  }
+  if (!trial) return { ok: false, error: 'That trial no longer exists.' };
+  if (trial.status !== 'active') return { ok: false, error: 'This trial has already ended.' };
+
+  // An active trial has exactly one analysed capture (the initial) until this
+  // point — a second only ever lands here or via `addFinalPhoto()`, which
+  // requires the trial to already be `completed`. So whether either branch
+  // below runs is the whole answer to "is this trial conclusive."
+  let finalAnalyzed = false;
+
+  if (finalPhoto && finalPhoto.size > 0) {
+    const imageError = checkImage(finalPhoto);
+    if (imageError) return { ok: false, error: imageError };
+
+    let capture;
+    try {
+      capture = await analyzeAndStore(finalPhoto, slugify(trial.name));
+    } catch (error) {
+      return { ok: false, error: describeCaptureFailure(error as Error) };
+    }
+
+    try {
+      const captureId = await addCapture(userId, id, {
+        device: device ?? null,
+        resolution: RESOLUTION,
+        blobUrl: capture.blobUrl,
+        blobPathname: capture.blobPathname,
+        concerns: capture.concerns,
+        zones: capture.zones,
+        skinAge: capture.skinAge,
+      });
+      if (!captureId) {
+        return {
+          ok: false,
+          error: 'Your final photo was analysed but this trial has since ended.',
+        };
+      }
+      finalAnalyzed = true;
+    } catch (error) {
+      return {
+        ok: false,
+        error: `Your final photo was analysed but could not be saved — ${(error as Error).message}`,
+      };
+    }
+  } else if (trial.captures.length > 1) {
+    const latest = [...trial.captures].sort((a, b) => b.capturedAt.localeCompare(a.capturedAt))[0];
+    if (!latest.blobUrl) {
+      return { ok: false, error: 'Your latest photo could not be found in storage.' };
+    }
+    try {
+      const scores = await analyzeStoredCapture({ blobUrl: latest.blobUrl });
+      const updated = await updateCaptureAnalysis(userId, id, latest.id, scores);
+      if (!updated) {
+        return { ok: false, error: 'Your latest photo was analysed but could not be saved.' };
+      }
+      finalAnalyzed = true;
+    } catch (error) {
+      return { ok: false, error: describeCaptureFailure(error as Error) };
+    }
+  }
+  // Else: nothing beyond the initial photo was ever logged. End as-is — the
+  // trial becomes inconclusive by definition, no units spent.
 
   try {
     const updated = await closeTrial(userId, id);
     if (!updated) {
-      return {
-        ok: false,
-        error: 'This is the built-in sample trial and cannot be ended.',
-      };
+      return { ok: false, error: 'This trial has already ended.' };
     }
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath(`/trials/${id}`);
-    return { ok: true, data: { id } };
+    return { ok: true, data: { id, inconclusive: !finalAnalyzed } };
   } catch (error) {
     return { ok: false, error: `Could not end this trial — ${(error as Error).message}` };
+  }
+}
+
+/**
+ * The one door an inconclusive trial gets: one more analysed photo, taken
+ * after the trial already ended. `addFollowUpCapture()` (lib/trial-store.ts)
+ * is the actual enforcement — it only inserts while fewer than two of the
+ * trial's captures carry scores, so this cannot be called twice.
+ */
+export async function addFinalPhoto(
+  trialId: string,
+  photo: File,
+  device: string | null,
+): Promise<ActionResult<{ id: string }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to add a photo.' };
+
+  if (isFixtureTrial(trialId)) {
+    return { ok: false, error: 'This is the built-in sample trial, so its photos are fixed.' };
+  }
+
+  let trial: Trial | undefined;
+  try {
+    const { trials } = await loadTrials(userId);
+    trial = trials.find((t) => t.id === trialId);
+  } catch (error) {
+    return { ok: false, error: `Could not read that trial — ${(error as Error).message}` };
+  }
+  if (!trial) return { ok: false, error: 'That trial no longer exists.' };
+  if (!isInconclusive(trial)) {
+    return { ok: false, error: 'This trial already has a result, so it cannot take another photo.' };
+  }
+
+  if (!photo || photo.size === 0) return { ok: false, error: 'Add a photo first.' };
+  const imageError = checkImage(photo);
+  if (imageError) return { ok: false, error: imageError };
+
+  let capture;
+  try {
+    capture = await analyzeAndStore(photo, slugify(trial.name));
+  } catch (error) {
+    return { ok: false, error: describeCaptureFailure(error as Error) };
+  }
+
+  try {
+    const captureId = await addFollowUpCapture(userId, trialId, {
+      device,
+      resolution: RESOLUTION,
+      blobUrl: capture.blobUrl,
+      blobPathname: capture.blobPathname,
+      concerns: capture.concerns,
+      zones: capture.zones,
+      skinAge: capture.skinAge,
+    });
+    if (!captureId) {
+      return {
+        ok: false,
+        error: 'Your photo was analysed but this trial already has a result, so it was not saved.',
+      };
+    }
+    revalidatePath('/');
+    revalidatePath('/dashboard');
+    revalidatePath(`/trials/${trialId}`);
+    return { ok: true, data: { id: captureId } };
+  } catch (error) {
+    return {
+      ok: false,
+      error: `Your photo was analysed but could not be saved — ${(error as Error).message}`,
+    };
   }
 }
 
@@ -531,6 +694,16 @@ export async function generateSummary(trialId: string): Promise<ActionResult<{ t
   if (!trial) return { ok: false, error: 'That trial no longer exists.' };
   if (trial.status !== 'completed') {
     return { ok: false, error: 'The summary is written when the trial ends.' };
+  }
+  if (isInconclusive(trial)) {
+    // Every metric's series is <2 points, which `metricChanges()` reports as
+    // `direction: 'flat'` — indistinguishable, to the gate, from "measured
+    // twice and didn't move." Only one measurement exists here, so nothing
+    // is safe to narrate; add a final photo first.
+    return {
+      ok: false,
+      error: 'This trial is inconclusive — add a final photo before writing a summary.',
+    };
   }
 
   try {

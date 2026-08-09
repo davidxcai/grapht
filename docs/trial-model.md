@@ -55,8 +55,10 @@ Trial
 │   ├─ baseline[]           acknowledged, not attributed
 │   └─ interventions[]      the delta under test
 ├─ captures[]
-│   ├─ [0] baseline capture — optionally a burst
-│   └─ [1..] daily captures
+│   ├─ [0] initial capture — analysed, the trial's starting measurement
+│   ├─ [1..n-1] daily logs  — stored and shown, never analysed (2026-08-08)
+│   └─ [n] final capture    — analysed at trial end; fresh, or the most
+│                              recently logged photo, retroactively
 └─ summary                  generated when the user ends the trial
     ├─ perMetric[]
     ├─ narrative            LLM, gated by the measurement
@@ -180,6 +182,26 @@ labelled as such.
 ---
 
 ## Compliance
+
+> **Correction, 2026-08-08: this section's maths never gated the live
+> product, and now it structurally can't.** The minimum-detectable-effect-
+> from-timestamps design below was never wired into `lib/summary.ts` or
+> anything under `app/` — the live gate (`lib/trial-detail.ts`) has always
+> been a plain day-1-vs-latest comparison against a fixed wobble, with no
+> timestamp weighting (see `docs/trial-analysis.md`'s correction note for the
+> full story). And since only a trial's initial and final photo are ever
+> analysed now (not every daily log), there is no capture-timing pattern left
+> to weight in the first place — "logged 8 of 14 days, all in the first
+> week" isn't a sampling-density problem for a two-point measurement.
+>
+> **What daily logging is for now: engagement, and choosing the final
+> photo.** The ratio badge, the calendar, and the nudges below are all still
+> worth having — they're just honestly a streak/engagement feature rather
+> than a statistical-precision one. The one place logging frequency still
+> has real teeth: ending a trial without taking a fresh final photo reuses
+> whichever photo was logged most recently, so a longer gap since the last
+> log means a staler final measurement, and logging nothing at all since day
+> one means the trial ends **inconclusive** (`PRODUCT.md` §6).
 
 ### Two numbers, both shown
 

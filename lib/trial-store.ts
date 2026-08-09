@@ -300,14 +300,18 @@ export interface InterventionInput {
   productKey?: string | null;
 }
 
-/** The measurement half of the first capture, already analysed. */
+/**
+ * The measurement half of a capture. `concerns`/`zones` are null for a daily
+ * log that was never analysed — only the initial and final capture of a trial
+ * carry real scores since the pivot away from analysing every photo.
+ */
 export interface CaptureInput {
   device: string | null;
   resolution: string;
   blobUrl: string | null;
   blobPathname: string | null;
-  concerns: Record<string, unknown>;
-  zones: Record<string, unknown>;
+  concerns: Record<string, unknown> | null;
+  zones: Record<string, unknown> | null;
   skinAge: number | null;
 }
 
@@ -469,6 +473,72 @@ export async function addCapture(
       where exists (
         select 1 from trials
          where id = $1::uuid and user_id = $9 and status = 'active'
+      )
+     returning id`,
+    [
+      trialId,
+      capture.device,
+      capture.resolution,
+      capture.blobUrl,
+      capture.blobPathname,
+      JSON.stringify(capture.concerns),
+      JSON.stringify(capture.zones),
+      capture.skinAge,
+      userId,
+    ],
+  )) as Record<string, unknown>[];
+  return rows[0] ? (rows[0].id as string) : null;
+}
+
+/**
+ * Write analysis results onto a capture that was stored earlier without any —
+ * the "use my latest photo" end-trial path. The trial is still `active` at the
+ * moment this runs (it's called just before `closeTrial()`), so the guard only
+ * needs to check ownership, not status.
+ */
+export async function updateCaptureAnalysis(
+  userId: string,
+  trialId: string,
+  captureId: string,
+  scores: { concerns: Record<string, unknown>; zones: Record<string, unknown>; skinAge: number | null },
+): Promise<boolean> {
+  if (!UUID.test(trialId) || !UUID.test(captureId)) return false;
+  const sql = getSql();
+  const rows = (await sql`
+    update trial_captures c
+       set concerns = ${JSON.stringify(scores.concerns)}::jsonb,
+           zones = ${JSON.stringify(scores.zones)}::jsonb,
+           skin_age = ${scores.skinAge}::numeric
+      from trials t
+     where c.id = ${captureId}::uuid and c.trial_id = ${trialId}::uuid
+       and t.id = c.trial_id and t.user_id = ${userId}
+     returning c.id`) as Record<string, unknown>[];
+  return rows.length > 0;
+}
+
+/**
+ * The one exception to "ended is immutable": an **inconclusive** trial
+ * (ended with only its initial photo ever analysed — `isInconclusive()` in
+ * lib/trials.ts) gets one more chance at a real result. The guard is the
+ * enforcement — it only inserts when the trial is `completed` *and* fewer
+ * than two of its captures carry scores, so a second call (or a call against
+ * an already-conclusive trial) matches no rows and closes the door for good.
+ */
+export async function addFollowUpCapture(
+  userId: string,
+  trialId: string,
+  capture: CaptureInput,
+): Promise<string | null> {
+  if (!UUID.test(trialId)) return null;
+  const sql = getSql();
+  const rows = (await sql.query(
+    `insert into trial_captures
+       (trial_id, device, resolution, blob_url, blob_pathname, concerns, zones, skin_age)
+     select $1::uuid, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::numeric
+      where exists (
+        select 1 from trials t
+         where t.id = $1::uuid and t.user_id = $9 and t.status = 'completed'
+           and (select count(*) from trial_captures where trial_id = t.id and concerns is not null) < 2
       )
      returning id`,
     [

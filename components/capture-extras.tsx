@@ -129,7 +129,7 @@ export function CaptureExtras({
           {extras.map((photo) => (
             <div key={photo.id} className="relative overflow-hidden rounded-xl bg-muted">
               <Image
-                src={photo.url}
+                src={`/trials/${trialId}/photo/${photo.id}`}
                 alt="Additional photo for this day"
                 width={1050}
                 height={1400}

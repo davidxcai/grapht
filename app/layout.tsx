@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Geist } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
+import NextTopLoader from "nextjs-toploader";
 import { cn } from "@/lib/utils";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -18,12 +20,16 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
+  const user = session ? await currentUser() : null;
 
   const document = (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body className="flex min-h-screen flex-col antialiased">
+        {/* Navigation progress bar. The colour is the palette's --primary-300,
+            which is defined once on :root and so reads the same in both themes. */}
+        <NextTopLoader color="var(--primary-300)" height={3} showSpinner={false} shadow={false} />
         <ThemeProvider>
-          <SiteNav signedIn={session !== null} />
+          <SiteNav signedIn={session !== null} avatar={user?.imageUrl} />
           <div className="w-full flex-1">
             <div className="page-width">{children}</div>
           </div>

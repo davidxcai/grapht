@@ -256,3 +256,37 @@ export function baselineTargets(trial: Trial): string[] {
 export function interventionTargets(trial: Trial): string[] {
   return orderConcerns(trial.routine.interventions.flatMap((i) => i.targets));
 }
+
+/**
+ * How many of this trial's captures were actually analysed by YouCam.
+ *
+ * Since the pivot away from analysing every daily log, this is at most two: the
+ * initial capture (always analysed, at trial creation) and the final capture
+ * (analysed at trial end — fresh, or retroactively from the latest logged
+ * photo). Everything else is a stored-but-unscored daily log.
+ */
+export function analyzedCaptureCount(trial: Trial): number {
+  return trial.captures.filter((c) => c.concerns).length;
+}
+
+/**
+ * A trial that ended with only its initial photo ever analysed — no final
+ * measurement, so there is nothing to compare it against.
+ *
+ * Deliberately computed rather than stored: `status` stays a plain
+ * `'active' | 'completed'`, and the moment a follow-up photo is analysed
+ * (`addFinalPhoto` in app/trials/actions.ts, the one exception to "ended is
+ * immutable"), this flips to `false` on its own — no separate flag to update.
+ */
+export function isInconclusive(trial: Trial): boolean {
+  return trial.status === 'completed' && analyzedCaptureCount(trial) < 2;
+}
+
+/** Which role a capture played: the trial's first photo, its final analysed
+ *  photo (fresh or retroactive), or an in-between daily log with no score. */
+export function captureRole(trial: Trial, captureId: string): 'initial' | 'final' | 'log' {
+  const sorted = [...trial.captures].sort((a, b) => a.capturedAt.localeCompare(b.capturedAt));
+  if (sorted[0]?.id === captureId) return 'initial';
+  const capture = trial.captures.find((c) => c.id === captureId);
+  return capture?.concerns ? 'final' : 'log';
+}

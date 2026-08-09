@@ -33,7 +33,7 @@ export function RoutineSummary({
   trailing,
 }: {
   routine: RoutineSummaryData;
-  as?: 'h2' | 'h3';
+  as?: 'h1' | 'h2' | 'h3';
   titleClassName?: string;
   trailing?: ReactNode;
 }) {
