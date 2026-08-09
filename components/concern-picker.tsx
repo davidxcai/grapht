@@ -36,7 +36,7 @@ export function ConcernPicker({
       <MultiSelect
         value={targets}
         options={options}
-        placeholder="Choose metrics"
+        placeholder="Select skin concerns"
         summary={(v) => `${v.length} selected`}
         onChange={(next) => onChange(orderConcerns(next))}
       />
