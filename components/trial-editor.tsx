@@ -318,6 +318,7 @@ export function TrialEditor({
                             provenance: provenanceOfDraft(i),
                             classifier: i.classifier,
                             productKey: i.productKey,
+                            catalogProductId: i.catalogProductId,
                         })),
                     routineId,
                     endDate: endDate(),

@@ -1,3 +1,92 @@
+# YouCam / Perfect Corp API — working notes
+
+Most of this is **not in the published documentation**. The reference site at
+`docs.perfectcorp.com` is a JavaScript SPA that serves empty shells to any
+non-browser client, and the skin-simulation request schema is not documented
+anywhere public. Everything below marked *verified* was established by calling
+the live API on 2026-08-03; everything marked *unverified* is from Perfect Corp's
+own prose and has not been exercised in code.
+
+Re-run `scripts/probe.mjs` and `scripts/probe-intensity.mjs` if calls start
+failing with `InvalidParameters` — both are free.
+
+---
+
+## Billing model
+
+**Units are charged only when a task reaches `task_status: "success"`.** Verified
+repeatedly: seven tasks failed with `error_src_face_too_small` and one failed
+with `Engine task timeout`, and none were billed.
+
+This makes several things free, and they should be used aggressively:
+
+| Operation | Cost |
+|---|---|
+| Authentication | free |
+| File upload | free |
+| Task polling | free |
+| A task that fails for any reason | **free** |
+| Malformed requests (schema discovery) | **free** |
+| A task that succeeds | charged |
+
+Measured prices (HD, verified against the account's transaction log):
+
+| Call | Concerns | Units |
+|---|---|---|
+| `skin-analysis` SD | 6 | **12** |
+| `skin-analysis` HD | 6 | **16** |
+| `skin-analysis` HD | 7 | **16** |
+| `skin-simulation` | — | **unknown, not yet run** |
+
+Documented SD tiers are 1–4 → 9 units, 5–7 → 12 units. HD appears to tier the
+same way: 6 and 7 concerns both cost 16, so the seventh concern was free. Adding
+an eighth would likely cross into the next tier.
+
+---
+
+## Authentication — *verified*
+
+```
+POST https://yce-api-01.perfectcorp.com/s2s/v1.0/client/auth
+Content-Type: application/json
+
+{ "client_id": "<YOUCAM_API_KEY>", "id_token": "<see below>" }
+```
+
+`id_token` is the literal string `client_id=<id>&timestamp=<ms>`, RSA-encrypted
+and base64-encoded. The critical and unobvious part: **`YOUCAM_SECRET_KEY` is not
+a shared secret — it is a base64-encoded X.509 (SPKI) *public key*.** You encrypt
+with it; you never sign with it.
+
+```js
+const publicKey = crypto.createPublicKey({
+  key: Buffer.from(secretKey, 'base64'), format: 'der', type: 'spki',
+});
+const idToken = crypto.publicEncrypt(
+  { key: publicKey, padding: crypto.constants.RSA_PKCS1_PADDING },
+  Buffer.from(`client_id=${apiKey}&timestamp=${Date.now()}`),
+).toString('base64');
+```
+
+Response is `{ status: 200, result: { access_token } }`. The token lasts 2 hours;
+`src/youcam.mjs` expires it at 100 minutes so a long batch cannot die mid-flight.
+
+`yce-api-01.makeupar.com` also appears in Perfect Corp's docs as a base host. It
+has not been tested — `perfectcorp.com` answered first and is used throughout.
+
+---
+
+## Skin Analysis — *verified*
+
+### 1. Request an upload slot
+
+```
+POST /s2s/v2.0/file/skin-analysis
+Authorization: Bearer <access_token>
+
+{ "files": [{ "content_type": "image/jpeg", "file_name": "x.jpg", "file_size": 1720828 }] }
+```
+
 Response nests **two levels down** — `data.files`, not `result.files`:
 
 ```json
@@ -97,18 +186,6 @@ Measured on one image, **SD and HD return bit-identical `raw_score` for
 from HD. Only `acne`, `texture`, and `pore` differ, and only those return zonal
 breakdowns. HD is still the right default because it is a strict superset.
 
-**`dark_circle_v2` is the one name that isn't symmetric.** In `dst_actions`,
-`hd_dark_circle_v2` is rejected — `"0 is not one of the accepted values."`
-alone, or `"9 is not one of the accepted values."` (its array index) inside
-the full 14-concern list. `hd_dark_circle` (no `_v2`) is accepted; every other
-name round-trips through a plain `hd_` prefix. Confirmed by probe 2026-08-08
-with an invalid `src_file_id`, so it cost 0 units — see `toRequestAction` in
-`src/concerns.mjs`. Not yet confirmed: which name a *successful* response
-echoes back for this concern; `src/results.mjs::normalizeScores` remaps
-`dark_circle` to `dark_circle_v2` defensively either way. The first live 14-
-concern capture will settle it — worth a quick check of `data/analysis/`
-or a captured trial's raw scores next time one completes.
-
 ### Image requirements
 
 | | |
@@ -190,3 +267,170 @@ Rejected variants, for the record: `spot`, `spot_v2`, `age_spot_v2`, `eyebag`,
 > ignored*, not rejected. Typo `wrinkles` for `wrinkle` and the request does not
 > fail with a bad-name error — it fails with `Simulation intensity cannot be all
 > zero`, which reads like a completely different bug. Always route through
+> `src/concerns.mjs`.
+
+---
+
+## JS Camera Kit v2.5 — *retired 2026-08-08, contract kept*
+
+> **Not used any more.** The camera is ours: `getUserMedia` plus BlazeFace, in
+> `components/camera-capture.tsx` and `lib/capture-guide.ts`, to the design in
+> `docs/capture-quality.md` §5. The kit ran for one day and worked, once the
+> memory bug below was found. It went because it was slow to load, hard to
+> satisfy (STRICT wants the face at 0.75 of frame), gave the user no shutter, and
+> looked nothing like the rest of the app — for pose tracking we can do from six
+> landmarks `detectFace()` was already computing and throwing away. It also
+> capped the capture at 1080×1920, where ours gets 1440×1920 or better.
+>
+> Kept in full rather than archived: none of it is published anywhere, the crash
+> analysis cost a day, and it is the reference if any Perfect Corp browser SDK is
+> picked up again. Nothing below is live code.
+
+The browser capture SDK. The published
+page is the usual empty SPA shell; the contract below came out of
+`/page-data/reference/ai_skin_analysis/section/overview/js-camera-kit/data.json`,
+which is how any other unresolved `{% partial %}` can be recovered.
+
+CDN only — no npm package, no types, no API key in the documented `init`
+signature. Installs a global `YMK`, calls the async-init callback **once** on
+first load, and renders into a mandatory `<div id="YMK-module">`. HTTPS required
+except on localhost.
+
+**The callback is `window.ymkAsyncInit` — lowercase — not the documented
+`YMKAsyncInit`.** The shipped bundle checks `typeof window.ymkAsyncInit` and
+silently does nothing when it is absent; the capitalised spelling appears
+nowhere in it. Define both. Two other facts from the bundle: it polls for
+`window.YMK` for ~5s and then fires the callback regardless, so check the
+global inside it; and it carries a hardcoded hostname allowlist (`localhost`,
+`127.0.0.1`, perfectcorp domains) that is cosmetic — all lazy chunks audited
+2026-08-07, and the only consumer is a UTM parameter on the "powered by" link.
+A LAN-IP origin is fine.
+
+Two more facts from that audit: `videoQuality` becomes an **exact** getUserMedia
+constraint (`min`=`ideal`=`max`, so 2560×1920 for `1920p` and 1920×1080 for
+`1080p`) — iOS satisfies it by scaling, but a laptop webcam below the width
+rejects with `OverconstrainedError`, which the kit treats as fatal unless
+`disableCameraResolutionCheck` is set. And
+on iOS the kit attaches the stream (`playsinline`, `srcObject`) but defers
+`play()` to its obfuscated controller — a session that hangs on the kit's
+background image with the camera light on died between those two steps.
+
+```
+https://plugins-media.makeupar.com/v2.5-camera-kit/sdk.js
+```
+
+`init()` args we set while it was live, and why: `faceDetectionMode: 'skincare'`
+rather than `hdskincare`, which demands a webcam reporting 2560px on the long
+side and excludes most laptops for a frame of the same size.
+`qualityLevel: 'strict'`, `imageFormat: 'blob'`, `videoQuality: '1920p'`, and
+`width`/`height` at exactly 9:16 — see below.
+
+### The frame's aspect ratio decides the capture, and the crash
+
+`webenvcheckercontrollerv2` — the controller loaded for `skincare`, `hdskincare`,
+`comprehensive` and `teethwhiten` — sizes its RGBA working buffer from the
+**camera stream** on mobile and from the **display** on desktop:
+
+| | `camera_width` × `camera_height` |
+|---|---|
+| `_resize4Mobile` | `display_width / display_height × videoHeight` × `videoHeight` |
+| `_resize4Desktop` | both from `display_height × resizeRatio` |
+
+That buffer is also exactly what `faceDetectionCaptured` hands back — the capture
+is `getImageData(0, 0, camera_width, camera_height)` and nothing rescales it. So
+on a phone the frame's **aspect ratio**, not its pixel size, sets the capture
+resolution. iOS grants 1920p's exact 2560×1920, so:
+
+| frame | buffer / capture | heap |
+|---|---|---|
+| 3:4 | 1441×1920 | 10.6MB |
+| 9:16 | 1080×1920 | 7.9MB |
+| 1:1 | 1920×1920 | 14.1MB |
+
+9:16 is the narrowest frame whose short side still clears the 1080px HD floor
+above. Below it the analysis rejects the photo; above it the buffer grows to hold
+background.
+
+**Suspected: 1920p at 3:4 crashes the kit on any phone (2026-08-07).** The heap
+cannot grow — `TOTAL_MEMORY || 0x2000000` is 32MB, statics and `TOTAL_STACK` take
+5.3MB, and `_emscripten_resize_heap` is literally `function(){ return false }`. A
+failed `_malloc` is not reported: `_AllocateFrameBuffer` wraps the null pointer in
+`new Uint8Array(HEAPU8.buffer, 0, size)` and passes it to `doTracking`, which
+walks off the heap. The console signature is `abort(). Build with -s ASSERTIONS=1
+for more info.` thrown from `_prerender` and caught by the kit's own handler, then
+`BindingError: Cannot use deleted val. handle = 0` from `freeResources` as the
+teardown walks already-dead embind handles. None of the kit's own events fire, so
+the frame hangs.
+
+Held as suspected rather than confirmed: 10.6MB against ~26.7MB of usable heap is
+not obviously fatal on its own, and the model weights loaded by
+`initWebEnvCheckerTrackingManager` have not been measured. What is certain is that
+mobile is the only path that sizes this buffer from the stream, which is why
+desktop never saw it. If 9:16 does not clear it, the next measurement to take is
+the model footprint — not another aspect ratio.
+
+Events: `loaded`, `closed`, `cameraFailed` (`error_permission_denied`,
+`error_resolution_unsupported`, `error_access_failed`), `unsupportedResolution`,
+`faceQualityChanged` (`{ hasFace, position, frontal, lighting }`, continuous),
+and `faceDetectionCaptured` — which fires **only after every check passes**, and
+auto-fires after `countingDuration` (default 800ms). There is no shutter.
+
+`qualityLevel` presets, with the numbers that matter to us:
+
+| | RELAXED | MODERATE | STRICT |
+|---|---|---|---|
+| `face_ratio_lower_threshold` | 0.55 | 0.65 | 0.75 |
+| `yaw` / `roll` | ±15° | ±10° | ±5° |
+| `pitch` | −20…10° | −15…5° | −10…0° |
+| `lighting_lower/upper` | 0.55–0.8 | 0.7–0.85 | 0.8–0.9 |
+| `lighting_uneven_threshold` | 0.2 | 0.15 | 0.1 |
+
+`lighting_uneven_threshold` is max luma difference between the eyes — the same
+measure as check 2 in `docs/capture-quality.md`. Per-edge face boundaries are
+also settable via `qualityOverrides`; an override may never be *less* restrictive
+than RELAXED.
+
+**`close()` returns long before the kit has closed, and reopening into the gap
+kills it.** `close()` only fires an event; the controller behind it sleeps a
+second, then frees its WASM heap allocations, destroys the filter and drops the
+module. `open()` waits for that — but only while `isEngineLoaded` is true, and
+the close event clears that flag synchronously, so a close followed by an open
+reads as "nothing was running" and skips the wait. The new session is then built
+on a module the old teardown frees underneath it, and the kit dies inside its
+face-tracking WASM (`abort(16)`, or an out-of-bounds access) having fired none
+of its own events. There is no teardown-complete event to wait on — the public
+`closed` fires at the *start* of teardown — so `camera-capture.tsx` gates a
+reopen behind a timer sized to the kit's own `sleep(1000)`.
+
+**`face_ratio_upper_threshold` is fixed at 1.0 in every preset.** The kit floors
+face scale and never pins it, so STRICT constrains the series to the band
+[0.75, 1.0] rather than to a point. Rule 3 is therefore satisfied by the user
+physically moving closer, not by cropping afterwards — cropping to hit a target
+fraction discards the resolution the measurement depends on.
+
+---
+
+## Error codes seen in the wild
+
+| Code | Meaning | Billed? |
+|---|---|---|
+| `InvalidParameters` (400) | missing/invalid field; message usually names it | no |
+| `error_src_face_too_small` | face too small a fraction of the frame | no |
+| `TaskTimeout` (500) | *"Engine task timeout"* — the engine gave up | no |
+| `UNKNOWN_ERROR` | face found, feature extraction failed (reported by others) | unverified |
+
+Documented rate limits (unverified): 100 requests / 5 min per IP, 100 / min per
+token.
+
+---
+
+## Sources
+
+Public material, all of it thinner than the notes above:
+
+- [Quick start guide](https://docs.perfectcorp.com/develop/quick_start_guide)
+- [API docs portal](https://yce.perfectcorp.com/document/index.html)
+- [Skin analysis reference](https://docs.perfectcorp.com/reference/ai_skin_analysis)
+- [Perfect Corp skincare app walkthrough](https://www.perfectcorp.com/business/blog/ai-skincare/skin-analysis-api-claude-mcp-integration)
+- [nakamura196/zenn-youcam](https://github.com/nakamura196/zenn-youcam) — community
+  reverse-engineering of 20 tasks; notably does **not** cover skin-simulation

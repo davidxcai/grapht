@@ -39,6 +39,13 @@ export interface Intervention {
   targets: string[];
   /** How much per use ("2 pumps", "0.5 mg"). Display only — never the maths. */
   dosage?: string | null;
+  /** FK into `catalog_products`, set only when this item came from a catalog
+   *  pick. Read-only enrichment — never a source for `targets[]`, which stay
+   *  the frozen identity the item was added under. */
+  catalogProductId?: string | null;
+  /** Joined live from `catalog_products.image_url` via `catalogProductId`,
+   *  never stored. Null for an item with no catalog match. */
+  image?: string | null;
 }
 
 /** An extra angle attached to one day's capture. Never analysed, so it costs

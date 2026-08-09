@@ -45,10 +45,19 @@ export interface RoutineItem {
   image: string | null;
 }
 
+/** Whether a routine can be viewed at `/routines/[id]` by anyone with the
+ *  link. Private is the default, same shape as `TrialVisibility`
+ *  (lib/trials.ts) — a routine is never published by omission. */
+export type RoutineVisibility = 'private' | 'public';
+
 export interface Routine {
   id: string;
   name: string;
   position: number;
+  /** The user's own words on what the routine is for, shown on the public
+   *  routine page. Optional. */
+  description: string | null;
+  visibility: RoutineVisibility;
   items: RoutineItem[];
   createdAt: string;
   updatedAt: string;
@@ -109,6 +118,19 @@ function toItem(row: Record<string, unknown>): RoutineItem {
   };
 }
 
+function toRoutine(row: Record<string, unknown>, items: RoutineItem[]): Routine {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    position: row.position as number,
+    description: (row.description as string | null) ?? null,
+    visibility: (row.visibility as RoutineVisibility) ?? 'private',
+    items,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
 export async function listRoutines(userId: string): Promise<Routine[]> {
   const sql = getSql();
   const [routineRows, itemRows] = await Promise.all([
@@ -132,14 +154,9 @@ export async function listRoutines(userId: string): Promise<Routine[]> {
     byRoutine.set(key, list);
   }
 
-  return (routineRows as Record<string, unknown>[]).map((r) => ({
-    id: r.id as string,
-    name: r.name as string,
-    position: r.position as number,
-    items: byRoutine.get(r.id as string) ?? [],
-    createdAt: String(r.created_at),
-    updatedAt: String(r.updated_at),
-  }));
+  return (routineRows as Record<string, unknown>[]).map((r) =>
+    toRoutine(r, byRoutine.get(r.id as string) ?? []),
+  );
 }
 
 /** Null covers "no such routine" and "not yours" alike — the caller renders the
@@ -159,14 +176,63 @@ export async function getRoutine(userId: string, id: string): Promise<Routine | 
     [id],
   );
 
+  return toRoutine(row, (itemRows as Record<string, unknown>[]).map(toItem));
+}
+
+/**
+ * A published routine, for the read-only branch of `/routines/[id]`
+ * (app/routines/[id]/page.tsx) — same split as `getPublicTrial()` in
+ * lib/community.ts, minus comments/saves/views, which this feature doesn't
+ * have. Null covers "no such routine" and "not public", identically, so a
+ * private routine 404s rather than admitting it exists.
+ */
+export async function getPublicRoutine(
+  id: string,
+): Promise<{ routine: Routine; handle: string | null } | null> {
+  const sql = getSql();
+  const rows = await sql`
+    select r.*, p.username as owner_handle
+      from routines r
+      left join profiles p on p.user_id = r.user_id
+     where r.id = ${id} and r.visibility = 'public'`;
+  const row = (rows as Record<string, unknown>[])[0];
+  if (!row) return null;
+
+  const itemRows = await sql.query(
+    `select ${ITEM_COLUMNS} from routine_items i
+     ${CATALOG_JOIN}
+     where i.routine_id = $1
+     order by i.position asc, i.created_at asc`,
+    [id],
+  );
+
   return {
-    id: row.id as string,
-    name: row.name as string,
-    position: row.position as number,
-    items: (itemRows as Record<string, unknown>[]).map(toItem),
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
+    routine: toRoutine(row, (itemRows as Record<string, unknown>[]).map(toItem)),
+    handle: (row.owner_handle as string | null) ?? null,
   };
+}
+
+/**
+ * The subset of `routines` that carry this product — either by catalog id
+ * (the reliable match, when the product page resolved one) or by brand+name
+ * (the fallback for a product only ever added by typed name, barcode, or
+ * ingredient photo, which has no catalog row to match on). Pure filter over
+ * already-fetched routines, mirroring `aggregateProducts()`'s brand+name
+ * comparison in lib/community.ts — routines have no public surface, so this
+ * never reaches into the database itself.
+ */
+export function routinesWithProduct(
+  routines: Routine[],
+  product: { catalogProductId: string | null; brand: string | null; name: string },
+): Routine[] {
+  const name = product.name.trim().toLowerCase();
+  const brand = (product.brand ?? '').trim().toLowerCase();
+  return routines.filter((r) =>
+    r.items.some((i) => {
+      if (product.catalogProductId && i.catalogProductId === product.catalogProductId) return true;
+      return i.name.trim().toLowerCase() === name && (i.brand ?? '').trim().toLowerCase() === brand;
+    }),
+  );
 }
 
 /* ---------- writes ---------- */
@@ -203,12 +269,15 @@ export async function createRoutine(
   userId: string,
   name: string,
   items: RoutineItemInput[],
+  description?: string | null,
+  visibility?: RoutineVisibility,
 ): Promise<string> {
   const sql = getSql();
   const id = randomUUID();
   await sql.transaction([
-    sql`insert into routines (id, user_id, name, position)
-        values (${id}, ${userId}, ${name.trim()},
+    sql`insert into routines (id, user_id, name, description, visibility, position)
+        values (${id}, ${userId}, ${name.trim()}, ${description ?? null},
+                ${visibility ?? 'private'}::routine_visibility,
                 coalesce((select max(position) + 1 from routines
                           where user_id = ${userId}), 0))`,
     ...itemInserts(id, items),
@@ -228,6 +297,8 @@ export async function updateRoutine(
   id: string,
   name: string,
   items: RoutineItemInput[],
+  description?: string | null,
+  visibility?: RoutineVisibility,
 ): Promise<boolean> {
   const sql = getSql();
   const owned = (await sql`select 1 from routines
@@ -235,7 +306,11 @@ export async function updateRoutine(
   if (owned.length === 0) return false;
 
   await sql.transaction([
-    sql`update routines set name = ${name.trim()}, updated_at = now()
+    sql`update routines
+           set name = ${name.trim()},
+               description = ${description ?? null},
+               visibility = ${visibility ?? 'private'}::routine_visibility,
+               updated_at = now()
         where id = ${id} and user_id = ${userId}`,
     sql`delete from routine_items where routine_id = ${id}`,
     ...itemInserts(id, items),

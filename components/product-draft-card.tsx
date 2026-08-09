@@ -14,11 +14,12 @@ import type { Provenance, RankedConcern } from "@/lib/routines";
  * A product row being edited — the shape shared by the routine editor (a
  * saved, ordered routine) and the trial editor (products tracked for a
  * trial). Not every field is meaningful in both places: `dosage` is
- * trial-only, and `catalogProductId` is persisted for routines but not for
- * trials (`trial_interventions` has no such column, and never needs one —
- * targets[] freeze at creation, so there is nothing left to re-derive from
- * the catalog after save). Carrying the full shape in both lets them share
- * one card and one add-from-catalog flow instead of two near-identical ones.
+ * trial-only. `catalogProductId` is persisted in both — `trial_interventions`
+ * mirrors `routine_items.catalog_product_id` (see that migration's comment) —
+ * as read-only enrichment for a thumbnail; `targets[]` still freeze at
+ * creation and never re-derive from it. Carrying the full shape in both lets
+ * them share one card and one add-from-catalog flow instead of two
+ * near-identical ones.
  */
 export interface ProductDraft {
     key: string;
@@ -42,9 +43,9 @@ export interface ProductDraft {
     inci: string[] | null;
     /** FK into catalog_products, set only from a /catalog pick. */
     catalogProductId: string | null;
-    /** From a /catalog match, display-only — never itself persisted; a
-     *  routine re-derives it live via catalogProductId (lib/routines.ts),
-     *  and a trial has no way to at all, so it always starts blank there. */
+    /** From a /catalog match, display-only — never itself persisted; both a
+     *  routine (lib/routines.ts) and a trial (lib/trial-store.ts) re-derive
+     *  it live via catalogProductId instead. */
     image: string | null;
 }
 

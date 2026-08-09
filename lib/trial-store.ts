@@ -68,9 +68,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * `"{acne,texture}"` — a string. Nothing throws; the targets just silently
  * render empty.
  */
-const INTERVENTION_COLUMNS = `v.id, v.trial_id, v.position, v.direction, v.brand, v.name,
+export const INTERVENTION_COLUMNS = `v.id, v.trial_id, v.position, v.direction, v.brand, v.name,
    v.started_on, v.targets::text[] as targets, v.ranked, v.provenance,
-   v.classifier, v.product_key, v.dosage`;
+   v.classifier, v.product_key, v.dosage, v.catalog_product_id, cp.image_url as image`;
+
+/** Every read of `trial_interventions` joins this in for `INTERVENTION_COLUMNS`'
+ *  `cp.image_url` — left, not inner, since most interventions (typed name,
+ *  barcode, ingredient photo) have no catalog row at all. Mirrors
+ *  `CATALOG_JOIN` in lib/routines.ts. */
+export const CATALOG_JOIN = `left join catalog_products cp on cp.id = v.catalog_product_id`;
 
 function asDay(value: unknown): string {
   if (value instanceof Date) {
@@ -88,6 +94,8 @@ function toIntervention(row: Record<string, unknown>): Intervention {
     startedOn: asDay(row.started_on),
     targets: (row.targets as string[]) ?? [],
     dosage: (row.dosage as string | null) ?? null,
+    catalogProductId: (row.catalog_product_id as string | null) ?? null,
+    image: (row.image as string | null) ?? null,
   };
 }
 
@@ -212,6 +220,7 @@ async function fetchTrialRows(
     sql.query(
       `select ${INTERVENTION_COLUMNS} from trial_interventions v
        join trials t on t.id = v.trial_id
+       ${CATALOG_JOIN}
        where ${where}
        order by v.position asc`,
       params,
@@ -298,6 +307,7 @@ export interface InterventionInput {
   provenance?: Provenance;
   classifier?: { model: string; promptVersion: string } | null;
   productKey?: string | null;
+  catalogProductId?: string | null;
 }
 
 /**
@@ -719,7 +729,7 @@ export async function createTrial(userId: string, input: CreateTrialInput): Prom
       return sql`
         insert into trial_interventions
           (id, trial_id, position, direction, brand, name, started_on,
-           targets, ranked, provenance, classifier, product_key, dosage)
+           targets, ranked, provenance, classifier, product_key, dosage, catalog_product_id)
         values (
           ${randomUUID()}, ${id}, ${position}, 'add',
           ${item.brand?.trim() || null}, ${item.name.trim()},
@@ -729,7 +739,8 @@ export async function createTrial(userId: string, input: CreateTrialInput): Prom
           ${item.provenance ?? 'user-edited'}::target_provenance,
           ${item.classifier ? JSON.stringify(item.classifier) : null}::jsonb,
           ${item.productKey ?? null},
-          ${item.dosage?.trim() || null}
+          ${item.dosage?.trim() || null},
+          ${item.catalogProductId ?? null}
         )`;
     }),
 
