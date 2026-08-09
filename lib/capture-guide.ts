@@ -49,13 +49,14 @@ export const MAX_YAW_RATIO = 0.15;
 /**
  * How far the face centre may sit from the guide, as a fraction of the window.
  *
+ * Relaxed from 0.06 to 0.20 for better UX and to reduce button flickering.
  * Unlike the others this is an affordance rather than a measurement threshold,
  * and it is worth being honest about which is which. The crop window is fixed,
- * so a face 4% off-centre produces a photo with the face 4% off-centre — the API
+ * so a face off-centre produces a photo with the face off-centre — the API
  * scores the face it finds and does not care where in the frame it sat. What
  * this actually defends is consistency between one day and the next.
  */
-export const MAX_CENTER_OFFSET = 0.06;
+export const MAX_CENTER_OFFSET = 0.20;
 
 /** BlazeFace's six landmarks, in the order the model returns them. */
 export const Landmark = {

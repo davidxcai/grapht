@@ -594,7 +594,7 @@ export function CameraCapture({ onCapture, onCancel }: Props) {
         <Button variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-        <Button onClick={capture} disabled={!guide.ready || capturing}>
+        <Button size="lg" onClick={capture} disabled={!guide.ready || capturing}>
           {capturing ? 'Saving' : 'Take photo'}
         </Button>
       </div>

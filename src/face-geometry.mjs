@@ -32,16 +32,15 @@ export const OUTPUT_HEIGHT = 2560;
 /**
  * How far off `TARGET_FACE_FRACTION` a capture may land.
  *
- * Not a new number: `normalize-faces.mjs` has always reported a photo more than
- * 0.05 off target as `clamped`, meaning it could not be normalised to match the
- * others. Using the same figure live means the guide accepts exactly the frames
- * the cropper would have accepted, and the two cannot drift apart.
+ * Relaxed from 0.05 to 0.15 for better UX and to reduce button flickering from
+ * micro-movements. Tradeoff: wider variation in face scale across captures may
+ * add noise to texture and pore measurements.
  *
  * The band matters as much as the target. Face scale drives pixels-per-cm of
  * skin and therefore texture and pore (CLAUDE.md rule 3), so it is a measurement
  * constraint, not framing preference — but pinning it exactly would be
- * unsatisfiable by a human holding a phone. 0.50–0.60 stays clear of the ~0.45
+ * unsatisfiable by a human holding a phone. 0.40–0.70 stays clear of the ~0.45
  * region where the API starts refusing, and is far tighter than the Camera Kit's
  * own 0.75–1.0, which had no upper bound worth the name.
  */
-export const FACE_FRACTION_TOLERANCE = 0.05;
+export const FACE_FRACTION_TOLERANCE = 0.15;
