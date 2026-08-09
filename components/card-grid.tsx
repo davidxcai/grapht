@@ -32,7 +32,7 @@ export function EmptyCard({ href, label, message }: { href: string; label: strin
   return (
     <Link
       href={href}
-      className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-foreground/20 p-5 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/40 hover:bg-accent/40 hover:text-foreground"
+      className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-foreground/20 p-5 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/40 hover:bg-slate-100/50 hover:text-foreground"
     >
       <div className="flex items-center justify-center rounded-full bg-primary p-2">
         <Plus className="size-5 text-primary-foreground" aria-hidden />

@@ -30,7 +30,7 @@ export function TrialCard({ data }: { data: TrialCardData }) {
 
   return (
     <Link href={`/trials/${trial.id}`} className="group block">
-      <Card className="gap-4 p-5 transition-colors group-hover:bg-accent/40">
+      <Card className="gap-4 p-5 transition-colors group-hover:bg-slate-100/50">
         <div className="flex items-center gap-5">
           <TrialRing dayNumber={dayNumber} totalDays={totalDays} completed={isCompleted} />
 
@@ -42,8 +42,6 @@ export function TrialCard({ data }: { data: TrialCardData }) {
                 {isCompleted && <CompletedBadge inconclusive={isInconclusive(trial)} />}
               </div>
             </div>
-
-            {targets.length > 0 && <ConcernChips concerns={targets} className="mt-2" />}
 
             {!isCompleted && (
               <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -62,6 +60,8 @@ export function TrialCard({ data }: { data: TrialCardData }) {
             )}
           </div>
         </div>
+
+        {targets.length > 0 && <ConcernChips concerns={targets} className="mt-2" />}
 
         <div className="space-y-2">
           {trial.routine.interventions.map((i) => (

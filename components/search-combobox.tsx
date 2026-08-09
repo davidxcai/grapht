@@ -79,7 +79,7 @@ export function SearchCombobox<T>({
               <li key={itemKey(opt)}>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left hover:bg-accent"
+                  className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left hover:bg-slate-100/50"
                   // Fires before the input's onBlur closes the list.
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {

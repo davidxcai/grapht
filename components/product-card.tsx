@@ -58,7 +58,7 @@ export function ProductCard({ intervention }: { intervention: Intervention }) {
   if (catalogProductId) {
     return (
       <Link href={`/products/${catalogProductId}`} className="group block">
-        <Card className="flex-row items-start gap-3 p-3 text-left transition-colors group-hover:bg-accent/40 sm:p-4">
+        <Card className="flex-row items-start gap-3 p-3 text-left transition-colors group-hover:bg-slate-100/50 sm:p-4">
           {thumbnail}
           {body}
         </Card>

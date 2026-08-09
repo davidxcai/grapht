@@ -19,7 +19,7 @@ export function RoutineCard({ routine }: { routine: Routine }) {
 
   return (
     <Link href={`/routines/${routine.id}`} className="group block h-full">
-      <Card className="gap-3 p-5 transition-colors group-hover:bg-accent/40 h-full">
+      <Card className="gap-3 p-5 transition-colors group-hover:bg-slate-100/50 h-full">
         <RoutineSummary
           routine={{ name: routine.name, coverage, items: routine.items }}
           trailing={

@@ -29,7 +29,7 @@ export function Choice({
         'focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none',
         on
           ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-input text-muted-foreground hover:bg-accent hover:text-foreground',
+          : 'border-input text-muted-foreground hover:bg-slate-100/50 hover:text-foreground',
         className,
       )}
     >

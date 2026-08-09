@@ -105,7 +105,7 @@ export default async function SearchPage({
             <CardGrid>
               {ingredients.map((ing) => (
                 <Link key={ing.slug} href={`/catalog?ingredient=${ing.slug}`} className="group block h-full">
-                  <Card className="h-full gap-2 p-5 transition-colors group-hover:bg-accent/40">
+                  <Card className="h-full gap-2 p-5 transition-colors group-hover:bg-slate-100/50">
                     <h2 className="text-base font-medium">{ing.name}</h2>
                     {ing.functions.length > 0 && (
                       <ul className="flex flex-wrap gap-1.5">

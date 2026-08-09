@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
 function ProductCard({ product }: { product: CommunityProduct }) {
   return (
     <Link href={`/products/${product.catalogProductId ?? product.key}`} className="group block">
-      <Card className="gap-2 p-5 transition-colors group-hover:bg-accent/40">
+      <Card className="gap-2 p-5 transition-colors group-hover:bg-slate-100/50">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             {product.brand && (

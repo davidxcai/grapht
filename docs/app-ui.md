@@ -379,7 +379,8 @@ conservative day-to-day figure, which a burst can't measure anyway.
 ## 5. In-trial / daily capture
 
 **Status: resolved and built, 2026-08-06; daily capture stopped analysing,
-2026-08-08.** `app/trials/[id]/page.tsx`,
+2026-08-08; camera roll replaced by a paginated grid with a lightbox,
+2026-08-09.** `app/trials/[id]/page.tsx`,
 `components/trial-detail-tabs.tsx`, `components/trial-photos.tsx`,
 `components/trial-calendar.tsx`, `components/metric-list.tsx`,
 `components/trial-gauge.tsx`, `components/trial-details.tsx`,
@@ -394,10 +395,34 @@ Four tabs: **Photos**, **Details**, **Progress**, **Summary**.
 **Photos leads**, because the photograph is the thing the user came to see and
 the only part they can judge unaided. Opens on the most recent capture.
 
-**It scrolls like a camera roll**, not a slideshow with buttons. Drag or swipe
-the photo itself; the dots stay as a position indicator and remain tappable, but
-they are not the primary control — hunting for a 8px target to move one day is
-the wrong verb for a photo timeline.
+**It's a grid, capped at sixteen tiles a page, on both breakpoints
+(2026-08-09).** One column on mobile, four across by four down on desktop —
+the same limit either way, so a long trial paginates instead of scrolling
+forever. This replaced an earlier split where mobile got a single-frame
+swipeable carousel and desktop got a separate four-across grid component;
+that fork made "the grid isn't showing up" genuinely ambiguous to debug across
+breakpoints, and the two views could (and once did) drift apart. Now there is
+one grid.
+
+Clicking a tile reopens the old carousel as a **lightbox** — same Embla roll,
+same drag-to-swipe, same per-photo overlay and dots, now reached on demand
+instead of being the default view below `md`. It always browses every capture
+in the trial, never just the page the tile came from, so paginating the grid
+never narrows what a swipe can reach. The dots remain tappable inside the
+lightbox but are not the primary control — hunting for an 8px target to move
+one day is the wrong verb for a photo timeline.
+
+**A live capture's tile is a proxied URL, never `blobUrl` (2026-08-09).**
+`analyzeAndStore()` uploads with `access: 'private'` on purpose — these are
+faces — so the raw blob URL 403s for anyone who requests it directly,
+`next/image` included; it rendered as a broken-image glyph in every browser
+that showed it rather than a normal decode failure, which is what made it
+look like a framing bug at first. Every tile and every lightbox frame instead
+builds `/trials/[id]/photo/[photoId]`, the same route
+`components/capture-extras.tsx` already used for extra angles, which re-checks
+ownership and streams the bytes server-side. Fixture captures are unaffected
+— `photoUrl` points at a public file under `public/captures/` and needs no
+proxy.
 
 **The overlay is per photo, not per trial.** It reports day 1 → *the capture
 being looked at*, capped at three tracked metrics or the picture becomes a
@@ -412,15 +437,16 @@ which is the shape the summary is supposed to narrate.
 
 ### Today's photo
 
-**Today is the last frame of the roll, not a card beneath it.** With no photo
-logged, that slot is an empty frame carrying *Log today's photo* and the camera
-button, and the tab opens on it — what you land on is the thing you came to do,
-with yesterday's face one swipe back. A card underneath was built first and was
-wrong: it greeted you with yesterday and put the action somewhere further down.
+**Today is the first tile of the grid, not a card beneath it.** With no photo
+logged, that tile carries *Log today's photo* and the camera button directly
+— what you land on is the thing you came to do, with yesterday's face one tile
+over. A card underneath was built first and was wrong: it greeted you with
+yesterday and put the action somewhere further down.
 
-The empty frame keeps the day counter, because it *is* a day of the trial, and
-takes a dot like any other frame. It carries **no metric overlay** — nothing has
-been measured yet. Once today is logged it is simply today's photo.
+The empty tile keeps the day counter, because it *is* a day of the trial, and
+takes a dot like any other frame inside the lightbox. It carries **no metric
+overlay** — nothing has been measured yet. Once today is logged it is simply
+today's photo, and the next capture becomes the new first tile.
 
 **It only ever knows about today**, so a missed day is never mentioned, marked,
 or offered a backfill.
@@ -512,8 +538,17 @@ no photo today, because the prompt is otherwise unreachable: creating a trial
 through the app analyses a photo and that trial is then logged for the day. It
 sets `captured_at` directly, which only a dev script may ever do.
 
-**Progress** carries the calendar, all fourteen metrics split into what you're
-tracking and everything else, and **End trial**.
+**Progress** carries the calendar, metrics, and **End trial**. Metrics are
+split into what you're tracking (intervention `targets[]`) and what's merely
+confounded (the baseline routine's coverage) — but that's the only split
+shown. A concern with none of the fourteen wired to it, tracked or confounded,
+is not rendered at all (2026-08-09): all fourteen are always *collected*
+(rule 8) and, on the seeded fixture, all fourteen have data — but rendering
+every metric the trial never targeted and no product in the routine covers
+just restates "everything else," which the "Untracked" heading already said
+without help from ten more rows. `metricChanges()` still returns all fourteen
+with data (`lib/trial-detail.ts`); the tab is what filters to
+`tracked || confounded` (`components/trial-detail-tabs.tsx`).
 
 **Details** carries the tracked products, the baseline routine under its frozen
 name, and the setup rows. The products sat above the tabs first and were wrong

@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { CameraCapture } from '@/components/camera-capture';
@@ -15,6 +15,7 @@ import {
   CarouselItem,
   type CarouselApi,
 } from '@/components/ui/carousel';
+import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { logCapture } from '@/app/trials/actions';
 import { concernLabel } from '@/lib/concerns';
 import { readingAtCapture, type MetricChange, type Reading } from '@/lib/trial-detail';
@@ -40,17 +41,17 @@ import { cn } from '@/lib/utils';
  * agreeing — the score had dropped 12 — it just wasn't willing to call a move
  * that small. The scores say so; the colour is what stays withheld.
  *
- * **Today is a frame in the roll, not a card beneath it.** When today has no
- * photo the last slot is an empty frame carrying the camera button, and the tab
- * opens on it — so what you land on is the thing you came to do,
- * with yesterday's face one swipe back. It keeps the day counter, because it *is*
- * today, and carries no metric overlay, because nothing has been measured yet.
+ * **Today is a frame in the grid, not a card beneath it.** When today has no
+ * photo it takes the first tile and carries the camera button directly — no
+ * separate "come back tomorrow" panel to contradict it.
  *
- * The roll is Embla (`components/ui/carousel`) rather than a scroll-snap
- * container we drive ourselves. The hand-rolled version landed on the opening
- * frame by writing `scrollLeft` after mount, which lost the race against layout
- * often enough that the caption said "Today" over the day-1 photograph. Embla
- * takes the opening frame as an option, so there is no landing to lose.
+ * **The grid is one layout, not two.** Mobile and desktop used to fork into a
+ * single-frame carousel versus a four-across grid; both are now the same grid
+ * at 1 or 4 columns, paginated at 16 tiles so a long trial doesn't turn into an
+ * endless scroll. The roll survives as a lightbox: clicking a tile opens the
+ * same swipeable Embla carousel the mobile view used to be, now reached on
+ * demand instead of being the default view. It still browses every capture in
+ * the trial, independent of which grid page you opened it from.
  */
 
 interface Props {
@@ -73,6 +74,7 @@ interface Props {
 type Slot = { kind: 'capture'; capture: Capture } | { kind: 'today' };
 
 const MS_PER_DAY = 86_400_000;
+const PAGE_SIZE = 16;
 
 function dayOf(startDate: string, capturedAt: string): number {
   return Math.round((Date.parse(capturedAt.slice(0, 10)) - Date.parse(startDate)) / MS_PER_DAY) + 1;
@@ -111,22 +113,37 @@ export function TrialPhotos({
 
   const slots: Slot[] = useMemo(
     () => [
-      ...[...captures]
-        .sort((a, b) => a.capturedAt.localeCompare(b.capturedAt))
-        .map((capture) => ({ kind: 'capture' as const, capture })),
       ...(showToday ? [{ kind: 'today' as const }] : []),
+      ...[...captures]
+        .sort((a, b) => b.capturedAt.localeCompare(a.capturedAt))
+        .map((capture) => ({ kind: 'capture' as const, capture })),
     ],
     [captures, showToday],
   );
 
-  const last = Math.max(0, slots.length - 1);
+  // `slots[0]` is today when there is a today slot, the most recent capture
+  // otherwise — the array is newest-first. That's the default landing tile.
   const [api, setApi] = useState<CarouselApi>();
-  const [index, setIndex] = useState(last);
+  const [index, setIndex] = useState(0);
 
-  // `startIndex` opens the roll on the last slot — today's frame when there is
-  // one, the most recent photo otherwise. It is also re-applied on every reinit,
-  // which is what moves the roll onto today's photo once it has been logged.
-  const opts = useMemo(() => ({ startIndex: last, align: 'start' as const }), [last]);
+  const pageCount = Math.max(1, Math.ceil(slots.length / PAGE_SIZE));
+  const [page, setPage] = useState(0);
+  const currentPage = Math.min(page, pageCount - 1);
+  const pageSlots = slots.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
+
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxStart, setLightboxStart] = useState(0);
+  const openLightbox = (i: number) => {
+    setIndex(i);
+    setLightboxStart(i);
+    setLightboxOpen(true);
+  };
+  // The Carousel only exists while the dialog is mounted, so `startIndex` only
+  // needs to be right at mount time — no reinit juggling required.
+  const lightboxOpts = useMemo(
+    () => ({ startIndex: lightboxStart, align: 'start' as const }),
+    [lightboxStart],
+  );
 
   useEffect(() => {
     if (!api) return;
@@ -229,7 +246,7 @@ export function TrialPhotos({
         <div className="mt-4 flex items-center justify-center gap-2">
           <Button onClick={save} disabled={pending}>
             {pending && <Loader2 className="animate-spin" aria-hidden />}
-            {pending ? 'Analysing your photo…' : 'Keep this photo'}
+            {pending ? 'Logging your photo…' : 'Keep this photo'}
           </Button>
           <Button variant="outline" onClick={() => setMode('camera')} disabled={pending}>
             Retake
@@ -254,6 +271,19 @@ export function TrialPhotos({
 
   const slotDay = (slot: Slot) =>
     slot.kind === 'today' ? dayNumber : dayOf(startDate, slot.capture.capturedAt);
+
+  // Fixture captures (the reference series) ship their photo as a static file
+  // under public/captures/, addressed by `photoUrl`. Live captures upload to a
+  // *private* Vercel Blob store, so `blobUrl` 403s if rendered directly — it
+  // has to go through the proxy route, which re-checks ownership and streams
+  // the bytes server-side (see app/trials/[id]/photo/[photoId]/route.ts).
+  const slotSrc = (slot: Slot): string | null => {
+    if (slot.kind !== 'capture') return null;
+    const { capture } = slot;
+    if (capture.photoUrl) return capture.photoUrl;
+    if (capture.blobUrl) return `/trials/${trialId}/photo/${capture.id}`;
+    return null;
+  };
 
   // Hours between the last "applied products" press and this photo — the
   // check-in feature's whole payoff. "assumed" marks the forgot-to-press
@@ -280,166 +310,13 @@ export function TrialPhotos({
 
   return (
     <div>
-      {/* Mobile: one frame at a time, swipeable. Desktop drops this for the
-          grid below — a row of thumbnails reads better than a single wide
-          photo once there is room for more than one. */}
-      <div className="md:hidden">
-      <Carousel
-        setApi={setApi}
-        opts={opts}
-        className="overflow-hidden rounded-xl bg-muted"
-        aria-label="Trial photos"
-      >
-        <CarouselContent className="ml-0">
-          {slots.map((slot, i) => {
-            if (slot.kind === 'today') {
-              return (
-                <CarouselItem key="today" className="pl-0">
-                  <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 px-6 text-center">
-                    <Camera className="size-6 text-muted-foreground" aria-hidden />
-                    <p className="text-sm text-muted-foreground">Log today&apos;s photo</p>
-                    <div className="mt-1">
-                      <Button onClick={() => setMode('camera')}>Open camera</Button>
-                    </div>
-                  </div>
-                </CarouselItem>
-              );
-            }
-
-            const { capture } = slot;
-            const src = capture.photoUrl ?? capture.blobUrl ?? null;
-            return (
-              <CarouselItem key={capture.id} className="pl-0">
-                {src ? (
-                  <Image
-                    src={src}
-                    alt={`Day ${dayOf(startDate, capture.capturedAt)}`}
-                    width={1050}
-                    height={1400}
-                    className="pointer-events-none w-full select-none object-cover"
-                    sizes="(max-width: 42rem) 100vw, 42rem"
-                    priority={i === slots.length - 1}
-                    draggable={false}
-                  />
-                ) : (
-                  <div className="flex aspect-[3/4] items-center justify-center px-8 text-center text-sm text-muted-foreground">
-                    This capture&rsquo;s photo isn&rsquo;t available locally.
-                  </div>
-                )}
-              </CarouselItem>
-            );
-          })}
-        </CarouselContent>
-
-        {overlay.length > 0 && (
-          <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/65 to-transparent px-4 pb-10 pt-4">
-            {/* A grid rather than rows so the scores line up under each other when
-                a trial tracks more than one metric. */}
-            <div className="grid w-fit grid-cols-[auto_auto_auto] items-baseline gap-x-3 gap-y-0.5 text-sm">
-              {overlay.map(({ metric, at }) => (
-                <Fragment key={metric.concern}>
-                  <span className="text-white/85">{concernLabel(metric.concern)}</span>
-                  <span className="tabular-nums text-white/75">
-                    {at.change === null
-                      ? Math.round(at.value)
-                      : `${Math.round(at.first)} → ${Math.round(at.value)}`}
-                  </span>
-                  <span className={cn('font-medium tabular-nums', OVERLAY_TONE[at.direction])}>
-                    {at.change === null ? '' : signed(at.change)}
-                  </span>
-                </Fragment>
-              ))}
-            </div>
-            <p className="mt-1 text-[11px] text-white/55">
-              {index === 0 ? 'where you started' : `day 1 → day ${currentDay}`}
-            </p>
-          </div>
-        )}
-
-        {/* The day counter rides over every frame, today's included — an empty
-            slot is still a day of the trial. On that frame the scrim also has to
-            work against the theme background rather than a photograph, which is
-            why the label carries its own contrast. */}
-        <div
-          className={cn(
-            'pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-4 pt-12 text-center',
-            current.kind === 'today'
-              ? 'bg-gradient-to-t from-background to-transparent'
-              : 'bg-gradient-to-t from-black/70 to-transparent',
-          )}
-        >
-          {/* The note sits at the bottom of the picture, right above the day —
-              the photo's own caption, not the app's. */}
-          {current.kind === 'capture' && current.capture.note && (
-            <p className="mx-auto mb-1 max-w-prose text-sm italic text-white/85">
-              {current.capture.note}
-            </p>
-          )}
-
-          <p
-            className={cn(
-              'text-base font-semibold',
-              current.kind === 'today' ? 'text-foreground' : 'text-white',
-            )}
-          >
-            Day {currentDay}
-            {totalDays !== null && ` / ${totalDays}`}
-          </p>
-
-          {sinceApplied && (
-            <p className="text-xs text-white/70">
-              {hoursLabel(sinceApplied.hours)} after applying
-              {sinceApplied.assumed && ' (going by your usual time)'}
-            </p>
-          )}
-
-          {/* A daily log between the initial and final photo carries no
-              scores — only those two are ever analysed (see CLAUDE.md rule 8).
-              Without this, the blank overlay above reads as a bug rather than
-              the intended cost-saving trade. */}
-          {current.kind === 'capture' && !current.capture.concerns && (
-            <p className="text-xs text-white/60">Logged — not scored</p>
-          )}
-
-          {/* The dot is 8px; the button around it is not, or the roll can only be
-              driven by dragging. */}
-          {slots.length > 1 && (
-            <div className="pointer-events-auto mt-1 flex items-center justify-center">
-              {slots.map((slot, i) => (
-                <button
-                  key={slot.kind === 'today' ? 'today' : slot.capture.id}
-                  type="button"
-                  onClick={() => api?.scrollTo(i)}
-                  aria-label={
-                    slot.kind === 'today'
-                      ? 'Today, no photo yet'
-                      : `Day ${dayOf(startDate, slot.capture.capturedAt)}`
-                  }
-                  aria-current={i === index}
-                  className="flex size-6 items-center justify-center"
-                >
-                  <span
-                    className={cn(
-                      'size-2 rounded-full transition-all',
-                      current.kind === 'today' ? 'bg-foreground/25' : 'bg-white/45',
-                      i === index &&
-                        (current.kind === 'today' ? 'scale-150 bg-foreground' : 'scale-150 bg-white'),
-                    )}
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </Carousel>
-      </div>
-
-      {/* Desktop: every frame at once, up to four per row. Each tile carries
-          its own overlay since — unlike the carousel — all of them are on
-          screen together; clicking one selects it for the note/extras panel
-          below, same as swiping to it would on mobile. */}
-      <div className="hidden gap-4 md:grid md:grid-cols-4">
-        {slots.map((slot, i) => {
+      {/* Up to four tiles per row, four rows per page — a trial with more than
+          sixteen captures paginates rather than growing the page forever. One
+          column on mobile, so a page is the same sixteen tiles stacked instead
+          of spread across a grid. */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        {pageSlots.map((slot, localIndex) => {
+          const i = currentPage * PAGE_SIZE + localIndex;
           const day = slotDay(slot);
           const selected = i === index;
 
@@ -466,14 +343,14 @@ export function TrialPhotos({
           }
 
           const { capture } = slot;
-          const src = capture.photoUrl ?? capture.blobUrl ?? null;
+          const src = slotSrc(slot);
           const tileOverlay = slotOverlay(slot);
 
           return (
             <button
               key={capture.id}
               type="button"
-              onClick={() => setIndex(i)}
+              onClick={() => openLightbox(i)}
               aria-current={selected}
               aria-label={`Day ${day}`}
               className={cn(
@@ -488,7 +365,7 @@ export function TrialPhotos({
                   width={1050}
                   height={1400}
                   className="pointer-events-none h-full w-full select-none object-cover"
-                  sizes="(min-width: 64rem) 25vw, 50vw"
+                  sizes="(min-width: 48rem) 25vw, 100vw"
                 />
               ) : (
                 <div className="flex h-full items-center justify-center px-4 text-center text-xs text-muted-foreground">
@@ -522,6 +399,200 @@ export function TrialPhotos({
           );
         })}
       </div>
+
+      {pageCount > 1 && (
+        <div className="mt-4 flex items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={currentPage === 0}
+            onClick={() => setPage(currentPage - 1)}
+            aria-label="Previous page"
+          >
+            <ChevronLeft aria-hidden />
+          </Button>
+          <p className="text-sm text-muted-foreground tabular-nums">
+            Page {currentPage + 1} of {pageCount}
+          </p>
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={currentPage === pageCount - 1}
+            onClick={() => setPage(currentPage + 1)}
+            aria-label="Next page"
+          >
+            <ChevronRight aria-hidden />
+          </Button>
+        </div>
+      )}
+
+      {/* The lightbox: the old single-frame roll, now reached by clicking a
+          tile instead of being the default mobile view. It browses every
+          capture in the trial, not just the page the tile came from. */}
+      <Dialog
+        open={lightboxOpen}
+        onOpenChange={(open) => {
+          setLightboxOpen(open);
+          if (!open) setApi(undefined);
+        }}
+      >
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-sm">
+          <DialogTitle className="sr-only">Trial photos</DialogTitle>
+          <DialogClose
+            aria-label="Close"
+            className="absolute right-3 top-3 z-10 rounded-full bg-black/50 p-1.5 text-white transition-colors hover:bg-black/70"
+          />
+
+          <Carousel
+            setApi={setApi}
+            opts={lightboxOpts}
+            className="overflow-hidden rounded-xl bg-muted"
+            aria-label="Trial photos"
+          >
+            <CarouselContent className="ml-0">
+              {slots.map((slot, i) => {
+                if (slot.kind === 'today') {
+                  return (
+                    <CarouselItem key="today" className="pl-0">
+                      <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 px-6 text-center">
+                        <Camera className="size-6 text-muted-foreground" aria-hidden />
+                        <p className="text-sm text-muted-foreground">Log today&apos;s photo</p>
+                        <div className="mt-1">
+                          <Button onClick={() => setMode('camera')}>Open camera</Button>
+                        </div>
+                      </div>
+                    </CarouselItem>
+                  );
+                }
+
+                const { capture } = slot;
+                const src = slotSrc(slot);
+                return (
+                  <CarouselItem key={capture.id} className="pl-0">
+                    {src ? (
+                      <Image
+                        src={src}
+                        alt={`Day ${dayOf(startDate, capture.capturedAt)}`}
+                        width={1050}
+                        height={1400}
+                        className="pointer-events-none w-full select-none object-cover"
+                        sizes="24rem"
+                        priority={i === lightboxStart}
+                        draggable={false}
+                      />
+                    ) : (
+                      <div className="flex aspect-[3/4] items-center justify-center px-8 text-center text-sm text-muted-foreground">
+                        This capture&rsquo;s photo isn&rsquo;t available locally.
+                      </div>
+                    )}
+                  </CarouselItem>
+                );
+              })}
+            </CarouselContent>
+
+            {overlay.length > 0 && (
+              <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/65 to-transparent px-4 pb-10 pt-4">
+                {/* A grid rather than rows so the scores line up under each other when
+                    a trial tracks more than one metric. */}
+                <div className="grid w-fit grid-cols-[auto_auto_auto] items-baseline gap-x-3 gap-y-0.5 text-sm">
+                  {overlay.map(({ metric, at }) => (
+                    <Fragment key={metric.concern}>
+                      <span className="text-white/85">{concernLabel(metric.concern)}</span>
+                      <span className="tabular-nums text-white/75">
+                        {at.change === null
+                          ? Math.round(at.value)
+                          : `${Math.round(at.first)} → ${Math.round(at.value)}`}
+                      </span>
+                      <span className={cn('font-medium tabular-nums', OVERLAY_TONE[at.direction])}>
+                        {at.change === null ? '' : signed(at.change)}
+                      </span>
+                    </Fragment>
+                  ))}
+                </div>
+                <p className="mt-1 text-[11px] text-white/55">
+                  {index === 0 ? 'where you started' : `day 1 → day ${currentDay}`}
+                </p>
+              </div>
+            )}
+
+            {/* The day counter rides over every frame, today's included — an empty
+                slot is still a day of the trial. On that frame the scrim also has to
+                work against the theme background rather than a photograph, which is
+                why the label carries its own contrast. */}
+            <div
+              className={cn(
+                'pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-4 pt-12 text-center',
+                current.kind === 'today'
+                  ? 'bg-gradient-to-t from-background to-transparent'
+                  : 'bg-gradient-to-t from-black/70 to-transparent',
+              )}
+            >
+              {/* The note sits at the bottom of the picture, right above the day —
+                  the photo's own caption, not the app's. */}
+              {current.kind === 'capture' && current.capture.note && (
+                <p className="mx-auto mb-1 max-w-prose text-sm italic text-white/85">
+                  {current.capture.note}
+                </p>
+              )}
+
+              <p
+                className={cn(
+                  'text-base font-semibold',
+                  current.kind === 'today' ? 'text-foreground' : 'text-white',
+                )}
+              >
+                Day {currentDay}
+                {totalDays !== null && ` / ${totalDays}`}
+              </p>
+
+              {sinceApplied && (
+                <p className="text-xs text-white/70">
+                  {hoursLabel(sinceApplied.hours)} after applying
+                  {sinceApplied.assumed && ' (going by your usual time)'}
+                </p>
+              )}
+
+              {/* A daily log between the initial and final photo carries no
+                  scores — only those two are ever analysed (see CLAUDE.md rule 8).
+                  Without this, the blank overlay above reads as a bug rather than
+                  the intended cost-saving trade. */}
+              {current.kind === 'capture' && !current.capture.concerns && (
+                <p className="text-xs text-white/60">Logged — not scored</p>
+              )}
+
+              {/* The dot is 8px; the button around it is not, or the roll can only be
+                  driven by dragging. */}
+              {slots.length > 1 && (
+                <div className="pointer-events-auto mt-1 flex items-center justify-center">
+                  {slots.map((slot, i) => (
+                    <button
+                      key={slot.kind === 'today' ? 'today' : slot.capture.id}
+                      type="button"
+                      onClick={() => api?.scrollTo(i)}
+                      aria-label={
+                        slot.kind === 'today'
+                          ? 'Today, no photo yet'
+                          : `Day ${dayOf(startDate, slot.capture.capturedAt)}`
+                      }
+                      aria-current={i === index}
+                      className="flex size-6 items-center justify-center"
+                    >
+                      <span
+                        className={cn(
+                          'size-2 rounded-full transition-all',
+                          current.kind === 'today' ? 'bg-foreground/25' : 'bg-white/45',
+                          i === index &&
+                            (current.kind === 'today' ? 'scale-150 bg-foreground' : 'scale-150 bg-white'),
+                        )}
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Carousel>
+        </DialogContent>
+      </Dialog>
 
       {error && (
         <p role="alert" className="mt-3 text-center text-sm text-destructive">

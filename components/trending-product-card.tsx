@@ -19,7 +19,7 @@ import type { CommunityProduct } from '@/lib/community';
 export function TrendingProductCard({ product }: { product: CommunityProduct }) {
   return (
     <Link href={`/products/${product.catalogProductId ?? product.key}`} className="group block h-full">
-      <Card className="flex-row items-start gap-3 p-3 text-left transition-colors group-hover:bg-accent/40 h-full sm:p-4">
+      <Card className="flex-row items-start gap-3 p-3 text-left transition-colors group-hover:bg-slate-100/50 h-full sm:p-4">
         <div className="flex aspect-square w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white sm:w-24">
           {product.image ? (
             <Image

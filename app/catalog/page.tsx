@@ -44,7 +44,7 @@ function buildHref(current: SearchParams, overrides: Record<string, string | nul
 function ProductCard({ product }: { product: CatalogSearchResult }) {
   return (
     <Link href={`/products/${product.id}`} className="group block">
-      <Card className="flex-row gap-4 overflow-hidden p-0 transition-colors group-hover:bg-accent/40 max-sm:flex-col">
+      <Card className="flex-row gap-4 overflow-hidden p-0 transition-colors group-hover:bg-slate-100/50 max-sm:flex-col">
         <div className="flex aspect-square shrink-0 items-center justify-center bg-muted max-sm:h-40 max-sm:w-full">
           {product.image ? (
             <Image

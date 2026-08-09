@@ -79,7 +79,7 @@ export function HeroSearch() {
                 // Fires before the input's onBlur closes the list.
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 hover:bg-accent"
+                className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 hover:bg-slate-100/50"
               >
                 <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
                   {opt.image ? (

@@ -33,8 +33,13 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
   const isOpenEnded = trial.window.endDate === null;
   const loggedDays = record.days.filter((d) => d.captures.length > 0).map((d) => d.date);
 
-  const tracked = changes.filter((m) => m.tracked);
-  const untracked = changes.filter((m) => !m.tracked);
+  // Progress only shows what's actually tracked: the trial's intervention
+  // targets, plus whatever the baseline routine covers (confounded, but still
+  // something the user is measuring). A metric with data but no tie to either
+  // is noise here — hide it rather than list every one of the 14 concerns.
+  const relevant = changes.filter((m) => m.tracked || m.confounded);
+  const tracked = relevant.filter((m) => m.tracked);
+  const untracked = relevant.filter((m) => !m.tracked);
   const onlyBaseline = record.daysLogged < 2;
 
   return (
@@ -71,43 +76,49 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
       </TabsContent>
 
       {/* -------------------------------------------------------- progress */}
-      <TabsContent value="progress" className="mt-5 space-y-8">
-        <div>
-          <div className="flex items-baseline justify-between">
-            <h3 className="text-sm font-medium">Days logged</h3>
-            <p className="text-sm text-muted-foreground tabular-nums">
-              {record.daysLogged} {record.daysLogged === 1 ? 'day' : 'days'}
-            </p>
+      <TabsContent value="progress" className="mt-5">
+        <div className="grid gap-8 lg:grid-cols-2">
+          {/* Calendar */}
+          <div>
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-sm font-medium">Days logged</h3>
+              <p className="text-sm text-muted-foreground tabular-nums">
+                {record.daysLogged} {record.daysLogged === 1 ? 'day' : 'days'}
+              </p>
+            </div>
+            <div className="mt-3">
+              <TrialCalendar
+                startDate={trial.window.startDate}
+                loggedDays={loggedDays}
+                endDate={trial.window.endDate}
+              />
+            </div>
           </div>
-          <div className="mt-3">
-            <TrialCalendar
-              startDate={trial.window.startDate}
-              loggedDays={loggedDays}
-              endDate={trial.window.endDate}
-            />
+
+          {/* Tracked metrics */}
+          <div>
+            {onlyBaseline ? (
+              <p className="rounded-lg border border-dashed px-5 py-6 text-center text-sm text-muted-foreground">
+                No progress yet — come back and take another photo tomorrow.
+              </p>
+            ) : (
+              <div className="space-y-8">
+                <MetricList
+                  metrics={tracked}
+                  title="Tracked"
+                  caption="Change since day 1."
+                />
+                <MetricList
+                  metrics={untracked}
+                  title="Untracked"
+                />
+              </div>
+            )}
           </div>
         </div>
 
-        {onlyBaseline ? (
-          <p className="rounded-lg border border-dashed px-5 py-6 text-center text-sm text-muted-foreground">
-            No progress yet — come back and take another photo tomorrow.
-          </p>
-        ) : (
-          <>
-            <MetricList
-              metrics={tracked}
-              title="Tracked"
-              caption="Change since day 1."
-            />
-            <MetricList
-              metrics={untracked}
-              title="Untracked"
-            />
-          </>
-        )}
-
         {!isCompleted && canEdit && (
-          <div className="border-t pt-6">
+          <div className="border-t pt-8">
             <EndTrialButton
               trialId={trial.id}
               daysLogged={record.daysLogged}

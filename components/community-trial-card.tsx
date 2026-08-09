@@ -23,7 +23,7 @@ export function CommunityTrialCard({ entry }: { entry: PublicTrial }) {
 
   return (
     <Link href={`/trials/${trial.id}`} className="group block">
-      <Card className="gap-2 p-5 transition-colors group-hover:bg-accent/40">
+      <Card className="gap-2 p-5 transition-colors group-hover:bg-slate-100/50">
         <div className="flex items-start justify-between gap-3">
           <h2 className="truncate text-base font-medium">{trial.name}</h2>
           <div className="flex shrink-0 items-center gap-1.5">
