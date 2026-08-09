@@ -61,39 +61,43 @@ export function TrialDetails({ trial, canEdit }: Props) {
   const devices = [...new Set(trial.captures.map((c) => c.device))];
 
   return (
-    <div className="space-y-8">
+    <div className="grid gap-8 lg:grid-cols-2">
+      {/* Left column: Products */}
       <TrialProducts trial={trial} />
 
-      <dl>
-        <Row label="Started" value={longDate(startDate)} />
-        <Row
-          label="Ends"
-          value={endDate ? longDate(endDate) : 'Open-ended'}
-          note={endDate ? endDateNote(endDateSource) : null}
-        />
-        <Row label="Logging" value={frequencyLabel(trial.frequency)} />
-        <Row label="Time of day" value={trial.timeOfDay === 'pm' ? 'Night' : 'Morning'} />
-        <Row label="Photos" value={String(trial.captures.length)} />
-        {devices.length > 0 && (
-          <Row label={devices.length === 1 ? 'Camera' : 'Cameras'} value={devices.join(', ')} />
-        )}
-        <Row label="Visibility" value={trial.visibility === 'public' ? 'Public' : 'Private'} />
-      </dl>
+      {/* Right column: Settings info */}
+      <div className="space-y-8">
+        <dl>
+          <Row label="Started" value={longDate(startDate)} />
+          <Row
+            label="Ends"
+            value={endDate ? longDate(endDate) : 'Open-ended'}
+            note={endDate ? endDateNote(endDateSource) : null}
+          />
+          <Row label="Logging" value={frequencyLabel(trial.frequency)} />
+          <Row label="Time of day" value={trial.timeOfDay === 'pm' ? 'Night' : 'Morning'} />
+          <Row label="Photos" value={String(trial.captures.length)} />
+          {devices.length > 0 && (
+            <Row label={devices.length === 1 ? 'Camera' : 'Cameras'} value={devices.join(', ')} />
+          )}
+          <Row label="Visibility" value={trial.visibility === 'public' ? 'Public' : 'Private'} />
+        </dl>
 
-      {/* Settings only — the products above are frozen, and the page it opens
-          says so rather than showing controls that would refuse to save. */}
-      {canEdit && (
-        <div className="border-t pt-6">
-          <Button
-            variant="outline"
-            className="w-full"
-            render={<Link href={`/trials/${trial.id}/edit`} />}
-          >
-            <Pencil aria-hidden />
-            Edit
-          </Button>
-        </div>
-      )}
+        {/* Settings only — the products above are frozen, and the page it opens
+            says so rather than showing controls that would refuse to save. */}
+        {canEdit && (
+          <div className="border-t pt-6">
+            <Button
+              variant="outline"
+              className="w-full"
+              render={<Link href={`/trials/${trial.id}/edit`} />}
+            >
+              <Pencil aria-hidden />
+              Edit
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

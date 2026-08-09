@@ -228,6 +228,8 @@ export interface TrialComment {
   createdAt: string;
   /** True when the acting user wrote it, so the UI can offer delete. */
   mine: boolean;
+  /** The comment author's Clerk profile image, null when unavailable. */
+  avatar: string | null;
 }
 
 export async function listComments(trialId: string, viewerId: string | null): Promise<TrialComment[]> {
@@ -239,13 +241,20 @@ export async function listComments(trialId: string, viewerId: string | null): Pr
       left join profiles p on p.user_id = c.user_id
      where c.trial_id = ${trialId}
      order by c.created_at asc`) as Record<string, unknown>[];
-  return rows.map((r) => ({
-    id: r.id as string,
-    handle: (r.username as string | null) ?? null,
-    body: r.body as string,
-    createdAt: new Date(r.created_at as string).toISOString(),
-    mine: viewerId !== null && r.user_id === viewerId,
-  }));
+
+  const avatars = await avatarsFor(rows.map((r) => r.user_id as string).filter(Boolean));
+
+  return rows.map((r) => {
+    const userId = r.user_id as string | null;
+    return {
+      id: r.id as string,
+      handle: (r.username as string | null) ?? null,
+      body: r.body as string,
+      createdAt: new Date(r.created_at as string).toISOString(),
+      mine: viewerId !== null && r.user_id === viewerId,
+      avatar: (userId ? avatars.get(userId) ?? null : null) as string | null,
+    };
+  });
 }
 
 /**

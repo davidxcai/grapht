@@ -252,32 +252,38 @@ export function TrialPhotos({
     );
   }
 
-  const current = slots[index] ?? slots[slots.length - 1];
-  const currentDay =
-    current.kind === 'today' ? dayNumber : dayOf(startDate, current.capture.capturedAt);
+  const slotDay = (slot: Slot) =>
+    slot.kind === 'today' ? dayNumber : dayOf(startDate, slot.capture.capturedAt);
 
   // Hours between the last "applied products" press and this photo — the
   // check-in feature's whole payoff. "assumed" marks the forgot-to-press
   // fallback, projected from the last press's clock time.
-  const sinceApplied =
-    current.kind === 'capture'
-      ? timeSinceApplied(applications, current.capture.capturedAt)
-      : null;
+  const slotSinceApplied = (slot: Slot) =>
+    slot.kind === 'capture' ? timeSinceApplied(applications, slot.capture.capturedAt) : null;
 
   // Only the tracked metrics go on the photo. All fourteen are collected and all
   // fourteen are on Progress; three is what fits over a face. Today's empty
   // frame gets none — nothing has been measured yet.
-  const overlay =
-    current.kind === 'capture'
+  const slotOverlay = (slot: Slot) =>
+    slot.kind === 'capture'
       ? changes
           .filter((m) => m.tracked)
           .slice(0, 3)
-          .map((metric) => ({ metric, at: readingAtCapture(metric, current.capture.id) }))
+          .map((metric) => ({ metric, at: readingAtCapture(metric, slot.capture.id) }))
           .filter((row): row is { metric: MetricChange; at: Reading } => row.at !== null)
       : [];
 
+  const current = slots[index] ?? slots[slots.length - 1];
+  const currentDay = slotDay(current);
+  const sinceApplied = slotSinceApplied(current);
+  const overlay = slotOverlay(current);
+
   return (
     <div>
+      {/* Mobile: one frame at a time, swipeable. Desktop drops this for the
+          grid below — a row of thumbnails reads better than a single wide
+          photo once there is room for more than one. */}
+      <div className="md:hidden">
       <Carousel
         setApi={setApi}
         opts={opts}
@@ -426,6 +432,96 @@ export function TrialPhotos({
           )}
         </div>
       </Carousel>
+      </div>
+
+      {/* Desktop: every frame at once, up to four per row. Each tile carries
+          its own overlay since — unlike the carousel — all of them are on
+          screen together; clicking one selects it for the note/extras panel
+          below, same as swiping to it would on mobile. */}
+      <div className="hidden gap-4 md:grid md:grid-cols-4">
+        {slots.map((slot, i) => {
+          const day = slotDay(slot);
+          const selected = i === index;
+
+          if (slot.kind === 'today') {
+            return (
+              <div
+                key="today-grid"
+                className={cn(
+                  'relative flex aspect-[3/4] flex-col items-center justify-center gap-2 overflow-hidden rounded-xl bg-muted px-3 text-center ring-2 ring-transparent',
+                  selected && 'ring-primary',
+                )}
+              >
+                <Camera className="size-5 text-muted-foreground" aria-hidden />
+                <p className="text-xs text-muted-foreground">Log today&apos;s photo</p>
+                <Button size="sm" onClick={() => setMode('camera')}>
+                  Open camera
+                </Button>
+                <p className="absolute bottom-2 text-xs text-muted-foreground">
+                  Day {day}
+                  {totalDays !== null && ` / ${totalDays}`}
+                </p>
+              </div>
+            );
+          }
+
+          const { capture } = slot;
+          const src = capture.photoUrl ?? capture.blobUrl ?? null;
+          const tileOverlay = slotOverlay(slot);
+
+          return (
+            <button
+              key={capture.id}
+              type="button"
+              onClick={() => setIndex(i)}
+              aria-current={selected}
+              aria-label={`Day ${day}`}
+              className={cn(
+                'relative aspect-[3/4] overflow-hidden rounded-xl bg-muted text-left ring-2 ring-transparent transition-colors',
+                selected && 'ring-primary',
+              )}
+            >
+              {src ? (
+                <Image
+                  src={src}
+                  alt={`Day ${day}`}
+                  width={1050}
+                  height={1400}
+                  className="pointer-events-none h-full w-full select-none object-cover"
+                  sizes="(min-width: 64rem) 25vw, 50vw"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center px-4 text-center text-xs text-muted-foreground">
+                  Photo not available locally.
+                </div>
+              )}
+
+              {tileOverlay.length > 0 && (
+                <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/65 to-transparent px-2 pb-6 pt-2">
+                  <div className="grid w-fit grid-cols-[auto_auto] items-baseline gap-x-2 gap-y-0.5 text-xs">
+                    {tileOverlay.map(({ metric, at }) => (
+                      <Fragment key={metric.concern}>
+                        <span className="text-white/85">{concernLabel(metric.concern)}</span>
+                        <span className={cn('font-medium tabular-nums', OVERLAY_TONE[at.direction])}>
+                          {at.change === null ? Math.round(at.value) : signed(at.change)}
+                        </span>
+                      </Fragment>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-8 text-center">
+                <p className="text-sm font-semibold text-white">
+                  Day {day}
+                  {totalDays !== null && ` / ${totalDays}`}
+                </p>
+                {!capture.concerns && <p className="text-[11px] text-white/60">Logged — not scored</p>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
 
       {error && (
         <p role="alert" className="mt-3 text-center text-sm text-destructive">
@@ -444,7 +540,8 @@ export function TrialPhotos({
             })}
       </p>
 
-      {/* The day's note and extra angles, for whichever frame is showing. The
+      {/* The day's note and extra angles, for whichever frame is selected —
+          the last one by default, or whichever tile/slide was picked. The
           fixture has neither and canEdit is false there, so it renders nothing. */}
       {current.kind === 'capture' && (
         <CaptureExtras trialId={trialId} capture={current.capture} canEdit={canEdit} />

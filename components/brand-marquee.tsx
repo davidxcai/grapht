@@ -1,3 +1,6 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
 import { Marquee } from '@/components/ui/marquee';
 
 const BRANDS = [
@@ -33,19 +36,24 @@ const BRANDS = [
   'Rhode',
 ];
 
-/**
- * Brand wall between the hero search and the trial sections. Purely
- * decorative social proof — no links, no data — so it renders on the server.
- */
 export function BrandMarquee() {
+  const router = useRouter();
+
+  function handleBrandClick(brand: string) {
+    router.push(`/search?q=${encodeURIComponent(brand)}`);
+  }
+
   return (
     <div className="relative w-full overflow-hidden">
-      <Marquee className="[--duration:90s] [--gap:2.5rem]">
+      <Marquee className="[--duration:90s] [--gap:2.5rem]" pauseOnHover>
         {BRANDS.map((brand) => (
           <span key={brand} className="flex items-center gap-10 whitespace-nowrap">
-            <span className="text-sm font-medium text-muted-foreground sm:text-base">
+            <button
+              onClick={() => handleBrandClick(brand)}
+              className="cursor-pointer text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:text-base"
+            >
               {brand}
-            </span>
+            </button>
             <span className="text-muted-foreground/25" aria-hidden="true">
               &bull;
             </span>

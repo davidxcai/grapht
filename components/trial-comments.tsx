@@ -82,26 +82,39 @@ export function TrialComments({
         <ul className="mt-4 space-y-4">
           {comments.map((comment) => (
             <li key={comment.id} className="group">
-              <div className="flex items-baseline gap-2">
-                <span className="text-sm font-medium">
-                  {comment.handle ? `@${comment.handle}` : 'someone'}
-                </span>
-                <span className="text-xs text-muted-foreground">{when(comment.createdAt)}</span>
-                {(comment.mine || isOwner) && (
-                  <button
-                    type="button"
-                    aria-label="Delete comment"
-                    disabled={pending}
-                    onClick={() => remove(comment.id)}
-                    className="text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                  >
-                    <X className="size-3.5" aria-hidden />
-                  </button>
+              <div className="flex gap-3">
+                {comment.avatar ? (
+                  <img
+                    src={comment.avatar}
+                    alt={comment.handle || 'user'}
+                    className="size-6 flex-shrink-0 rounded-full"
+                  />
+                ) : (
+                  <div className="size-6 flex-shrink-0 rounded-full bg-muted" />
                 )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-sm font-medium">
+                      {comment.handle ? `@${comment.handle}` : 'someone'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{when(comment.createdAt)}</span>
+                    {(comment.mine || isOwner) && (
+                      <button
+                        type="button"
+                        aria-label="Delete comment"
+                        disabled={pending}
+                        onClick={() => remove(comment.id)}
+                        className="text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                      >
+                        <X className="size-3.5" aria-hidden />
+                      </button>
+                    )}
+                  </div>
+                  <p className="mt-0.5 whitespace-pre-line text-sm text-muted-foreground">
+                    {comment.body}
+                  </p>
+                </div>
               </div>
-              <p className="mt-0.5 whitespace-pre-line text-sm text-muted-foreground">
-                {comment.body}
-              </p>
             </li>
           ))}
         </ul>
