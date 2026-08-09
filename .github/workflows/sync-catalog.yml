@@ -20,7 +20,10 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Jitter alone can sleep up to 59 min; this must clear that plus the
+    # scrape itself, or the job gets cancelled mid-sleep before scraping
+    # ever starts (as it did on the first scheduled run, 2026-08-09).
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
 
