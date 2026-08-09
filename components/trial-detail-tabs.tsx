@@ -42,6 +42,12 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
   const untracked = relevant.filter((m) => !m.tracked);
   const onlyBaseline = record.daysLogged < 2;
 
+  // Get routine name from the baseline snapshot
+  const baselineRoutine = trial.routine.baseline.find(
+    (b) => typeof b === 'object' && b !== null && 'routineName' in b,
+  ) as { routineName: string } | undefined;
+  const routineName = baselineRoutine?.routineName || 'routine';
+
   return (
     <Tabs defaultValue="photos" className="mt-6">
       <TabsList className="w-full">
@@ -59,7 +65,6 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
         <TrialPhotos
           trialId={trial.id}
           captures={trial.captures}
-          changes={changes}
           startDate={trial.window.startDate}
           totalDays={record.totalDays}
           dayNumber={record.dayNumber}
@@ -105,12 +110,11 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
               <div className="space-y-8">
                 <MetricList
                   metrics={tracked}
-                  title="Tracked"
-                  caption="Change since day 1."
+                  title="Product Concerns"
                 />
                 <MetricList
                   metrics={untracked}
-                  title="Untracked"
+                  title={`From ${routineName} routine`}
                 />
               </div>
             )}

@@ -1,13 +1,14 @@
 'use client';
 
-import { Fragment, useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Camera, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, Loader2, ScanFace } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { CameraCapture } from '@/components/camera-capture';
 import { CaptureExtras } from '@/components/capture-extras';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Carousel,
@@ -17,8 +18,6 @@ import {
 } from '@/components/ui/carousel';
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { logCapture } from '@/app/trials/actions';
-import { concernLabel } from '@/lib/concerns';
-import { readingAtCapture, type MetricChange, type Reading } from '@/lib/trial-detail';
 import { hoursLabel, timeSinceApplied, type Capture } from '@/lib/trials';
 import { cn } from '@/lib/utils';
 
@@ -57,7 +56,6 @@ import { cn } from '@/lib/utils';
 interface Props {
   trialId: string;
   captures: Capture[];
-  changes: MetricChange[];
   startDate: string;
   totalDays: number | null;
   /** Today's day number, computed server-side so the counter can't drift. */
@@ -80,27 +78,22 @@ function dayOf(startDate: string, capturedAt: string): number {
   return Math.round((Date.parse(capturedAt.slice(0, 10)) - Date.parse(startDate)) / MS_PER_DAY) + 1;
 }
 
-/**
- * The overlay sits on a photograph, so it cannot use the theme's foreground
- * colours — it is always light-on-dark over a scrim.
- */
-const OVERLAY_TONE = {
-  improved: 'text-emerald-300',
-  declined: 'text-rose-300',
-  flat: 'text-white/70',
-} as const;
-
-/** Sign taken from the rounded figure, so a −0.4 never renders as "−0". */
-function signed(change: number): string {
-  const n = Math.round(change);
-  if (n === 0) return '0';
-  return `${n > 0 ? '+' : '−'}${Math.abs(n)}`;
+/** Marks a photo that spent YouCam units — the initial and final capture, never a daily log. */
+function AnalyzedBadge() {
+  return (
+    <Badge
+      variant="secondary"
+      className="pointer-events-none absolute left-2 top-2 z-10 gap-1 bg-black/60 text-white backdrop-blur-sm"
+    >
+      <ScanFace aria-hidden />
+      Skin Analyzed
+    </Badge>
+  );
 }
 
 export function TrialPhotos({
   trialId,
   captures,
-  changes,
   startDate,
   totalDays,
   dayNumber,
@@ -291,22 +284,14 @@ export function TrialPhotos({
   const slotSinceApplied = (slot: Slot) =>
     slot.kind === 'capture' ? timeSinceApplied(applications, slot.capture.capturedAt) : null;
 
-  // Only the tracked metrics go on the photo. All fourteen are collected and all
-  // fourteen are on Progress; three is what fits over a face. Today's empty
-  // frame gets none — nothing has been measured yet.
-  const slotOverlay = (slot: Slot) =>
-    slot.kind === 'capture'
-      ? changes
-          .filter((m) => m.tracked)
-          .slice(0, 3)
-          .map((metric) => ({ metric, at: readingAtCapture(metric, slot.capture.id) }))
-          .filter((row): row is { metric: MetricChange; at: Reading } => row.at !== null)
-      : [];
+  // A capture carries `concerns` only if it spent YouCam units — the initial
+  // and final photo, never a daily log. Today's empty frame is never analyzed.
+  const slotAnalyzed = (slot: Slot) => slot.kind === 'capture' && Boolean(slot.capture.concerns);
 
   const current = slots[index] ?? slots[slots.length - 1];
   const currentDay = slotDay(current);
   const sinceApplied = slotSinceApplied(current);
-  const overlay = slotOverlay(current);
+  const analyzed = slotAnalyzed(current);
 
   return (
     <div>
@@ -325,7 +310,7 @@ export function TrialPhotos({
               <div
                 key="today-grid"
                 className={cn(
-                  'relative flex aspect-[3/4] flex-col items-center justify-center gap-2 overflow-hidden rounded-xl bg-muted px-3 text-center ring-2 ring-transparent',
+                  'relative flex aspect-[3/4] min-w-0 flex-col items-center justify-center gap-2 overflow-hidden rounded-xl bg-muted px-3 text-center ring-2 ring-transparent',
                   selected && 'ring-primary',
                 )}
               >
@@ -344,7 +329,6 @@ export function TrialPhotos({
 
           const { capture } = slot;
           const src = slotSrc(slot);
-          const tileOverlay = slotOverlay(slot);
 
           return (
             <button
@@ -354,7 +338,7 @@ export function TrialPhotos({
               aria-current={selected}
               aria-label={`Day ${day}`}
               className={cn(
-                'relative aspect-[3/4] overflow-hidden rounded-xl bg-muted text-left ring-2 ring-transparent transition-colors',
+                'relative aspect-[3/4] min-w-0 overflow-hidden rounded-xl bg-muted text-left ring-2 ring-transparent transition-colors',
                 selected && 'ring-primary',
               )}
             >
@@ -373,27 +357,13 @@ export function TrialPhotos({
                 </div>
               )}
 
-              {tileOverlay.length > 0 && (
-                <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/65 to-transparent px-2 pb-6 pt-2">
-                  <div className="grid w-fit grid-cols-[auto_auto] items-baseline gap-x-2 gap-y-0.5 text-xs">
-                    {tileOverlay.map(({ metric, at }) => (
-                      <Fragment key={metric.concern}>
-                        <span className="text-white/85">{concernLabel(metric.concern)}</span>
-                        <span className={cn('font-medium tabular-nums', OVERLAY_TONE[at.direction])}>
-                          {at.change === null ? Math.round(at.value) : signed(at.change)}
-                        </span>
-                      </Fragment>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {slotAnalyzed(slot) && <AnalyzedBadge />}
 
               <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-8 text-center">
                 <p className="text-sm font-semibold text-white">
                   Day {day}
                   {totalDays !== null && ` / ${totalDays}`}
                 </p>
-                {!capture.concerns && <p className="text-[11px] text-white/60">Logged — not scored</p>}
               </div>
             </button>
           );
@@ -490,30 +460,7 @@ export function TrialPhotos({
               })}
             </CarouselContent>
 
-            {overlay.length > 0 && (
-              <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/65 to-transparent px-4 pb-10 pt-4">
-                {/* A grid rather than rows so the scores line up under each other when
-                    a trial tracks more than one metric. */}
-                <div className="grid w-fit grid-cols-[auto_auto_auto] items-baseline gap-x-3 gap-y-0.5 text-sm">
-                  {overlay.map(({ metric, at }) => (
-                    <Fragment key={metric.concern}>
-                      <span className="text-white/85">{concernLabel(metric.concern)}</span>
-                      <span className="tabular-nums text-white/75">
-                        {at.change === null
-                          ? Math.round(at.value)
-                          : `${Math.round(at.first)} → ${Math.round(at.value)}`}
-                      </span>
-                      <span className={cn('font-medium tabular-nums', OVERLAY_TONE[at.direction])}>
-                        {at.change === null ? '' : signed(at.change)}
-                      </span>
-                    </Fragment>
-                  ))}
-                </div>
-                <p className="mt-1 text-[11px] text-white/55">
-                  {index === 0 ? 'where you started' : `day 1 → day ${currentDay}`}
-                </p>
-              </div>
-            )}
+            {analyzed && <AnalyzedBadge />}
 
             {/* The day counter rides over every frame, today's included — an empty
                 slot is still a day of the trial. On that frame the scrim also has to
@@ -550,14 +497,6 @@ export function TrialPhotos({
                   {hoursLabel(sinceApplied.hours)} after applying
                   {sinceApplied.assumed && ' (going by your usual time)'}
                 </p>
-              )}
-
-              {/* A daily log between the initial and final photo carries no
-                  scores — only those two are ever analysed (see CLAUDE.md rule 8).
-                  Without this, the blank overlay above reads as a bug rather than
-                  the intended cost-saving trade. */}
-              {current.kind === 'capture' && !current.capture.concerns && (
-                <p className="text-xs text-white/60">Logged — not scored</p>
               )}
 
               {/* The dot is 8px; the button around it is not, or the roll can only be

@@ -66,9 +66,6 @@ function MetricRow({ metric }: { metric: MetricChange }) {
       <li className="flex items-center gap-4 py-3">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{concernLabel(metric.concern)}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Baseline{metric.confounded && ' · also covered by your routine'}
-          </p>
         </div>
         <div className="w-28 shrink-0 text-right text-sm font-medium tabular-nums">
           {Math.round(metric.first)}
@@ -87,10 +84,6 @@ function MetricRow({ metric }: { metric: MetricChange }) {
     <li className="flex items-center gap-4 py-3">
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{concernLabel(metric.concern)}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-          {Math.round(metric.first)} → {Math.round(metric.latest)}
-          {metric.confounded && ' · also covered by your routine'}
-        </p>
       </div>
 
       <div className={cn('shrink-0', tone)}>
@@ -120,7 +113,7 @@ export function MetricList({
 
   return (
     <section>
-      <h3 className="text-sm font-medium">{title}</h3>
+      <h3 className="text-base font-semibold">{title}</h3>
       {caption && <p className="mt-0.5 text-xs text-muted-foreground">{caption}</p>}
       <ul className="mt-1 divide-y">
         {metrics.map((metric) => (
