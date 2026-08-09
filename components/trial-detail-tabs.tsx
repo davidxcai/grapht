@@ -39,7 +39,7 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
 
   return (
     <Tabs defaultValue="photos" className="mt-6">
-      <TabsList className="w-full sm:w-fit">
+      <TabsList className="w-full">
         <TabsTrigger value="photos">Photos</TabsTrigger>
         <TabsTrigger value="details">Details</TabsTrigger>
         <TabsTrigger value="progress">Progress</TabsTrigger>

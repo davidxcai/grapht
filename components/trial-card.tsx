@@ -1,5 +1,6 @@
+import Image from 'next/image';
 import Link from 'next/link';
-import { CircleCheck, CircleDashed } from 'lucide-react';
+import { CircleCheck, CircleDashed, Package } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
 import { CompletedBadge } from '@/components/completed-badge';
@@ -29,43 +30,59 @@ export function TrialCard({ data }: { data: TrialCardData }) {
 
   return (
     <Link href={`/trials/${trial.id}`} className="group block">
-      <Card className="flex-row items-center gap-5 p-5 transition-colors group-hover:bg-accent/40">
-        <TrialRing dayNumber={dayNumber} totalDays={totalDays} completed={isCompleted} />
+      <Card className="gap-4 p-5 transition-colors group-hover:bg-accent/40">
+        <div className="flex items-center gap-5">
+          <TrialRing dayNumber={dayNumber} totalDays={totalDays} completed={isCompleted} />
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <h2 className="truncate text-base font-medium">{trial.name}</h2>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <TimeOfDayBadge timeOfDay={trial.timeOfDay} />
-              {isCompleted && <CompletedBadge inconclusive={isInconclusive(trial)} />}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="truncate text-base font-medium">{trial.name}</h2>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <TimeOfDayBadge timeOfDay={trial.timeOfDay} />
+                {isCompleted && <CompletedBadge inconclusive={isInconclusive(trial)} />}
+              </div>
             </div>
+
+            {targets.length > 0 && <ConcernChips concerns={targets} className="mt-2" />}
+
+            {!isCompleted && (
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                {loggedToday ? (
+                  <>
+                    <CircleCheck className="size-3.5 text-[var(--progress)]" aria-hidden />
+                    Logged today
+                  </>
+                ) : (
+                  <>
+                    <CircleDashed className="size-3.5" aria-hidden />
+                    Not yet logged
+                  </>
+                )}
+              </p>
+            )}
           </div>
+        </div>
 
-          <ul className="mt-1.5 space-y-0.5">
-            {trial.routine.interventions.map((i) => (
-              <li key={i.name} className="truncate text-sm text-muted-foreground">
-                {interventionLabel(i)}
-              </li>
-            ))}
-          </ul>
-
-          {targets.length > 0 && <ConcernChips concerns={targets} className="mt-2" />}
-
-          {!isCompleted && (
-            <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-              {loggedToday ? (
-                <>
-                  <CircleCheck className="size-3.5 text-[var(--progress)]" aria-hidden />
-                  Logged today
-                </>
-              ) : (
-                <>
-                  <CircleDashed className="size-3.5" aria-hidden />
-                  Not yet logged
-                </>
-              )}
-            </p>
-          )}
+        <div className="space-y-2">
+          {trial.routine.interventions.map((i) => (
+            <div key={i.name} className="flex min-w-0 items-center gap-2">
+              <div className="size-10 shrink-0 overflow-hidden rounded bg-muted flex items-center justify-center">
+                {i.image ? (
+                  <Image
+                    src={i.image}
+                    alt=""
+                    width={40}
+                    height={40}
+                    unoptimized
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <Package className="size-5 text-muted-foreground" />
+                )}
+              </div>
+              <p className="truncate text-sm text-muted-foreground">{interventionLabel(i)}</p>
+            </div>
+          ))}
         </div>
       </Card>
     </Link>

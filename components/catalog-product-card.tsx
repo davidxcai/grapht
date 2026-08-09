@@ -15,7 +15,7 @@ import type { CatalogSearchResult } from '@/lib/catalog';
 export function CatalogProductCard({ product }: { product: CatalogSearchResult }) {
   return (
     <Link href={`/products/${product.id}`} className="group block h-full">
-      <Card className="h-full gap-3 overflow-hidden p-0 transition-colors group-hover:bg-accent/40">
+      <Card className="h-full gap-3 overflow-hidden !bg-white p-0 transition-colors group-hover:bg-accent/40">
         <div className="flex aspect-square items-center justify-center bg-muted">
           {product.image ? (
             <Image
