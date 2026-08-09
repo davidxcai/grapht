@@ -78,6 +78,12 @@ function dayOf(startDate: string, capturedAt: string): number {
   return Math.round((Date.parse(capturedAt.slice(0, 10)) - Date.parse(startDate)) / MS_PER_DAY) + 1;
 }
 
+/** "August 9, 2026" — the long-form date shown under a photo, in place of a weekday-bearing caption. */
+function formatLongDate(dateInput: string | Date): string {
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
 /** Marks a photo that spent YouCam units — the initial and final capture, never a daily log. */
 function AnalyzedBadge() {
   return (
@@ -319,10 +325,11 @@ export function TrialPhotos({
                 <Button size="sm" onClick={() => setMode('camera')}>
                   Open camera
                 </Button>
-                <p className="absolute bottom-2 text-xs text-muted-foreground">
+                <p className="absolute right-2 top-2 text-xs font-medium text-muted-foreground">
                   Day {day}
                   {totalDays !== null && ` / ${totalDays}`}
                 </p>
+                <p className="absolute bottom-2 text-xs text-muted-foreground">{formatLongDate(new Date())}</p>
               </div>
             );
           }
@@ -359,11 +366,13 @@ export function TrialPhotos({
 
               {slotAnalyzed(slot) && <AnalyzedBadge />}
 
+              <p className="pointer-events-none absolute right-2 top-2 z-10 rounded-full bg-black/60 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                Day {day}
+                {totalDays !== null && ` / ${totalDays}`}
+              </p>
+
               <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-8 text-center">
-                <p className="text-sm font-semibold text-white">
-                  Day {day}
-                  {totalDays !== null && ` / ${totalDays}`}
-                </p>
+                <p className="text-sm font-semibold text-white">{formatLongDate(capture.capturedAt)}</p>
               </div>
             </button>
           );
@@ -463,9 +472,18 @@ export function TrialPhotos({
             {analyzed && <AnalyzedBadge />}
 
             {/* The day counter rides over every frame, today's included — an empty
-                slot is still a day of the trial. On that frame the scrim also has to
-                work against the theme background rather than a photograph, which is
-                why the label carries its own contrast. */}
+                slot is still a day of the trial. It sits top right, clear of the
+                dialog's close control, and the scrim below carries the date instead. */}
+            <p
+              className={cn(
+                'pointer-events-none absolute right-16 top-3 z-10 rounded-full px-2 py-0.5 text-xs font-medium backdrop-blur-sm',
+                current.kind === 'today' ? 'bg-background/80 text-foreground' : 'bg-black/60 text-white',
+              )}
+            >
+              Day {currentDay}
+              {totalDays !== null && ` / ${totalDays}`}
+            </p>
+
             <div
               className={cn(
                 'pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-4 pt-12 text-center',
@@ -474,7 +492,7 @@ export function TrialPhotos({
                   : 'bg-gradient-to-t from-black/70 to-transparent',
               )}
             >
-              {/* The note sits at the bottom of the picture, right above the day —
+              {/* The note sits at the bottom of the picture, right above the date —
                   the photo's own caption, not the app's. */}
               {current.kind === 'capture' && current.capture.note && (
                 <p className="mx-auto mb-1 max-w-prose text-sm italic text-white/85">
@@ -488,8 +506,7 @@ export function TrialPhotos({
                   current.kind === 'today' ? 'text-foreground' : 'text-white',
                 )}
               >
-                Day {currentDay}
-                {totalDays !== null && ` / ${totalDays}`}
+                {current.kind === 'today' ? formatLongDate(new Date()) : formatLongDate(current.capture.capturedAt)}
               </p>
 
               {sinceApplied && (
@@ -538,17 +555,6 @@ export function TrialPhotos({
           {error}
         </p>
       )}
-
-      <p className="mt-3 text-center text-xs text-muted-foreground">
-        {current.kind === 'today'
-          ? 'Today'
-          : new Date(current.capture.capturedAt).toLocaleDateString(undefined, {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-      </p>
 
       {/* The day's note and extra angles, for whichever frame is selected —
           the last one by default, or whichever tile/slide was picked. The
