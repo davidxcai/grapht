@@ -2,17 +2,14 @@ import * as React from "react"
 import { Field as FieldPrimitive } from "@base-ui/react/field"
 import { cn } from "@/lib/utils"
 
-const Field = React.forwardRef<
-  React.ElementRef<typeof FieldPrimitive>,
-  React.ComponentPropsWithoutRef<typeof FieldPrimitive>
->(({ className, ...props }, ref) => (
-  <FieldPrimitive
-    ref={ref}
-    className={cn("flex items-center gap-3", className)}
-    {...props}
-  />
-))
-Field.displayName = "Field"
+function Field({ className, ...props }: FieldPrimitive.Root.Props) {
+  return (
+    <FieldPrimitive.Root
+      className={cn("flex items-center gap-3", className)}
+      {...props}
+    />
+  )
+}
 
 const FieldLabel = React.forwardRef<
   HTMLLabelElement,
