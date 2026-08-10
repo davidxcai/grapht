@@ -284,6 +284,16 @@ export function TrialPhotos({
     return null;
   };
 
+  // The proxy route re-checks ownership via the Clerk session cookie. Next's
+  // image optimizer fetches local sources through an internal, cookie-less
+  // request (`createRequestResponseMocks` in next's mock-request.js passes no
+  // headers), so that auth check always fails and the optimizer 404s — the
+  // photo renders as a broken image. `unoptimized` makes the browser fetch the
+  // proxy URL directly instead, with the real session cookie attached. The
+  // fixture's static `photoUrl` needs no auth and stays optimized.
+  const slotUnoptimized = (slot: Slot): boolean =>
+    slot.kind === 'capture' && !slot.capture.photoUrl && Boolean(slot.capture.blobUrl);
+
   // Hours between the last "applied products" press and this photo — the
   // check-in feature's whole payoff. "assumed" marks the forgot-to-press
   // fallback, projected from the last press's clock time.
@@ -355,6 +365,7 @@ export function TrialPhotos({
                   alt={`Day ${day}`}
                   width={1050}
                   height={1400}
+                  unoptimized={slotUnoptimized(slot)}
                   className="pointer-events-none h-full w-full select-none object-cover"
                   sizes="(min-width: 48rem) 25vw, 100vw"
                 />
@@ -454,6 +465,7 @@ export function TrialPhotos({
                         alt={`Day ${dayOf(startDate, capture.capturedAt)}`}
                         width={1050}
                         height={1400}
+                        unoptimized={slotUnoptimized(slot)}
                         className="pointer-events-none w-full select-none object-cover"
                         sizes="24rem"
                         priority={i === lightboxStart}

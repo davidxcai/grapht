@@ -133,6 +133,7 @@ export function CaptureExtras({
                 alt="Additional photo for this day"
                 width={1050}
                 height={1400}
+                unoptimized
                 className="w-full object-cover"
                 sizes="(max-width: 42rem) 100vw, 42rem"
               />
