@@ -117,7 +117,12 @@ export default async function TrialDetail({ params }: { params: Promise<{ id: st
             trial, it's already public, so there's nothing to show them. */}
         {canEdit && (
           <div className="mt-4 flex justify-center gap-2">
-            <Button variant="outline" size="sm" render={<Link href={`/trials/${trial.id}/edit`} />}>
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={`/trials/${trial.id}/edit`} />}
+            >
               <Pencil aria-hidden />
               Edit trial
             </Button>
