@@ -51,6 +51,10 @@ export interface NewTrialInput {
   name: string;
   interventions: InterventionInput[];
   routineId: string | null;
+  /** The user's own local calendar day, computed client-side. The server's
+   *  clock runs UTC on Vercel and cannot be trusted to know the caller's
+   *  "today" — see the fallback below. */
+  startDate: string | null;
   endDate: string | null;
   endDateSource: Trial['window']['endDateSource'];
   timeOfDay: Trial['timeOfDay'];
@@ -59,7 +63,11 @@ export interface NewTrialInput {
   device: string | null;
 }
 
-/** Local calendar day. The trial starts today; there is no other option. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Local calendar day, server clock. Only a fallback for a caller that didn't
+ *  send its own — normally the browser's `startDate` is trusted instead,
+ *  the same pattern already used for `endDate`. */
 function today(): string {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
@@ -133,7 +141,7 @@ export async function startTrial(
   try {
     const id = await createTrial(userId, {
       name,
-      startDate: today(),
+      startDate: input.startDate && ISO_DATE.test(input.startDate) ? input.startDate : today(),
       endDate: input.endDate,
       endDateSource: input.endDate ? (input.endDateSource ?? 'user-chosen') : null,
       timeOfDay: input.timeOfDay,

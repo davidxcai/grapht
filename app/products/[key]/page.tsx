@@ -9,7 +9,12 @@ import { CommunityTrialCard } from '@/components/community-trial-card';
 import { RoutineCard } from '@/components/routine-card';
 import { Thumbnail } from '@/components/thumbnail';
 import { IngredientTable } from '@/components/ingredient-table';
-import { getCommunityProduct, getCommunityProductByCatalogId, type CommunityProduct } from '@/lib/community';
+import {
+  getCommunityProduct,
+  getCommunityProductByCatalogId,
+  countProductUsers,
+  type CommunityProduct,
+} from '@/lib/community';
 import { getCatalogProduct, type CatalogProductDetail } from '@/lib/catalog';
 import { listPublicRoutines, publicRoutinesWithProduct } from '@/lib/routines';
 import { formatCount } from '@/lib/format';
@@ -109,15 +114,13 @@ export default async function ProductDetail({
 
   let catalog: CatalogProductDetail | null = null;
   let community: CommunityProduct | null = null;
-  let backHref = '/products';
-  let backLabel = 'Products';
+  const backHref = '/search';
+  const backLabel = 'Search';
 
   if (UUID_RE.test(key)) {
     catalog = await getCatalogProduct(key);
     if (!catalog) notFound();
     community = await getCommunityProductByCatalogId(key);
-    backHref = '/catalog';
-    backLabel = 'Catalog';
   } else {
     community = await getCommunityProduct(key);
     if (!community) notFound();
@@ -130,11 +133,16 @@ export default async function ProductDetail({
   const name = catalog?.name ?? community?.name ?? '';
   const image = catalog?.image ?? community?.image ?? null;
   const trials = community?.trials ?? [];
+  const catalogProductId = catalog?.id ?? community?.catalogProductId ?? null;
 
   // Community-wide, like `trials` above — every published routine that
   // carries this product, not just the signed-in viewer's own.
-  const routines = publicRoutinesWithProduct(await listPublicRoutines(), {
-    catalogProductId: catalog?.id ?? null,
+  const [publicRoutines, totalUsers] = await Promise.all([
+    listPublicRoutines(),
+    countProductUsers({ catalogProductId, brand, name }),
+  ]);
+  const routines = publicRoutinesWithProduct(publicRoutines, {
+    catalogProductId,
     brand,
     name,
   });
@@ -174,15 +182,14 @@ export default async function ProductDetail({
                 <p className="mt-2 text-sm text-muted-foreground">{catalog.description}</p>
               )}
               <p className="mt-2 text-sm text-muted-foreground">
-                {community
-                  ? `Trialled by ${community.users} ${community.users === 1 ? 'person' : 'people'} in the community · ${trials.length} ${trials.length === 1 ? 'trial' : 'trials'}${community.dosages.length > 0 ? ` · used as ${community.dosages.join(', ')}` : ''}`
-                  : 'Not yet trialled by anyone in the community.'}
+                {totalUsers > 0
+                  ? `Used by ${formatCount(totalUsers)} ${totalUsers === 1 ? 'user' : 'users'}${community && community.dosages.length > 0 ? ` · used as ${community.dosages.join(', ')}` : ''}`
+                  : 'Not used by anyone yet'}
               </p>
             </div>
 
             {catalog && catalog.concernTags.length > 0 && (
               <div>
-                <p className="mb-1.5 text-xs text-muted-foreground">What its ingredients plausibly target</p>
                 <ConcernChips concerns={catalog.concernTags} />
               </div>
             )}
@@ -214,7 +221,7 @@ export default async function ProductDetail({
           {routines.length === 0 ? (
             <div className="mt-4">
               <CardGrid>
-                <EmptyCard href="/routines/new" label="Add to a routine" message="not in any routines yet, be the first" />
+                <EmptyCard href="/routines/new" label="Add to a routine" message="no public routines yet" />
               </CardGrid>
             </div>
           ) : (
@@ -231,12 +238,9 @@ export default async function ProductDetail({
         <section>
           <h2 className="text-lg font-medium">Trials that use this</h2>
           {trials.length === 0 ? (
-            <div className="mt-4 space-y-3">
-              <p className="text-center text-sm text-muted-foreground">
-                No trial yet. Be the first.
-              </p>
+            <div className="mt-4">
               <CardGrid>
-                <EmptyCard href="/trials/new" label="Start a trial" />
+                <EmptyCard href="/trials/new" label="Start a trial" message="no public trials yet" />
               </CardGrid>
             </div>
           ) : (

@@ -12,6 +12,7 @@ export interface RoutineOption {
 }
 import {
     Camera,
+    Check,
     ChevronLeft,
     ChevronRight,
     GripVertical,
@@ -58,6 +59,7 @@ import {
     StepperSeparator,
     StepperTitle,
     StepperTrigger,
+    useStepItem,
 } from "@/src/components/reui/stepper";
 import {
     Sortable,
@@ -199,6 +201,37 @@ function StepFooter({
     );
 }
 
+/** Mirrors the `sm` breakpoint (40rem) site-nav.tsx already keys off of. Mobile
+ *  gets its own StepperNav tree entirely — mounting both and toggling with
+ *  `hidden` would double-register every trigger button with the shared
+ *  Stepper context (duplicate `id`s, broken arrow-key cycling). */
+function useIsMobileStepper() {
+    const [isMobile, setIsMobile] = useState(true);
+    useEffect(() => {
+        const desktop = window.matchMedia("(min-width: 40rem)");
+        const sync = () => setIsMobile(!desktop.matches);
+        sync();
+        desktop.addEventListener("change", sync);
+        return () => desktop.removeEventListener("change", sync);
+    }, []);
+    return isMobile;
+}
+
+/** Mobile-only indicator: a checkmark once a step is completed, the step
+ *  number otherwise. Desktop keeps plain numbers via `StepperIndicator`. */
+function MobileStepIndicator({ children }: { children: React.ReactNode }) {
+    const { state } = useStepItem();
+    return (
+        <StepperIndicator className="size-8 text-sm">
+            {state === "completed" ? (
+                <Check className="size-4" aria-hidden />
+            ) : (
+                children
+            )}
+        </StepperIndicator>
+    );
+}
+
 /** Steps are computed from the toggles on the first page, so the count is 5 or 6. */
 type StepKey = "intro" | "product" | "routine" | "schedule" | "photo" | "review";
 
@@ -220,6 +253,7 @@ export function TrialEditorStepper({
     routinesError: string | null;
 }) {
     const router = useRouter();
+    const isMobileNav = useIsMobileStepper();
 
     const [activeStep, setActiveStep] = useState(1);
 
@@ -378,6 +412,16 @@ export function TrialEditorStepper({
         }
     }
 
+    /** Local calendar day, computed in the browser so the trial starts on
+     *  the user's own "today" rather than the server's (which runs UTC on
+     *  Vercel and can already be tomorrow for anyone west of it). */
+    function startDate(): string {
+        const now = new Date();
+        return new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
+            .toISOString()
+            .slice(0, 10);
+    }
+
     /** The date is a marker, never a lock — see docs/app-ui.md §4, "Duration". */
     function endDate(): string | null {
         const days = durationDays();
@@ -416,6 +460,7 @@ export function TrialEditorStepper({
                               }))
                         : [],
                     routineId: trackRoutine ? routineId : null,
+                    startDate: startDate(),
                     endDate: endDate(),
                     endDateSource:
                         durationMode === "claim"
@@ -1037,24 +1082,54 @@ export function TrialEditorStepper({
         <Stepper value={activeStep} onValueChange={setActiveStep} className="space-y-8">
             <h1 className="text-xl font-semibold">New Trial</h1>
 
-            <StepperNav>
-                {steps.map((key, i) => {
-                    const n = i + 1;
-                    return (
-                        <StepperItem key={key} step={n}>
-                            <StepperTrigger className="flex-col items-center gap-2">
-                                <StepperIndicator>{n}</StepperIndicator>
-                                <StepperTitle className="text-sm font-medium">
-                                    {STEP_LABELS[key]}
-                                </StepperTitle>
-                            </StepperTrigger>
-                            {i < steps.length - 1 && (
-                                <StepperSeparator className="self-start mt-3 sm:self-auto sm:mt-0" />
-                            )}
-                        </StepperItem>
-                    );
-                })}
-            </StepperNav>
+            {isMobileNav ? (
+                <div className="space-y-3">
+                    <StepperNav>
+                        {steps.map((key, i) => {
+                            const n = i + 1;
+                            return (
+                                <StepperItem key={key} step={n}>
+                                    <StepperTrigger>
+                                        <MobileStepIndicator>
+                                            {n}
+                                        </MobileStepIndicator>
+                                    </StepperTrigger>
+                                    {i < steps.length - 1 && (
+                                        <StepperSeparator className="h-1 bg-border data-[state=completed]:bg-primary" />
+                                    )}
+                                </StepperItem>
+                            );
+                        })}
+                    </StepperNav>
+                    <div className="text-center">
+                        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                            Step {activeStep} of {steps.length}
+                        </p>
+                        <p className="text-sm font-semibold">
+                            {STEP_LABELS[steps[activeStep - 1]]}
+                        </p>
+                    </div>
+                </div>
+            ) : (
+                <StepperNav>
+                    {steps.map((key, i) => {
+                        const n = i + 1;
+                        return (
+                            <StepperItem key={key} step={n}>
+                                <StepperTrigger className="flex-col items-center gap-2">
+                                    <StepperIndicator>{n}</StepperIndicator>
+                                    <StepperTitle className="text-sm font-medium">
+                                        {STEP_LABELS[key]}
+                                    </StepperTitle>
+                                </StepperTrigger>
+                                {i < steps.length - 1 && (
+                                    <StepperSeparator className="self-start mt-3 sm:self-auto sm:mt-0" />
+                                )}
+                            </StepperItem>
+                        );
+                    })}
+                </StepperNav>
+            )}
 
             <StepperPanel>
                 {steps.map((key, i) => (

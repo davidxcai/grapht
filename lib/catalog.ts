@@ -101,15 +101,21 @@ function toSearchResult(row: CatalogProductRow): CatalogSearchResult {
 export async function searchCatalog({
   q = null,
   brand = null,
-  concern = null,
+  concerns = [],
   ingredientSlug = null,
+  productIds = null,
   limit = 24,
   offset = 0,
 }: {
   q?: string | null;
   brand?: string | null;
-  concern?: string | null;
+  /** AND semantics: a result must carry every concern in the list, via a
+   *  single `@>` containment check against the whole array. */
+  concerns?: string[];
   ingredientSlug?: string | null;
+  /** Restricts results to this id set — the "trialled by community" toggle
+   *  on /search, which can only ever match products with a catalog row. */
+  productIds?: string[] | null;
   limit?: number;
   offset?: number;
 }): Promise<{ results: CatalogSearchResult[]; total: number }> {
@@ -131,13 +137,19 @@ export async function searchCatalog({
   }
   // Silently drop an unrecognised concern rather than let a bad `?concern=`
   // query param reach the `analysis_concern[]` cast and 500.
-  if (concern && isAnalysisConcern(concern)) {
-    params.push([concern]);
+  const validConcerns = concerns.filter(isAnalysisConcern);
+  if (validConcerns.length > 0) {
+    params.push(validConcerns);
     conditions.push(`p.concern_tags @> $${params.length}::analysis_concern[]`);
   }
   if (ingredientSlug) {
     params.push([ingredientSlug]);
     conditions.push(`p.ingredient_slugs @> $${params.length}::text[]`);
+  }
+  if (productIds) {
+    if (productIds.length === 0) return { results: [], total: 0 }; // nothing to match
+    params.push(productIds);
+    conditions.push(`p.id = any($${params.length}::uuid[])`);
   }
 
   const where = conditions.length ? `where ${conditions.join(' and ')}` : '';
@@ -164,6 +176,27 @@ export async function searchCatalog({
     results: rows.map(toSearchResult),
     total: rows.length ? rows[0].total! : 0,
   };
+}
+
+/**
+ * Which of the given catalog ids carry this ingredient — the ingredient
+ * facet's cross-tab reach onto /search's Trials and Routines tabs. Those
+ * items store brand/name/targets directly (no catalog lookup needed to
+ * filter by brand or concern), but never an ingredient list, so an
+ * ingredient filter can only match an item through its frozen
+ * `catalogProductId`.
+ */
+export async function catalogProductIdsWithIngredient(
+  ids: string[],
+  ingredientSlug: string,
+): Promise<Set<string>> {
+  if (ids.length === 0) return new Set();
+  const sql = getSql();
+  const rows = (await sql.query(
+    `select id from catalog_products where id = any($1::uuid[]) and ingredient_slugs @> $2::text[]`,
+    [ids, [ingredientSlug]],
+  )) as { id: string }[];
+  return new Set(rows.map((r) => r.id));
 }
 
 export async function getCatalogProduct(id: string): Promise<CatalogProductDetail | null> {

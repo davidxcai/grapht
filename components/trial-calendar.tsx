@@ -48,7 +48,11 @@ function longDate(date: Date): string {
 
 export function TrialCalendar({ startDate, loggedDays, endDate }: Props) {
   const logged = new Set(loggedDays);
-  const start = parseDay(startDate);
+  // A capture can predate `startDate` (a baseline logged before a server
+  // clock in a different timezone stamped the trial's start) — the grid must
+  // still reach back far enough to show it rather than clipping the month.
+  const firstLogged = loggedDays.length ? loggedDays[0] : startDate;
+  const start = parseDay(firstLogged < startDate ? firstLogged : startDate);
   const lastLogged = loggedDays.length ? parseDay(loggedDays[loggedDays.length - 1]) : start;
   const end = endDate && endDate > iso(lastLogged) ? parseDay(endDate) : lastLogged;
 

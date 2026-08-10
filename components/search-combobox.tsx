@@ -12,8 +12,8 @@ import { cn } from '@/lib/utils';
  * matches to pick from. Deliberately not built on the Popover primitive
  * (components/ui/popover.tsx) — a plain absolutely-positioned list is enough
  * here and keeps outside-click/blur handling simple. Generic over `T` so one
- * component serves the /catalog brand filter, the /catalog ingredient
- * filter, and the trial-editor product picker (components/trial-editor.tsx).
+ * component serves /search's brand filter, its ingredient filter, and the
+ * trial-editor product picker (components/trial-editor.tsx).
  */
 export function SearchCombobox<T>({
   search,

@@ -267,15 +267,22 @@ export function logRecord(trial: Trial, now = new Date()): LogRecord {
 
   // The calendar runs to whichever is later: the marker, or the last capture.
   // Logging past your own end date is allowed and those captures are real data.
-  const lastDay = [...byDay.keys()].sort().pop() ?? startDate;
+  const sortedDays = [...byDay.keys()].sort();
+  const lastDay = sortedDays[sortedDays.length - 1] ?? startDate;
   const finalDay = endDate && endDate > lastDay ? endDate : lastDay;
 
+  // A capture can predate `startDate` (e.g. a baseline logged the evening
+  // before a server clock in a different timezone stamped the trial's start).
+  // The calendar must still show it rather than silently dropping it.
+  const firstLoggedDay = sortedDays[0] ?? startDate;
+  const firstDay = firstLoggedDay < startDate ? firstLoggedDay : startDate;
+
   const days: LogRecord['days'] = [];
-  for (let i = 0; i <= dayIndex(startDate, finalDay); i++) {
-    const cursor = new Date(`${startDate}T00:00:00`);
+  for (let i = 0; i <= dayIndex(firstDay, finalDay); i++) {
+    const cursor = new Date(`${firstDay}T00:00:00`);
     cursor.setDate(cursor.getDate() + i);
     const date = localDay(cursor);
-    days.push({ date, captures: byDay.get(date) ?? [], inWindow: true });
+    days.push({ date, captures: byDay.get(date) ?? [], inWindow: date >= startDate });
   }
 
   const remaining = totalDays === null ? null : totalDays - dayNumber;

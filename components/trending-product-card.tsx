@@ -25,8 +25,7 @@ export function TrendingProductCard({ product }: { product: CommunityProduct }) 
           </div>
 
           <p className="text-xs text-muted-foreground">
-            {formatCount(product.trials.length)} {product.trials.length === 1 ? 'trial' : 'trials'} this
-            week
+            {formatCount(product.trialCount)} {product.trialCount === 1 ? 'trial' : 'trials'} this week
           </p>
 
           {product.targets.length > 0 && (

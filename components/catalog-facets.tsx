@@ -5,11 +5,11 @@ import { X } from 'lucide-react';
 
 import { SearchCombobox } from '@/components/search-combobox';
 import { Badge } from '@/components/ui/badge';
-import { searchBrandsAction, searchIngredientsAction } from '@/app/catalog/actions';
+import { searchBrandsAction, searchIngredientsAction } from '@/app/search/actions';
 import type { CatalogBrandOption, CatalogIngredientOption } from '@/lib/catalog';
 
 /**
- * The brand and ingredient search facets on /catalog. Each is an independent
+ * The brand and ingredient search facets on /search. Each is an independent
  * URL param (`brand`/`brandLabel`, `ingredient`/`ingredientLabel`) — the
  * label rides along in the URL purely so the chip can render without a round
  * trip back to the server to resolve a slug to a display name.

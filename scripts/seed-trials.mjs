@@ -195,46 +195,7 @@ const activeCaptures = ACTIVE_IDS.map((id, i) => {
   return buildCapture(id, { at, dayOffset: i });
 });
 
-const trials = [
-  {
-    id: 'accutane-2024',
-    name: 'Acne medication',
-    status: 'completed',
-    window: {
-      startDate: '2024-12-20',
-      endDate: '2025-06-13',
-      endDateSource: 'clinician',
-    },
-    frequency: { kind: 'none' },
-    routine: {
-      baseline: ['Cleanser', 'Moisturiser', 'SPF 50'],
-      interventions: [
-        { direction: 'add', name: 'Acne medication', startedOn: '2024-12-20', targets: ['acne'] },
-      ],
-    },
-    captures: completedCaptures,
-  },
-  {
-    id: 'did-it-hold-2026',
-    name: 'Did it hold?',
-    status: 'active',
-    window: {
-      startDate: ACTIVE_START,
-      // Day 5 of 8 as of 2026-08-05 — mid-flight, so the detail page has a
-      // "3 more days" state to render rather than an already-finished one.
-      endDate: '2026-08-08',
-      endDateSource: 'user-chosen',
-    },
-    frequency: { kind: 'daily' },
-    routine: {
-      baseline: ['Cleanser', 'Moisturiser', 'SPF 50'],
-      interventions: [
-        { direction: 'remove', name: 'Acne medication', startedOn: ACTIVE_START, targets: ['acne'] },
-      ],
-    },
-    captures: activeCaptures,
-  },
-];
+const trials = [];
 
 mkdirSync(resolve(root, 'fixtures'), { recursive: true });
 writeFileSync(resolve(root, 'fixtures/trials.json'), JSON.stringify(trials, null, 2) + '\n');

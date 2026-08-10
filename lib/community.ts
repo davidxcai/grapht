@@ -4,6 +4,7 @@ import { clerkClient } from '@clerk/nextjs/server';
 import { getSql } from '@/lib/db';
 import { clerkConfigured } from '@/lib/auth';
 import { assembleTrials, getFixtureTrials, INTERVENTION_COLUMNS, CATALOG_JOIN } from '@/lib/trial-store';
+import { listPublicRoutines } from '@/lib/routines';
 import type { Trial, TrialStatus } from '@/lib/trials';
 
 /**
@@ -350,6 +351,11 @@ export interface CommunityProduct {
   targets: string[];
   /** Distinct owners who have trialled it. */
   users: number;
+  /** How many trials use this product. Always `trials.length` for a
+   *  community (public-only) rollup; for `listTrendingProducts()` this also
+   *  counts private trials, so it can exceed `trials.length` (which stays
+   *  public-only — see that function's doc comment for why). */
+  trialCount: number;
   trials: PublicTrial[];
   /** Joined from `catalog_products.image_url` via an intervention's
    *  `catalogProductId`, when any contributing trial picked it from the
@@ -395,6 +401,7 @@ function aggregateProducts(entries: PublicTrial[]): CommunityProduct[] {
           dosages: [],
           targets: [],
           users: 0,
+          trialCount: 0,
           trials: [],
           image: null,
           catalogProductId: null,
@@ -418,6 +425,7 @@ function aggregateProducts(entries: PublicTrial[]): CommunityProduct[] {
     .map(({ owners, targetCounts, ...product }) => ({
       ...product,
       users: owners.size,
+      trialCount: product.trials.length,
       targets: [...targetCounts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t),
     }))
     .sort((a, b) => b.trials.length - a.trials.length || a.name.localeCompare(b.name));
@@ -469,6 +477,31 @@ export async function listCommunityProducts(): Promise<CommunityProduct[]> {
   return fillMissingImages(aggregateProducts(await listPublicTrials()));
 }
 
+/**
+ * Catalog ids used by any public trial *or* public routine — broader than
+ * `listCommunityProducts()` on purpose. That function stays trial-only
+ * because "Trials that use this" on the product page is specifically a
+ * trial history; this one backs the "Trialled by community" toggle on
+ * /search, which the user wants to reflect real product usage (routines)
+ * as well as measured trials, since routine-only products would otherwise
+ * never surface it — most public activity here is routines, not trials.
+ */
+export async function listCommunityProductIds(): Promise<string[]> {
+  const [trials, routines] = await Promise.all([listPublicTrials(), listPublicRoutines()]);
+  const ids = new Set<string>();
+  for (const entry of trials) {
+    for (const item of entry.trial.routine.interventions) {
+      if (item.catalogProductId) ids.add(item.catalogProductId);
+    }
+  }
+  for (const entry of routines) {
+    for (const item of entry.routine.items) {
+      if (item.catalogProductId) ids.add(item.catalogProductId);
+    }
+  }
+  return [...ids];
+}
+
 export async function getCommunityProduct(key: string): Promise<CommunityProduct | null> {
   const products = await listCommunityProducts();
   return products.find((p) => p.key === key) ?? null;
@@ -485,27 +518,175 @@ export async function getCommunityProductByCatalogId(
   return products.find((p) => p.catalogProductId === catalogProductId) ?? null;
 }
 
+/**
+ * Total distinct users tracking this product, across every trial and routine
+ * regardless of visibility — unlike `CommunityProduct.users`, which only
+ * counts owners of *public* trials. A private trial correctly stays off "Trials
+ * that use this" (the trial itself would out someone), but a bare count reveals
+ * nothing about who or what, so it's safe to include private rows here. Catalog
+ * id match when the product page resolved one, brand+name otherwise — same
+ * fallback `routineHasProduct()` and `aggregateProducts()` use.
+ */
+export async function countProductUsers(product: {
+  catalogProductId: string | null;
+  brand: string | null;
+  name: string;
+}): Promise<number> {
+  const name = product.name.trim();
+  const brand = (product.brand ?? '').trim();
+
+  let dbUsers = 0;
+  try {
+    const sql = getSql();
+    const rows = (await sql.query(
+      `select count(distinct user_id) as n from (
+         select t.user_id from trial_interventions v
+           join trials t on t.id = v.trial_id
+          where ($1::uuid is not null and v.catalog_product_id = $1::uuid)
+             or (lower(coalesce(v.brand, '')) = lower($2) and lower(v.name) = lower($3))
+         union
+         select r.user_id from routine_items i
+           join routines r on r.id = i.routine_id
+          where ($1::uuid is not null and i.catalog_product_id = $1::uuid)
+             or (lower(coalesce(i.brand, '')) = lower($2) and lower(i.name) = lower($3))
+       ) matched`,
+      [product.catalogProductId, brand, name],
+    )) as { n: string }[];
+    dbUsers = Number(rows[0]?.n ?? 0);
+  } catch {
+    dbUsers = 0;
+  }
+
+  const fixtureUser = fixturePublicTrials().some((entry) =>
+    entry.trial.routine.interventions.some(
+      (item) =>
+        item.name.trim().toLowerCase() === name.toLowerCase() &&
+        (item.brand ?? '').trim().toLowerCase() === brand.toLowerCase(),
+    ),
+  )
+    ? 1
+    : 0;
+
+  return dbUsers + fixtureUser;
+}
+
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Row shape for the trending aggregation: just enough to roll a product up
+ * and count trials/owners, deliberately missing everything that would
+ * identify a private trial (name, dates, captures, visibility). This is what
+ * keeps `listTrendingProducts()` safe to include private trials in — nothing
+ * that isn't already public product/catalog data leaves this function.
+ */
+interface TrendingIntervention {
+  trialId: string;
+  userId: string;
+  brand: string | null;
+  name: string;
+  dosage: string | null;
+  targets: string[];
+  catalogProductId: string | null;
+  image: string | null;
+}
 
 /**
  * The homepage's "Trending" rail: products from trials with real activity in
  * the last 7 days — a capture logged or a routine check-in — ranked by how
- * many such trials used them. "Used" means evidence of actual use, not merely
- * a trial that happens to still be open; a trial nobody has touched in a
- * month doesn't make its products trending just by existing.
+ * many such trials used them, across **every** trial regardless of
+ * visibility. "Used" means evidence of actual use, not merely a trial that
+ * happens to still be open; a trial nobody has touched in a month doesn't
+ * make its products trending just by existing.
+ *
+ * A private trial's product can surface here — that's the point, trending
+ * should reflect real usage rather than just what's been published — but the
+ * trial itself must stay unrevealed. So this bypasses `listPublicTrials()`
+ * entirely and pulls only brand/name/targets/image straight out of
+ * `trial_interventions`, never a trial's name, dates, captures or visibility.
+ * The returned `CommunityProduct.trials` is always `[]` here; `trialCount`
+ * (which can include private trials) is the number this rail actually
+ * displays, and every card links to the product page, never a trial.
  */
 export async function listTrendingProducts(limit: number): Promise<CommunityProduct[]> {
-  const publicTrials = await listPublicTrials();
-  const since = Date.now() - WEEK_MS;
+  const since = new Date(Date.now() - WEEK_MS);
 
-  const recentlyUsed = publicTrials.filter(
-    (entry) =>
-      entry.trial.captures.some((c) => Date.parse(c.capturedAt) >= since) ||
-      (entry.trial.applications ?? []).some((a) => Date.parse(a) >= since),
-  );
+  let rows: TrendingIntervention[];
+  try {
+    const sql = getSql();
+    const result = (await sql`
+      select v.trial_id, t.user_id, v.brand, v.name, v.dosage,
+             v.targets::text[] as targets, v.catalog_product_id, cp.image_url as image
+        from trial_interventions v
+        join trials t on t.id = v.trial_id
+        left join catalog_products cp on cp.id = v.catalog_product_id
+       where v.trial_id in (
+         select trial_id from trial_captures where captured_at >= ${since}
+         union
+         select trial_id from trial_applications where applied_at >= ${since}
+       )`) as Record<string, unknown>[];
+    rows = result.map((r) => ({
+      trialId: r.trial_id as string,
+      userId: r.user_id as string,
+      brand: (r.brand as string | null) ?? null,
+      name: r.name as string,
+      dosage: (r.dosage as string | null) ?? null,
+      targets: (r.targets as string[]) ?? [],
+      catalogProductId: (r.catalog_product_id as string | null) ?? null,
+      image: (r.image as string | null) ?? null,
+    }));
+  } catch {
+    return [];
+  }
 
-  const products = await fillMissingImages(aggregateProducts(recentlyUsed));
-  return products.slice(0, limit);
+  const byKey = new Map<
+    string,
+    Omit<CommunityProduct, 'targets' | 'trialCount' | 'users'> & {
+      trialIds: Set<string>;
+      owners: Set<string>;
+      targetCounts: Map<string, number>;
+    }
+  >();
+
+  for (const row of rows) {
+    const key = productSlug(row.brand, row.name);
+    if (!key) continue;
+    let product = byKey.get(key);
+    if (!product) {
+      product = {
+        key,
+        brand: row.brand,
+        name: row.name,
+        dosages: [],
+        trials: [],
+        image: null,
+        catalogProductId: null,
+        trialIds: new Set(),
+        owners: new Set(),
+        targetCounts: new Map(),
+      };
+      byKey.set(key, product);
+    }
+    product.trialIds.add(row.trialId);
+    product.owners.add(row.userId);
+    if (row.dosage && !product.dosages.includes(row.dosage)) product.dosages.push(row.dosage);
+    if (!product.image && row.image) product.image = row.image;
+    if (!product.catalogProductId && row.catalogProductId) product.catalogProductId = row.catalogProductId;
+    for (const target of row.targets) {
+      product.targetCounts.set(target, (product.targetCounts.get(target) ?? 0) + 1);
+    }
+  }
+
+  const products = [...byKey.values()]
+    .map(({ trialIds, owners, targetCounts, ...product }) => ({
+      ...product,
+      users: owners.size,
+      trialCount: trialIds.size,
+      targets: [...targetCounts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t),
+    }))
+    .sort((a, b) => b.trialCount - a.trialCount || a.name.localeCompare(b.name));
+
+  const filled = await fillMissingImages(products);
+  return filled.slice(0, limit);
 }
 
 /* ---------- people ---------- */

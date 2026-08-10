@@ -5,8 +5,9 @@ import { cn } from '@/lib/utils';
 
 /**
  * The shared card container for dashboard tabs (active, completed, routines,
- * saved) — one column on mobile, up to four across on desktop. Change the
- * layout here and it applies everywhere at once.
+ * saved) and /search's result grids — one column on mobile, stepping up to
+ * two, three, then four across as the viewport widens. Change the layout here
+ * and it applies everywhere at once.
  */
 export function CardGrid({
   children,
@@ -16,7 +17,9 @@ export function CardGrid({
   className?: string;
 }) {
   return (
-    <div className={cn('grid grid-cols-1 gap-3 auto-rows-fr lg:grid-cols-4', className)}>
+    <div
+      className={cn('grid grid-cols-1 gap-3 auto-rows-fr sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4', className)}
+    >
       {children}
     </div>
   );
