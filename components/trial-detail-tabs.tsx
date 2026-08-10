@@ -58,19 +58,47 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
     // change either.
     const noData = changes.length === 0;
 
-    // Get routine name from the baseline snapshot
-    const baselineRoutine = trial.routine.baseline.find(
-        (b) => typeof b === "object" && b !== null && "routineName" in b,
-    ) as { routineName: string } | undefined;
-    const routineName = baselineRoutine?.routineName || "routine";
-
     return (
-        <Tabs defaultValue="progress" className="mt-6">
+        <Tabs defaultValue="details" className="mt-6">
             <TabsList className="w-full">
-                <TabsTrigger value="progress">Progress</TabsTrigger>
                 <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="progress">Progress</TabsTrigger>
                 <TabsTrigger value="summary">Summary</TabsTrigger>
             </TabsList>
+
+            {/* --------------------------------------------------------- details */}
+            <TabsContent value="details" className="mt-5">
+                <div className="grid gap-8 lg:grid-cols-2">
+                    {/* Left column: products & routine */}
+                    <TrialProducts trial={trial} />
+
+                    {/* Right column: what those products (and the baseline they sit on) are tracking */}
+                    <div>
+                        <h3 className="text-sm font-medium">
+                            AI Skin Analysis
+                        </h3>
+                        {noData ? (
+                            <p className="rounded-lg border border-dashed px-5 py-6 text-center text-sm text-muted-foreground">
+                                No photos analyzed in this trial.
+                            </p>
+                        ) : (
+                            <MetricList
+                                metrics={[...tracked, ...untracked, ...rest]}
+                            />
+                        )}
+                    </div>
+                </div>
+
+                {!isCompleted && canEdit && (
+                    <div className="mt-8 border-t pt-8">
+                        <EndTrialButton
+                            trialId={trial.id}
+                            daysLogged={record.daysLogged}
+                            hasLoggedSince={trial.captures.length > 1}
+                        />
+                    </div>
+                )}
+            </TabsContent>
 
             {/* --------------------------------------------------------- progress */}
             {/* Today lives inside the roll as its last frame, so the old "come back
@@ -105,48 +133,6 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
                         />
                     </div>
                 </div>
-            </TabsContent>
-
-            {/* --------------------------------------------------------- details */}
-            <TabsContent value="details" className="mt-5">
-                <div className="grid gap-8 lg:grid-cols-2">
-                    {/* Left column: products & routine */}
-                    <TrialProducts trial={trial} />
-
-                    {/* Right column: what those products (and the baseline they sit on) are tracking */}
-                    <div>
-                        {noData ? (
-                            <p className="rounded-lg border border-dashed px-5 py-6 text-center text-sm text-muted-foreground">
-                                No photos analyzed in this trial.
-                            </p>
-                        ) : (
-                            <div className="space-y-8">
-                                <MetricList
-                                    metrics={tracked}
-                                    title="Product Concerns"
-                                />
-                                <MetricList
-                                    metrics={untracked}
-                                    title={`From ${routineName} routine`}
-                                />
-                                <MetricList
-                                    metrics={rest}
-                                    title="Other measured concerns"
-                                />
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {!isCompleted && canEdit && (
-                    <div className="mt-8 border-t pt-8">
-                        <EndTrialButton
-                            trialId={trial.id}
-                            daysLogged={record.daysLogged}
-                            hasLoggedSince={trial.captures.length > 1}
-                        />
-                    </div>
-                )}
             </TabsContent>
 
             {/* --------------------------------------------------------- summary */}

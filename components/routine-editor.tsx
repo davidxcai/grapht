@@ -313,6 +313,7 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                         concerns={coverage}
                         className="mt-3"
                         empty="Nothing tracked yet"
+                        tone="routine"
                     />
                 </div>
 

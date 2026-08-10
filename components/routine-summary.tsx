@@ -55,7 +55,7 @@ export function RoutineSummary({
       </div>
 
       <div>
-        <ConcernChips concerns={routine.coverage} empty="No metrics tagged yet" />
+        <ConcernChips concerns={routine.coverage} empty="No metrics tagged yet" tone="routine" />
       </div>
 
       {routine.items.length > 0 && (

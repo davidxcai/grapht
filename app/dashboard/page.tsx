@@ -102,11 +102,11 @@ export default async function Dashboard({
             </header>
 
             <Tabs defaultValue={tab} className="mt-8">
-                <TabsList className="w-full grid grid-cols-4">
+                <TabsList className="w-full grid grid-cols-3">
                     <TabsTrigger value="active">Active</TabsTrigger>
                     <TabsTrigger value="completed">Completed</TabsTrigger>
                     <TabsTrigger value="routines">Routines</TabsTrigger>
-                    <TabsTrigger value="saved">Saved</TabsTrigger>
+                    {/* <TabsTrigger value="saved">Saved</TabsTrigger> */}
                 </TabsList>
 
                 <TabsContent value="active" className="mt-5 space-y-3">
@@ -121,7 +121,8 @@ export default async function Dashboard({
                 <TabsContent value="completed" className="mt-5 space-y-3">
                     {completed.length === 0 ? (
                         <EmptyState>
-                            Nothing completed yet — finish a trial and it lands here.
+                            Nothing completed yet — finish a trial and it lands
+                            here.
                         </EmptyState>
                     ) : (
                         <CardGrid>
@@ -142,7 +143,10 @@ export default async function Dashboard({
                             {routines.map((r) => (
                                 <RoutineCard key={r.id} routine={r} />
                             ))}
-                            <EmptyCard href="/routines/new" label="New routine" />
+                            <EmptyCard
+                                href="/routines/new"
+                                label="New routine"
+                            />
                         </CardGrid>
                     )}
                 </TabsContent>

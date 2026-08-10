@@ -98,12 +98,44 @@ function toSearchResult(row: CatalogProductRow): CatalogSearchResult {
   };
 }
 
+/**
+ * `relevance` only means anything alongside a text query (it falls back to
+ * `az` without one — see the `az` case below). `trending` and `most-used`
+ * both measure real usage across trials and routines, matched by catalog id
+ * only (the same catalog-id-only join `countProductUsersByCatalogId` uses);
+ * they differ in window — `trending` counts only trials with a capture or
+ * check-in in the last 7 days (mirrors `listTrendingProducts()` in
+ * lib/community.ts), `most-used` counts all-time distinct users. `unused` is
+ * `most-used` ascending, not a filter — it surfaces the catalog's long tail
+ * rather than hiding everything else.
+ */
+export type CatalogSort = 'relevance' | 'recent' | 'trending' | 'az' | 'za' | 'most-used' | 'unused';
+
+const TRENDING_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Every catalog id with at least one distinct user in a trial or routine —
+ *  the join `most-used`/`unused` sort against. Catalog-id matches only, same
+ *  as `countProductUsersByCatalogId`. */
+const USAGE_JOIN = `
+       left join (
+         select id, count(distinct user_id) as n from (
+           select v.catalog_product_id as id, t.user_id from trial_interventions v
+             join trials t on t.id = v.trial_id
+            where v.catalog_product_id is not null
+           union
+           select i.catalog_product_id as id, r.user_id from routine_items i
+             join routines r on r.id = i.routine_id
+            where i.catalog_product_id is not null
+         ) matched group by id
+       ) usage on usage.id = p.id`;
+
 export async function searchCatalog({
   q = null,
   brand = null,
   concerns = [],
   ingredientSlug = null,
   productIds = null,
+  sort = 'relevance',
   limit = 24,
   offset = 0,
 }: {
@@ -116,6 +148,7 @@ export async function searchCatalog({
   /** Restricts results to this id set — the "trialled by community" toggle
    *  on /search, which can only ever match products with a catalog row. */
   productIds?: string[] | null;
+  sort?: CatalogSort;
   limit?: number;
   offset?: number;
 }): Promise<{ results: CatalogSearchResult[]; total: number }> {
@@ -153,9 +186,53 @@ export async function searchCatalog({
   }
 
   const where = conditions.length ? `where ${conditions.join(' and ')}` : '';
-  const orderBy = qRawIndex
-    ? `order by similarity(coalesce(p.brand_name, '') || ' ' || p.name, $${qRawIndex}) desc`
-    : `order by p.name asc`;
+
+  let joins = '';
+  let orderBy: string;
+  switch (sort) {
+    case 'recent':
+      orderBy = `order by p.created_at desc`;
+      break;
+    case 'trending': {
+      params.push(new Date(Date.now() - TRENDING_WINDOW_MS));
+      const sinceIndex = params.length;
+      joins = `
+       left join (
+         select v.catalog_product_id as id, count(distinct v.trial_id) as n
+           from trial_interventions v
+           join trials t on t.id = v.trial_id
+          where v.catalog_product_id is not null
+            and v.trial_id in (
+              select trial_id from trial_captures where captured_at >= $${sinceIndex}
+              union
+              select trial_id from trial_applications where applied_at >= $${sinceIndex}
+            )
+          group by v.catalog_product_id
+       ) trending on trending.id = p.id`;
+      orderBy = `order by coalesce(trending.n, 0) desc, p.name asc`;
+      break;
+    }
+    case 'most-used':
+      joins = USAGE_JOIN;
+      orderBy = `order by coalesce(usage.n, 0) desc, p.name asc`;
+      break;
+    case 'unused':
+      joins = USAGE_JOIN;
+      orderBy = `order by coalesce(usage.n, 0) asc, p.name asc`;
+      break;
+    case 'za':
+      orderBy = `order by p.name desc`;
+      break;
+    case 'az':
+      orderBy = `order by p.name asc`;
+      break;
+    case 'relevance':
+    default:
+      orderBy = qRawIndex
+        ? `order by similarity(coalesce(p.brand_name, '') || ' ' || p.name, $${qRawIndex}) desc`
+        : `order by p.name asc`;
+      break;
+  }
 
   params.push(limit);
   const limitIndex = params.length;
@@ -166,6 +243,7 @@ export async function searchCatalog({
     `select p.id, p.brand_name, p.name, p.image_url, p.concern_tags::text[] as concern_tags,
             p.ingredient_count, count(*) over()::int as total
        from catalog_products p
+       ${joins}
        ${where}
        ${orderBy}
        limit $${limitIndex} offset $${offsetIndex}`,

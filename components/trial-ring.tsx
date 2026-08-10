@@ -33,7 +33,7 @@ export function TrialRing({
   const domain: [number, number] = [0, totalDays ?? 1];
 
   return (
-    <div className="relative size-[104px] shrink-0">
+    <div className="relative w-full min-w-[70px] max-w-[104px] aspect-square">
       <ChartContainer config={config} className="size-full">
         <RadialBarChart
           data={data}

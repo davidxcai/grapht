@@ -11,7 +11,8 @@ import { ProductSearch } from '@/components/product-search';
 import { CatalogFacets } from '@/components/catalog-facets';
 import { CatalogConcernFilter } from '@/components/catalog-concern-filter';
 import { CommunityOnlyToggle } from '@/components/community-only-toggle';
-import { searchCatalog, catalogProductIdsWithIngredient } from '@/lib/catalog';
+import { SortSelect, type SortOption } from '@/components/sort-select';
+import { searchCatalog, catalogProductIdsWithIngredient, type CatalogSort } from '@/lib/catalog';
 import {
   listPublicTrials,
   listCommunityProductIds,
@@ -50,7 +51,88 @@ type SearchParams = {
   concern?: string;
   community?: string;
   page?: string;
+  sortProducts?: string;
+  sortTrials?: string;
+  sortRoutines?: string;
 };
+
+const PRODUCT_SORTS: SortOption[] = [
+  { value: 'relevance', label: 'Relevance' },
+  { value: 'recent', label: 'Recently added' },
+  { value: 'trending', label: 'Trending' },
+  { value: 'az', label: 'A–Z' },
+  { value: 'za', label: 'Z–A' },
+  { value: 'most-used', label: 'Most used' },
+  { value: 'unused', label: 'Unused' },
+];
+const PRODUCT_SORT_VALUES = new Set(PRODUCT_SORTS.map((o) => o.value));
+
+type TrialSort = 'newest' | 'oldest' | 'active' | 'completed' | 'am' | 'pm' | 'az' | 'za';
+const TRIAL_SORTS: SortOption[] = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+  { value: 'active', label: 'Active' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'am', label: 'AM' },
+  { value: 'pm', label: 'PM' },
+  { value: 'az', label: 'A–Z' },
+  { value: 'za', label: 'Z–A' },
+];
+const TRIAL_SORT_VALUES = new Set(TRIAL_SORTS.map((o) => o.value));
+
+type RoutineSort = 'newest' | 'oldest' | 'az' | 'za';
+const ROUTINE_SORTS: SortOption[] = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'oldest', label: 'Oldest' },
+  { value: 'az', label: 'A–Z' },
+  { value: 'za', label: 'Z–A' },
+];
+const ROUTINE_SORT_VALUES = new Set(ROUTINE_SORTS.map((o) => o.value));
+
+/** Newest-first by trial start date — the same order `listPublicTrials()`
+ *  already returns (stored trials by `created_at desc`, sample series last),
+ *  so this is a no-op left as-is rather than re-sorted. Every other mode ranks
+ *  the requested group first, ties broken newest-first. */
+function sortTrialEntries(entries: PublicTrial[], sort: TrialSort): PublicTrial[] {
+  if (sort === 'newest') return entries;
+  const newestFirst = (a: PublicTrial, b: PublicTrial) =>
+    b.trial.window.startDate.localeCompare(a.trial.window.startDate);
+  const byRank = (rank: (e: PublicTrial) => number) => (a: PublicTrial, b: PublicTrial) =>
+    rank(a) - rank(b) || newestFirst(a, b);
+
+  const sorted = [...entries];
+  switch (sort) {
+    case 'oldest':
+      return sorted.sort((a, b) => a.trial.window.startDate.localeCompare(b.trial.window.startDate));
+    case 'active':
+      return sorted.sort(byRank((e) => (e.trial.status === 'active' ? 0 : 1)));
+    case 'completed':
+      return sorted.sort(byRank((e) => (e.trial.status === 'completed' ? 0 : 1)));
+    case 'am':
+      return sorted.sort(byRank((e) => (e.trial.timeOfDay === 'am' ? 0 : 1)));
+    case 'pm':
+      return sorted.sort(byRank((e) => (e.trial.timeOfDay === 'pm' ? 0 : 1)));
+    case 'az':
+      return sorted.sort((a, b) => a.trial.name.localeCompare(b.trial.name));
+    case 'za':
+      return sorted.sort((a, b) => b.trial.name.localeCompare(a.trial.name));
+  }
+}
+
+/** Newest-first by `createdAt` — already `listPublicRoutines()`'s own order,
+ *  so also a no-op rather than re-sorted. */
+function sortRoutineEntries(entries: PublicRoutine[], sort: RoutineSort): PublicRoutine[] {
+  if (sort === 'newest') return entries;
+  const sorted = [...entries];
+  switch (sort) {
+    case 'oldest':
+      return sorted.sort((a, b) => a.routine.createdAt.localeCompare(b.routine.createdAt));
+    case 'az':
+      return sorted.sort((a, b) => a.routine.name.localeCompare(b.routine.name));
+    case 'za':
+      return sorted.sort((a, b) => b.routine.name.localeCompare(a.routine.name));
+  }
+}
 
 function buildHref(current: SearchParams, overrides: Record<string, string | null>) {
   const merged = new URLSearchParams();
@@ -121,6 +203,22 @@ export default async function SearchPage({
     trimmed || params.brand || params.ingredient || concerns.length > 0 || communityOnly,
   );
 
+  // Relevance only means anything alongside search text — otherwise A–Z, same
+  // as searchCatalog()'s own fallback when there's no query to rank against.
+  const productSortDefault: CatalogSort = trimmed ? 'relevance' : 'az';
+  const productSort: CatalogSort = (
+    params.sortProducts && PRODUCT_SORT_VALUES.has(params.sortProducts) ? params.sortProducts : productSortDefault
+  ) as CatalogSort;
+  const productSortOptions = trimmed ? PRODUCT_SORTS : PRODUCT_SORTS.filter((o) => o.value !== 'relevance');
+
+  const trialSort: TrialSort = (
+    params.sortTrials && TRIAL_SORT_VALUES.has(params.sortTrials) ? params.sortTrials : 'newest'
+  ) as TrialSort;
+
+  const routineSort: RoutineSort = (
+    params.sortRoutines && ROUTINE_SORT_VALUES.has(params.sortRoutines) ? params.sortRoutines : 'newest'
+  ) as RoutineSort;
+
   const [communityProductIds, allTrials, allRoutines] = await Promise.all([
     communityOnly ? listCommunityProductIds() : Promise.resolve(null),
     listPublicTrials(),
@@ -148,6 +246,7 @@ export default async function SearchPage({
     concerns,
     ingredientSlug: params.ingredient ?? null,
     productIds: communityProductIds,
+    sort: productSort,
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
   });
@@ -159,9 +258,11 @@ export default async function SearchPage({
 
   let trials = allTrials.filter((entry) => matchesInterventions(entry.trial.routine.interventions));
   if (trimmed) trials = fuzzyRank(trimmed, trials, trialText);
+  trials = sortTrialEntries(trials, trialSort);
 
   let routines = allRoutines.filter((entry) => matchesInterventions(entry.routine.items));
   if (trimmed) routines = fuzzyRank(trimmed, routines, routineText);
+  routines = sortRoutineEntries(routines, routineSort);
 
   const lastPage = Math.max(1, Math.ceil(productTotal / PAGE_SIZE));
 
@@ -188,6 +289,14 @@ export default async function SearchPage({
         </TabsList>
 
         <TabsContent value="products" className="mt-5">
+          <div className="mb-3 flex justify-end">
+            <SortSelect
+              param="sortProducts"
+              options={productSortOptions}
+              defaultValue={productSortDefault}
+              resetsPage
+            />
+          </div>
           {products.length === 0 ? (
             <Empty>{hasFilters ? 'Nothing matches these filters.' : 'The catalog is empty.'}</Empty>
           ) : (
@@ -234,6 +343,9 @@ export default async function SearchPage({
         </TabsContent>
 
         <TabsContent value="trials" className="mt-5">
+          <div className="mb-3 flex justify-end">
+            <SortSelect param="sortTrials" options={TRIAL_SORTS} defaultValue="newest" />
+          </div>
           {trials.length === 0 ? (
             <Empty>{hasFilters ? 'Nothing matches these filters.' : 'No public trials yet.'}</Empty>
           ) : (
@@ -246,6 +358,9 @@ export default async function SearchPage({
         </TabsContent>
 
         <TabsContent value="routines" className="mt-5">
+          <div className="mb-3 flex justify-end">
+            <SortSelect param="sortRoutines" options={ROUTINE_SORTS} defaultValue="newest" />
+          </div>
           {routines.length === 0 ? (
             <Empty>{hasFilters ? 'Nothing matches these filters.' : 'No public routines yet.'}</Empty>
           ) : (

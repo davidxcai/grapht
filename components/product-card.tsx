@@ -31,7 +31,7 @@ export function ProductCard({ intervention }: { intervention: Intervention }) {
 
       {dosage && <p className="text-sm text-muted-foreground">{dosage}</p>}
 
-      <ConcernChips concerns={targets} empty="Nothing tracked" />
+      <ConcernChips concerns={targets} empty="Nothing tracked" tone="product" />
     </div>
   );
 

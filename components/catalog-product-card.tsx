@@ -52,7 +52,9 @@ export function CatalogProductCard({ product }: { product: CatalogProductCardDat
               </span>
             )}
           </div>
-          {product.concernTags.length > 0 && <ConcernChips concerns={product.concernTags.slice(0, 3)} />}
+          {product.concernTags.length > 0 && (
+            <ConcernChips concerns={product.concernTags.slice(0, 3)} tone="product" />
+          )}
         </div>
       </Card>
     </Link>

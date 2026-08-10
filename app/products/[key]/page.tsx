@@ -191,14 +191,14 @@ export default async function ProductDetail({
 
             {catalog && catalog.concernTags.length > 0 && (
               <div>
-                <ConcernChips concerns={catalog.concernTags} />
+                <ConcernChips concerns={catalog.concernTags} tone="product" />
               </div>
             )}
 
             {community && community.targets.length > 0 && (
               <div>
                 <p className="mb-1.5 text-xs text-muted-foreground">What the community watches it for</p>
-                <ConcernChips concerns={community.targets} />
+                <ConcernChips concerns={community.targets} tone="product" />
               </div>
             )}
 
