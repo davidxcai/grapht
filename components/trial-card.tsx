@@ -46,8 +46,16 @@ function LoggedBadge({ loggedToday }: { loggedToday: boolean }) {
  * their `targets[]` union to, as chips — the metrics this trial can actually
  * attribute a change to. Never the baseline's coverage, which is confounded,
  * not tracked.
+ *
+ * `handle` is optional and only passed where a card can belong to any owner —
+ * the community surfaces (home, search, a product page's "Trials that use
+ * this", the saved tab) pull public trials across every owner, not just the
+ * viewer's own, so it's the only place attribution is needed. Same pattern as
+ * `RoutineCard`'s `handle` prop. This is also the *only* difference from a
+ * dashboard card: same gauge, same badges, same chips, same product rows —
+ * one component, not two that drift.
  */
-export function TrialCard({ data }: { data: TrialCardData }) {
+export function TrialCard({ data, handle }: { data: TrialCardData; handle?: string | null }) {
   const { trial, dayNumber, totalDays, loggedToday } = data;
   const isCompleted = trial.status === 'completed';
   const targets = interventionTargets(trial);
@@ -76,7 +84,14 @@ export function TrialCard({ data }: { data: TrialCardData }) {
           <TrialGauge dayNumber={dayNumber} totalDays={totalDays} completed={isCompleted} />
         </div>
 
-        <h2 className="truncate text-center text-base font-medium">{trial.name}</h2>
+        <div className="space-y-0.5 text-center">
+          <h2 className="truncate text-base font-medium">{trial.name}</h2>
+          {handle !== undefined && (
+            <p className="truncate text-xs text-muted-foreground">
+              {handle ? `@${handle}` : 'anonymous'}
+            </p>
+          )}
+        </div>
 
         {targets.length > 0 && <ConcernChips concerns={targets} className="justify-center" />}
 

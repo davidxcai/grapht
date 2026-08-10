@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CardGrid } from '@/components/card-grid';
-import { CommunityTrialCard } from '@/components/community-trial-card';
+import { TrialCard } from '@/components/trial-card';
 import { RoutineCard } from '@/components/routine-card';
 import { CatalogProductCard } from '@/components/catalog-product-card';
 import { ProductSearch } from '@/components/product-search';
@@ -12,8 +12,14 @@ import { CatalogFacets } from '@/components/catalog-facets';
 import { CatalogConcernFilter } from '@/components/catalog-concern-filter';
 import { CommunityOnlyToggle } from '@/components/community-only-toggle';
 import { searchCatalog, catalogProductIdsWithIngredient } from '@/lib/catalog';
-import { listPublicTrials, listCommunityProductIds, type PublicTrial } from '@/lib/community';
+import {
+  listPublicTrials,
+  listCommunityProductIds,
+  countProductUsersByCatalogId,
+  type PublicTrial,
+} from '@/lib/community';
 import { listPublicRoutines, type PublicRoutine } from '@/lib/routines';
+import { toCardData } from '@/lib/trials';
 import { fuzzyRank } from '@/lib/fuzzy';
 import { formatCount } from '@/lib/format';
 
@@ -145,6 +151,7 @@ export default async function SearchPage({
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
   });
+  const userCounts = await countProductUsersByCatalogId(products.map((p) => p.id));
 
   function matchesInterventions(items: ProductItem[]): boolean {
     return coversAllConcerns(items, concerns) && hasMatchingItem(items, brandLabel, ingredientMatchIds);
@@ -187,7 +194,7 @@ export default async function SearchPage({
             <>
               <CardGrid>
                 {products.map((p) => (
-                  <CatalogProductCard key={p.id} product={p} />
+                  <CatalogProductCard key={p.id} product={{ ...p, userCount: userCounts.get(p.id) ?? 0 }} />
                 ))}
               </CardGrid>
 
@@ -232,7 +239,7 @@ export default async function SearchPage({
           ) : (
             <CardGrid>
               {trials.map((entry) => (
-                <CommunityTrialCard key={entry.trial.id} entry={entry} />
+                <TrialCard key={entry.trial.id} data={toCardData(entry.trial)} handle={entry.handle} />
               ))}
             </CardGrid>
           )}

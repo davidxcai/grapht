@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CardGrid, EmptyCard } from "@/components/card-grid";
 import { TrialCard } from "@/components/trial-card";
-import { CommunityTrialCard } from "@/components/community-trial-card";
 import { RoutineCard } from "@/components/routine-card";
 import { toCardData } from "@/lib/trials";
 import { loadTrials } from "@/lib/trial-store";
@@ -157,9 +156,10 @@ export default async function Dashboard({
                     ) : (
                         <CardGrid>
                             {saved.map((entry) => (
-                                <CommunityTrialCard
+                                <TrialCard
                                     key={entry.trial.id}
-                                    entry={entry}
+                                    data={toCardData(entry.trial)}
+                                    handle={entry.handle}
                                 />
                             ))}
                         </CardGrid>

@@ -293,9 +293,17 @@ search) or for one of these existing cards, never a new bespoke one:
   reserved image slot, same drag handle, same "Suggest" is manual, never
   auto-fired on a catalog pick (that's a paid Gemini call).
 - **`CatalogProductCard`** (`components/catalog-product-card.tsx`) — grid tile
-  (image on top, text below) for `/search` and `/catalog`.
-- **`TrendingProductCard`** (`components/trending-product-card.tsx`) —
-  homepage trending row, same shape as `ProductCard`.
+  (image on top, text below) for `/search`, `/catalog`, and the homepage's
+  trending rail. `ingredientCount` and `userCount` are both optional: a real
+  `CatalogSearchResult` carries an ingredient count and no user count until
+  the caller looks one up (`countProductUsersByCatalogId()` in
+  `lib/community.ts`); the trending rail's `CommunityProduct` rollup is the
+  reverse — it already has a distinct-user count (`users`) from its own
+  aggregation and no ingredient panel to report. `TrendingProductCard` (its
+  own component, a `ProductCard`-shaped row) existed before 2026-08-10 and is
+  gone — the two surfaces had quietly diverged in layout for no reason tied
+  to the content, the same drift `Thumbnail`'s extraction fixed for eleven
+  call sites.
 
 Screens are designed in `docs/app-ui.md` and ratified one section at a time.
 Read the section before building it. Two rules from §3 apply project-wide:

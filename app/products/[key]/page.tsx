@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { CardGrid, EmptyCard } from '@/components/card-grid';
 import { ConcernChips } from '@/components/concern-chips';
-import { CommunityTrialCard } from '@/components/community-trial-card';
+import { TrialCard } from '@/components/trial-card';
 import { RoutineCard } from '@/components/routine-card';
 import { Thumbnail } from '@/components/thumbnail';
 import { IngredientTable } from '@/components/ingredient-table';
@@ -17,6 +17,7 @@ import {
 } from '@/lib/community';
 import { getCatalogProduct, type CatalogProductDetail } from '@/lib/catalog';
 import { listPublicRoutines, publicRoutinesWithProduct } from '@/lib/routines';
+import { toCardData } from '@/lib/trials';
 import { formatCount } from '@/lib/format';
 
 /**
@@ -249,7 +250,7 @@ export default async function ProductDetail({
                 <div className="mt-4">
                   <CardGrid>
                     {ongoingSlice.map((entry) => (
-                      <CommunityTrialCard key={entry.trial.id} entry={entry} />
+                      <TrialCard key={entry.trial.id} data={toCardData(entry.trial)} handle={entry.handle} />
                     ))}
                   </CardGrid>
                   <TrialGridPagination
@@ -266,7 +267,7 @@ export default async function ProductDetail({
                   <div className="mt-3">
                     <CardGrid>
                       {completedSlice.map((entry) => (
-                        <CommunityTrialCard key={entry.trial.id} entry={entry} />
+                        <TrialCard key={entry.trial.id} data={toCardData(entry.trial)} handle={entry.handle} />
                       ))}
                     </CardGrid>
                     <TrialGridPagination

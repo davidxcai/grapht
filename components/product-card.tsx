@@ -10,8 +10,8 @@ import type { Intervention } from '@/lib/trials';
  * the right — name, brand, the user's own note on it (`dosage` doubles as the
  * only free text a trial attaches to a product), then what it's tracked for.
  * Read-only — for the editable equivalent see `ProductDraftCard`; for the
- * homepage's near-identical row see `TrendingProductCard`; for the shared
- * image box see `Thumbnail`. Prefer reusing one of these over a new card.
+ * shared image box see `Thumbnail`. Prefer reusing one of these over a new
+ * card.
  *
  * Links to `/products/[id]` only when `catalogProductId` is set — a typed-name
  * or scanned product has no catalog row to point at, so it renders as a plain,

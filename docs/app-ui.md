@@ -114,11 +114,11 @@ lives one tap deeper, on the trial detail page.
 
 All four tabs lay their cards out through one shared container,
 `components/card-grid.tsx` — a CSS grid, one column on mobile and up to four
-across on desktop (`grid-cols-1 lg:grid-cols-4`). `TrialCard`, `RoutineCard`
-and `CommunityTrialCard` (the Saved tab's card, borrowed from §8) don't know
-they're in a grid; the container is the only place the column count is
-decided, so a layout change applies to all four tabs at once instead of
-drifting between copies.
+across on desktop (`grid-cols-1 lg:grid-cols-4`). `TrialCard` and
+`RoutineCard` don't know they're in a grid; the container is the only place
+the column count is decided, so a layout change applies to all four tabs at
+once instead of drifting between copies. The Saved tab's card (borrowed from
+§8) is the same `TrialCard`, passed the entry's `handle` — see §8.
 
 One card, used in both tabs:
 
@@ -895,8 +895,9 @@ deletion.
 ## 8. Community
 
 **Status: built 2026-08-07**, with `PRODUCT.md` §7 amended on purpose.
-`app/page.tsx`, `app/products`, `lib/community.ts`,
-`components/community-trial-card.tsx`, `components/trial-comments.tsx`.
+Community trial cards were consolidated into `TrialCard` on 2026-08-10 (see
+below); the rest of this section is unchanged. `app/page.tsx`, `app/products`,
+`lib/community.ts`, `components/trial-card.tsx`, `components/trial-comments.tsx`.
 
 Public trials browse in two tabs (ongoing / completed), narrowed by the home
 search (§9). A published trial page shows
@@ -912,6 +913,20 @@ the same `visibility = 'public'`-only, no-owner-filter shape as
 Two of the old open items are resolved by construction: **no likes** — views
 are the only count, so a feed can't be sorted against the premise — and
 **aggregation stops at listing**; nothing averages outcomes across faces.
+
+**A community trial is `TrialCard`, not a separate card.** It used to be
+`CommunityTrialCard` — same information, different layout (left-aligned title,
+day count as text, view count on the card itself). Collapsed into `TrialCard`
+so a trial looks identical whether it's yours or someone else's: same gauge,
+same corner badges, same centred chips, same product rows. The one addition is
+an optional `handle` prop — `@handle` (or `anonymous`) rendered under the
+title, exactly the pattern `RoutineCard` already used for the same reason.
+Passing it is what makes a card "the community one"; every community call site
+(`app/page.tsx`, `/search`, a product page's "Trials that use this", the
+dashboard's Saved tab) now converts its `PublicTrial` entries with
+`toCardData(entry.trial)` and passes `entry.handle` alongside. Cost: the view
+count and skin type that used to sit on the card are gone from it — views are
+still shown on the trial detail page itself, just not repeated on the card.
 Moderation stays open, and matters, given the content is faces.
 
 ## 9. Home and search

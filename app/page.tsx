@@ -1,9 +1,10 @@
 import { HeroSearch } from '@/components/hero-search';
 import { BrandMarquee } from '@/components/brand-marquee';
-import { CommunityTrialCard } from '@/components/community-trial-card';
-import { TrendingProductCard } from '@/components/trending-product-card';
+import { TrialCard } from '@/components/trial-card';
+import { CatalogProductCard } from '@/components/catalog-product-card';
 import { CardGrid } from '@/components/card-grid';
 import { listRecentPublicTrials, listTrendingProducts } from '@/lib/community';
+import { toCardData } from '@/lib/trials';
 
 const HOME_SECTION_LIMIT = 4;
 
@@ -16,7 +17,7 @@ const HOME_SECTION_LIMIT = 4;
  *
  * The search box never changes what renders here — it only navigates away,
  * to a product page or to /search (components/hero-search.tsx). Ordering is
- * recency; the only count shown is views.
+ * recency.
  */
 export const dynamic = 'force-dynamic';
 
@@ -56,7 +57,17 @@ export default async function Home() {
           <h2 className="text-lg font-semibold">Trending products</h2>
           <CardGrid className="mt-5">
             {trending.map((product) => (
-              <TrendingProductCard key={product.key} product={product} />
+              <CatalogProductCard
+                key={product.key}
+                product={{
+                  id: product.catalogProductId ?? product.key,
+                  brand: product.brand,
+                  name: product.name,
+                  image: product.image,
+                  concernTags: product.targets,
+                  userCount: product.users,
+                }}
+              />
             ))}
           </CardGrid>
         </section>
@@ -70,7 +81,9 @@ export default async function Home() {
           </div>
         ) : (
           <CardGrid className="mt-5">
-            {ongoing.map((entry) => <CommunityTrialCard key={entry.trial.id} entry={entry} />)}
+            {ongoing.map((entry) => (
+              <TrialCard key={entry.trial.id} data={toCardData(entry.trial)} handle={entry.handle} />
+            ))}
           </CardGrid>
         )}
       </section>
@@ -83,7 +96,9 @@ export default async function Home() {
           </div>
         ) : (
           <CardGrid className="mt-5">
-            {completed.map((entry) => <CommunityTrialCard key={entry.trial.id} entry={entry} />)}
+            {completed.map((entry) => (
+              <TrialCard key={entry.trial.id} data={toCardData(entry.trial)} handle={entry.handle} />
+            ))}
           </CardGrid>
         )}
       </section>

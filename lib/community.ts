@@ -570,6 +570,39 @@ export async function countProductUsers(product: {
   return dbUsers + fixtureUser;
 }
 
+/**
+ * Batched, catalog-id-only sibling of `countProductUsers()` — one round trip
+ * for a whole page of `/search` or `/` catalog cards instead of one query per
+ * card. Unlike `countProductUsers()` this never falls back to brand+name
+ * matching, since every caller here already has a catalog id in hand; ids
+ * with no matching trial or routine are simply absent from the returned map
+ * (read `.get(id) ?? 0`).
+ */
+export async function countProductUsersByCatalogId(catalogProductIds: string[]): Promise<Map<string, number>> {
+  const ids = [...new Set(catalogProductIds)];
+  if (ids.length === 0) return new Map();
+
+  try {
+    const sql = getSql();
+    const rows = (await sql.query(
+      `select id::text as id, count(distinct user_id) as n from (
+         select v.catalog_product_id as id, t.user_id from trial_interventions v
+           join trials t on t.id = v.trial_id
+          where v.catalog_product_id = any($1::uuid[])
+         union
+         select i.catalog_product_id as id, r.user_id from routine_items i
+           join routines r on r.id = i.routine_id
+          where i.catalog_product_id = any($1::uuid[])
+       ) matched
+       group by id`,
+      [ids],
+    )) as { id: string; n: string }[];
+    return new Map(rows.map((r) => [r.id, Number(r.n)]));
+  } catch {
+    return new Map();
+  }
+}
+
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**

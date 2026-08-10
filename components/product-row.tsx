@@ -6,14 +6,14 @@ import { Thumbnail } from '@/components/thumbnail';
  * One product, at list-row scale: a small thumbnail and a name, nothing
  * else. Shared by every place that lists a routine's or a trial's products
  * as a plain row — `RoutineSummary`, the Details tab's frozen baseline
- * snapshot (`TrialProducts`), `TrialCard`, and `CommunityTrialCard` — so the
- * row reads the same everywhere instead of drifting the way `Thumbnail`'s
- * own callers once did (see CLAUDE.md).
+ * snapshot (`TrialProducts`), and `TrialCard` — so the row reads the same
+ * everywhere instead of drifting the way `Thumbnail`'s own callers once did
+ * (see CLAUDE.md).
  *
  * Pass `href` to make the row a link to `/products/[id]`; leave it null for
- * a row that's already nested inside another link (`RoutineCard`,
- * `TrialCard`, `CommunityTrialCard` all wrap themselves in one) — a nested
- * `<a>` is invalid HTML, so those callers keep the row static instead.
+ * a row that's already nested inside another link (`RoutineCard`, `TrialCard`
+ * both wrap themselves in one) — a nested `<a>` is invalid HTML, so those
+ * callers keep the row static instead.
  */
 export function ProductRow({
   name,

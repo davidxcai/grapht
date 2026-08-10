@@ -15,9 +15,9 @@ import { cn } from "@/lib/utils";
  * Reuse this rather than another `<Image>`/`Package` pair. For a small
  * reference next to other content (nav search, `SearchCombobox`,
  * `RoutineSummary`, `TrialCard`), use it directly. For a full card, check
- * `ProductCard`, `ProductDraftCard`, `CatalogProductCard`, and
- * `TrendingProductCard` (all in `components/`) before building a new one —
- * one of them almost certainly already fits.
+ * `ProductCard`, `ProductDraftCard`, and `CatalogProductCard` (all in
+ * `components/`) before building a new one — one of them almost certainly
+ * already fits.
  */
 export function Thumbnail({
     src,
