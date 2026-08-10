@@ -40,7 +40,13 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
   const relevant = changes.filter((m) => m.tracked || m.confounded);
   const tracked = relevant.filter((m) => m.tracked);
   const untracked = relevant.filter((m) => !m.tracked);
-  const onlyBaseline = record.daysLogged < 2;
+  // The initial photo is analysed immediately (PRODUCT.md), so day one already
+  // has real scores — MetricList renders those as a baseline-only row (no
+  // arrow, no colour) via its own `series.length < 2` branch. Nothing here
+  // should wait for a second day; the placeholder is only for a trial with
+  // no tracked targets and no baseline coverage at all, which no amount of
+  // future photos would change either.
+  const onlyBaseline = relevant.length === 0;
 
   // Get routine name from the baseline snapshot
   const baselineRoutine = trial.routine.baseline.find(
@@ -104,7 +110,8 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
           <div>
             {onlyBaseline ? (
               <p className="rounded-lg border border-dashed px-5 py-6 text-center text-sm text-muted-foreground">
-                No progress yet — come back and take another photo tomorrow.
+                Nothing to measure here — this trial has no tracked products and no baseline
+                routine covering any concern.
               </p>
             ) : (
               <div className="space-y-8">

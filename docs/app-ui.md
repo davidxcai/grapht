@@ -694,17 +694,26 @@ lighting was varied deliberately and it produced a 57.6-point texture spread in
 **The numbers are always visible.** The check controls the arrow, the colour and
 the word — never whether the user may see their own measurement.
 
-With a single capture nothing is called flat, because nothing has been asked yet.
-The copy is *"No progress yet — come back and take another photo tomorrow."*
+With a single capture nothing is called flat, because nothing has been asked
+yet — `MetricList` renders that metric's row as its bare day-one number, no
+arrow, no colour (`metric.series.length < 2` in `components/metric-list.tsx`).
 
-**This "single capture" state is now the normal state for the trial's entire
-active duration (2026-08-08)**, not just its first day — since only the
-initial and final photo are ever analysed, Progress reads this way every day
-in between, regardless of how many daily logs have been taken, until a final
-photo lands at end-trial. The photo roll's per-frame overlay follows the same
-rule: a capture with no scores at all (every daily log) shows the caption
-*"Logged — not scored"* instead of an empty overlay, so a blank frame reads
-as intended rather than as a bug (`components/trial-photos.tsx`).
+**This "single capture" row is the normal state for most of a trial's active
+duration (since 2026-08-08)**, not just its first day — since only the
+initial and final photo are ever analysed, every tracked and confounded metric
+reads this way from the moment the initial photo lands until a final photo is
+added at end-trial. It is a per-row state, not a whole-tab placeholder: the
+initial photo is analysed immediately (`PRODUCT.md`, "Initial photo"), so
+Progress shows real baseline numbers from day one — it must never fall back to
+a "come back tomorrow" placeholder while there are tracked or confounded
+metrics with data to show (`components/trial-detail-tabs.tsx`,
+`onlyBaseline = relevant.length === 0`). That placeholder is reserved for the
+genuine edge case of a trial with no tracked targets and no baseline coverage
+at all, where another photo wouldn't add anything to show either. The photo
+roll's per-frame overlay follows the same "always show something real" spirit:
+a capture with no scores at all (every daily log) shows the caption *"Logged —
+not scored"* instead of an empty overlay, so a blank frame reads as intended
+rather than as a bug (`components/trial-photos.tsx`).
 
 ### The calendar
 
