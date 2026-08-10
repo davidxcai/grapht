@@ -8,9 +8,9 @@
  * paying for the analysis again.
  */
 
-import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { inflateRawSync } from 'node:zlib';
 
 /**
  * Normalise score_info.json into a flat {concern: {raw, ui}} map.
@@ -79,6 +79,56 @@ export function normalizeScores(scoreInfo) {
   };
 }
 
+/**
+ * Extract a ZIP archive's entries into `destDir`, without shelling out to the
+ * system `unzip` binary — Vercel's function runtime doesn't have one, which
+ * turned every live capture into `spawnSync unzip ENOENT`. Method 8 (deflate)
+ * and 0 (stored) cover everything YouCam's result archives use.
+ */
+function extractZip(zipPath, destDir) {
+  const buf = readFileSync(zipPath);
+
+  const eocdSig = Buffer.from([0x50, 0x4b, 0x05, 0x06]);
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= 0; i--) {
+    if (buf.subarray(i, i + 4).equals(eocdSig)) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd === -1) throw new Error(`${zipPath} is not a valid zip (no end-of-central-directory)`);
+
+  const totalEntries = buf.readUInt16LE(eocd + 10);
+  let offset = buf.readUInt32LE(eocd + 16);
+
+  for (let i = 0; i < totalEntries; i++) {
+    if (buf.readUInt32LE(offset) !== 0x02014b50) {
+      throw new Error(`${zipPath} has a malformed central directory entry`);
+    }
+    const method = buf.readUInt16LE(offset + 10);
+    const compressedSize = buf.readUInt32LE(offset + 20);
+    const nameLength = buf.readUInt16LE(offset + 28);
+    const extraLength = buf.readUInt16LE(offset + 30);
+    const commentLength = buf.readUInt16LE(offset + 32);
+    const localHeaderOffset = buf.readUInt32LE(offset + 42);
+    const name = buf.toString('utf8', offset + 46, offset + 46 + nameLength);
+
+    if (!name.endsWith('/')) {
+      const localNameLength = buf.readUInt16LE(localHeaderOffset + 26);
+      const localExtraLength = buf.readUInt16LE(localHeaderOffset + 28);
+      const dataStart = localHeaderOffset + 30 + localNameLength + localExtraLength;
+      const compressed = buf.subarray(dataStart, dataStart + compressedSize);
+      const data = method === 0 ? compressed : inflateRawSync(compressed);
+
+      const outPath = join(destDir, name);
+      mkdirSync(dirname(outPath), { recursive: true });
+      writeFileSync(outPath, data);
+    }
+
+    offset += 46 + nameLength + extraLength + commentLength;
+  }
+}
+
 /** Download the result zip and unpack it. Returns the extraction directory. */
 export async function downloadResult(url, destDir) {
   mkdirSync(destDir, { recursive: true });
@@ -89,7 +139,7 @@ export async function downloadResult(url, destDir) {
     throw new Error(`result download failed: ${res.status} (presigned urls expire ~2h)`);
   }
   writeFileSync(zipPath, Buffer.from(await res.arrayBuffer()));
-  execFileSync('unzip', ['-o', '-q', zipPath, '-d', destDir]);
+  extractZip(zipPath, destDir);
   return destDir;
 }
 

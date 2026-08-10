@@ -230,8 +230,12 @@ image resolution.** Measured on a 1920×2560 upload:
   deterministically, varying with head pose
 - face height **0.55** → accepted on a frame that 0.45 had rejected
 
-`src/face.mjs` therefore targets 0.55. Do not lower it without re-running
-`scripts/test-face-fraction.mjs`.
+`src/face.mjs` therefore targets `TARGET_FACE_FRACTION`, raised from 0.55 to
+0.80 on 2026-08-09 for the live guide (`docs/capture-quality.md` §5). Do not
+lower it below this floor without re-running `scripts/test-face-fraction.mjs`
+— and note that script only ever tested the floor by walking *up* from a
+rejected fraction; it has never established an upper bound, which the 0.80
+target now sits meaningfully closer to.
 
 ---
 

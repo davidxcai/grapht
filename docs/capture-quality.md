@@ -293,8 +293,9 @@ Everything needed to shoot this without re-deriving the design.
   effect under test.
 - **Alternate conditions within each room** — flash off, flash on, off, on —
   rather than shooting all six flash-off frames first. Same reason.
-- Hold distance and framing constant: face filling roughly 0.55 of frame height
-  (`TARGET_FACE_FRACTION`), centred, neutral expression, eyes open. If the
+- Hold distance and framing constant: face filling `TARGET_FACE_FRACTION` of
+  frame height (0.80 as of 2026-08-09; was 0.55 when this protocol was
+  written), centred, neutral expression, eyes open. If the
   alignment overlay exists by then, use it — that is what fixes the 1/r²
   term in §3c.
 - 2 frames per cell, 12 total: 3 environments × {flash off, flash on} × 2.
@@ -346,7 +347,9 @@ already in the manifest.
 
 - **Block** if no face is detected, or if the achieved face fraction cannot
   reach 0.55 (the API returns `error_src_face_too_small` below roughly 0.45, and
-  face scale drives texture and pore — CLAUDE.md rule 3).
+  face scale drives texture and pore — CLAUDE.md rule 3). In practice the live
+  guide blocks well above this floor, at `TARGET_FACE_FRACTION` ±
+  `FACE_FRACTION_TOLERANCE` (0.70–0.90 as of 2026-08-09) — see §5.
 - **Block** if more than one face is detected at comparable size.
 
 ### 5. Framing and head pose — solved by an alignment overlay, not a threshold
@@ -362,20 +365,27 @@ those costs was pose tracking we can do from BlazeFace's six landmarks, which
 `detectFace()` was already discarding. The retired contract and the memory bug it
 took to make it run on a phone are kept in `docs/youcam-api.md`.
 
+Worth flagging given what follows: `TARGET_FACE_FRACTION` was raised to 0.80
+on 2026-08-09 (band 0.70–0.90), which sits at or above the exact STRICT
+floor called "hard to satisfy" above. The two are not the same complaint —
+Camera Kit's problem was the auto-fire and the missing shutter, not the ratio
+alone — but if users start reporting the shutter rarely unlocking, this
+paragraph is the first place to check.
+
 **The frame is fixed and the user moves.** Every capture is cropped to the same
 window — the largest 3:4 portrait rectangle in the camera's frame — with the
 guide drawn inside it at `TARGET_FACE_FRACTION` and `FACE_CENTER_Y`. So a capture
 that passes is already normalised, and face scale is constant by construction
 rather than by correction. Nothing crops to fix a problem: a face too small means
-step closer, because cropping in to hit 0.55 discards exactly the resolution
-texture and pore are measured from.
+step closer, because cropping in to hit the target discards exactly the
+resolution texture and pore are measured from.
 
 What gates the shutter, and what does not:
 
 | | | source |
 |---|---|---|
 | face present, one face | blocks | §4 |
-| face fraction 0.50–0.60 | blocks | `TARGET_FACE_FRACTION` ± the 0.05 `normalize-faces.mjs` already flags at |
+| face fraction 0.70–0.90 | blocks | `TARGET_FACE_FRACTION` (0.80) ± `FACE_FRACTION_TOLERANCE` (0.10), raised from 0.55 ± 0.15 on 2026-08-09 |
 | centre within 0.06 of the guide | blocks | affordance, not a measurement threshold |
 | roll ≤ 10°, \|yaw\| ≤ 0.15 | blocks | the inferred figures below |
 | left/right light ratio | **reports only** | §2 — the baseline is the user's own, and there isn't one yet |
@@ -402,8 +412,9 @@ inside the outline, framing and scale are constrained by construction and there
 is nothing left to threshold.
 
 **The guide's geometry is already defined by the constants the cropper uses.**
-`src/face.mjs` normalises to `TARGET_FACE_FRACTION` 0.55 at `FACE_CENTER_Y`
-0.42 in a 1920×2560 frame. An overlay drawn to exactly those numbers means a
+`src/face.mjs` normalises to `TARGET_FACE_FRACTION` (0.80 as of 2026-08-09,
+was 0.55) at `FACE_CENTER_Y` 0.42 in a 1920×2560 frame. An overlay drawn to
+exactly those numbers means a
 compliant capture is *already normalised*: `computeCropBox()` never has to
 clamp, no rescaling is needed, and the pixels-per-cm-of-skin that drives texture
 and pore (rule 3) is constant by construction instead of by correction.
@@ -478,7 +489,7 @@ Do not claim it works until there is something to test it against.
 capture / archive photo
   → prepare.mjs        HEIC→JPEG, P3→sRGB, metadata          (exists)
   → QUALITY GATE       block / warn+confirm, records flags    [not built]
-  → normalize-faces    crop to 0.55 face fraction             (exists)
+  → normalize-faces    crop to TARGET_FACE_FRACTION            (exists)
   → analyze-all.mjs    THE STEP THAT COSTS UNITS
 ```
 
@@ -550,7 +561,7 @@ Fixed across every capture in a trial:
 | **Light** | Same room, same fixed source. One controlled lamp beats a window | Finding 1: varying light took texture noise 2.1 → 57.6 |
 | **Products** | After cleanse, pat dry, fixed wait (5 min, timed), nothing applied | The optical film trap |
 | **Device** | Same phone, same camera | Rule 6: up to 90 points cross-device |
-| **Framing** | Alignment overlay, ≥0.55 face fraction | §4, §5 |
+| **Framing** | Alignment overlay, `TARGET_FACE_FRACTION` ± `FACE_FRACTION_TOLERANCE` (0.70–0.90) | §4, §5 |
 
 Consistency dominates the specific choice on every row except products, where
 pre-application is not arbitrary. A user who cannot hold a row constant should

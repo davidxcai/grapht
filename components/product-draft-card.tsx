@@ -1,13 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowDown, ArrowUp, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, Package, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ConcernPicker } from "@/components/concern-picker";
 import { cn } from "@/lib/utils";
+import type { CatalogPickerMatch } from "@/lib/catalog";
 import type { Provenance, RankedConcern } from "@/lib/routines";
 
 /**
@@ -94,25 +96,64 @@ export function ProductDraftCard({
     concernLabel,
     dosage = false,
     reorder,
+    dragHandle,
+    search,
 }: {
     item: ProductDraft;
     onChange: (change: Partial<ProductDraft>) => void;
     /** Omit to hide the remove button — the trial editor does this for the
      *  last remaining card so the list can never go empty. */
     onRemove?: () => void;
-    onSuggest: () => void;
+    onSuggest?: () => void;
     concernLabel: string;
-    /** Shows the "Amount per use" field — trial-only. */
-    dosage?: boolean;
+    /** Shows the "Amount per use" field — trial-only. `true` is a plain
+     *  always-visible input (routine style, currently unused); "collapsible"
+     *  starts hidden behind an "Add amount" toggle (trial style), since most
+     *  tracked products don't need one specified. */
+    dosage?: boolean | "collapsible";
     /** Shows the move up/down arrows — routine-only, since a routine's order
      *  is meaningful ("in the order you use them") and a trial's tracked
-     *  list isn't. */
+     *  list isn't. Mutually exclusive with `dragHandle`. */
     reorder?: {
         canMoveUp: boolean;
         canMoveDown: boolean;
         onMove: (by: number) => void;
     };
+    /** Renders next to the identity field in place of the reorder arrows —
+     *  the trial stepper wraps its cards in its own <Sortable>/<SortableItem>
+     *  and passes a <SortableItemHandle> here rather than owning ordering
+     *  itself. Mutually exclusive with `reorder`. */
+    dragHandle?: React.ReactNode;
+    /** Enables inline catalog search on the identity field itself (trial
+     *  style): the two-field brand/name input collapses into one searchable
+     *  field, a match fills brand from the catalog, and the image slot is
+     *  always reserved so a pick never reflows the cards above it. Omit for
+     *  a separate SearchCombobox above the list instead (routine style),
+     *  where the image slot only takes up space once a pick has set one. */
+    search?: {
+        search: (query: string) => Promise<CatalogPickerMatch[]>;
+        onPick: (match: CatalogPickerMatch) => void;
+    };
 }) {
+    const [amountOpen, setAmountOpen] = useState(() => Boolean(item.dosage.trim()));
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [matches, setMatches] = useState<CatalogPickerMatch[]>([]);
+    const requestId = useRef(0);
+    const query = item.name.trim();
+
+    useEffect(() => {
+        if (!search || !query || item.catalogProductId) {
+            setMatches([]);
+            return;
+        }
+        const id = ++requestId.current;
+        const timer = setTimeout(async () => {
+            const results = await search.search(query);
+            if (requestId.current === id) setMatches(results);
+        }, 250);
+        return () => clearTimeout(timer);
+    }, [search, query, item.catalogProductId]);
+
     /** A hand-typed edit no longer describes whatever catalog product this
      *  card used to point at. */
     const editIdentity =
@@ -125,94 +166,260 @@ export function ProductDraftCard({
                 image: null,
             });
 
+    // Inline search mode collapses brand+name into one field, since a catalog
+    // pick is the only way `brand` is ever set here — typing can only edit
+    // `name`.
+    const editInlineName = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchOpen(true);
+        onChange({
+            name: e.target.value,
+            brand: "",
+            inci: null,
+            catalogProductId: null,
+            image: null,
+        });
+    };
+
+    // A catalog pick shows "Product — Brand" so the match isn't lost.
+    const displayValue =
+        search && item.catalogProductId && item.brand
+            ? `${item.name} — ${item.brand}`
+            : item.name;
+
+    const removeButton = onRemove && (
+        <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Remove product"
+            onClick={onRemove}
+        >
+            <X aria-hidden />
+        </Button>
+    );
+
+    const dosageBlock =
+        dosage === "collapsible" ? (
+            // Free text on purpose: "2 pumps", "pea-sized", "20 mg" are all
+            // legitimate and no unit picker fits them all. Collapsed by
+            // default since most products don't need one specified.
+            amountOpen ? (
+                <div className="flex items-center gap-1.5">
+                    <Input
+                        value={item.dosage}
+                        placeholder="e.g. 2 pumps"
+                        aria-label="Amount per use"
+                        autoFocus={!item.dosage}
+                        className="flex-1"
+                        onChange={(e) => onChange({ dosage: e.target.value })}
+                    />
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Remove amount"
+                        onClick={() => {
+                            onChange({ dosage: "" });
+                            setAmountOpen(false);
+                        }}
+                    >
+                        <X aria-hidden />
+                    </Button>
+                </div>
+            ) : (
+                <button
+                    type="button"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => setAmountOpen(true)}
+                >
+                    <Plus className="size-3" aria-hidden />
+                    Add amount
+                </button>
+            )
+        ) : (
+            dosage && (
+                // Free text on purpose: "2 pumps", "pea-sized", "20 mg" are
+                // all legitimate and no unit picker fits them all.
+                <Input
+                    value={item.dosage}
+                    placeholder="Amount per use (optional), e.g. 2 pumps"
+                    aria-label="Amount per use"
+                    onChange={(e) => onChange({ dosage: e.target.value })}
+                />
+            )
+        );
+
+    const concernPicker = (
+        <ConcernPicker
+            targets={item.targets}
+            note={item.note}
+            label={concernLabel}
+            onChange={(targets) => onChange({ targets })}
+        />
+    );
+
     return (
         <Card className="gap-3 p-4">
-            <div className={cn(item.image && "flex gap-4 max-sm:flex-col")}>
-                {item.image && (
-                    <div className="aspect-square w-full max-w-sm max-h-sm shrink-0 self-start overflow-hidden rounded-lg bg-white sm:self-stretch sm:max-h-none sm:max-w-none sm:w-auto">
-                        <Image
-                            src={item.image}
-                            alt=""
-                            width={160}
-                            height={160}
-                            unoptimized
-                            className="size-full object-contain"
-                        />
+            <div
+                className={cn(
+                    "flex",
+                    search
+                        ? "flex-col gap-3 sm:flex-row"
+                        : item.image
+                          ? "gap-4 max-sm:flex-col"
+                          : "flex-col gap-4",
+                )}
+            >
+                {search ? (
+                    <div className="aspect-square w-full max-w-sm max-h-sm shrink-0 self-start overflow-hidden rounded-lg bg-muted ring-1 ring-foreground/10 sm:self-stretch sm:max-h-none sm:max-w-none sm:w-auto">
+                        {item.image ? (
+                            <Image
+                                src={item.image}
+                                alt=""
+                                width={160}
+                                height={160}
+                                unoptimized
+                                className="size-full object-contain"
+                            />
+                        ) : (
+                            <div className="flex size-full items-center justify-center">
+                                <Package
+                                    className="size-10 text-muted-foreground/40"
+                                    aria-hidden
+                                />
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    item.image && (
+                        <div className="aspect-square w-full max-w-sm max-h-sm shrink-0 self-start overflow-hidden rounded-lg bg-white sm:self-stretch sm:max-h-none sm:max-w-none sm:w-auto">
+                            <Image
+                                src={item.image}
+                                alt=""
+                                width={160}
+                                height={160}
+                                unoptimized
+                                className="size-full object-contain"
+                            />
+                        </div>
+                    )
+                )}
+
+                {search ? (
+                    <div className="flex min-w-0 flex-1 items-start gap-2">
+                        {dragHandle}
+
+                        <div className="min-w-0 flex-1 space-y-3">
+                            <div className="relative">
+                                <Input
+                                    value={displayValue}
+                                    placeholder="Search Products"
+                                    aria-label="Search products"
+                                    onChange={editInlineName}
+                                    onFocus={() => setSearchOpen(true)}
+                                    onBlur={() =>
+                                        setTimeout(() => setSearchOpen(false), 150)
+                                    }
+                                />
+
+                                {searchOpen && matches.length > 0 && (
+                                    <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-lg border bg-popover p-1 text-sm shadow-md ring-1 ring-foreground/10">
+                                        {matches.map((m) => (
+                                            <li key={m.id}>
+                                                <button
+                                                    type="button"
+                                                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left hover:bg-slate-100/50"
+                                                    onMouseDown={(e) =>
+                                                        e.preventDefault()
+                                                    }
+                                                    onClick={() => {
+                                                        search.onPick(m);
+                                                        setSearchOpen(false);
+                                                        setMatches([]);
+                                                    }}
+                                                >
+                                                    <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
+                                                        {m.image ? (
+                                                            <Image
+                                                                src={m.image}
+                                                                alt=""
+                                                                width={32}
+                                                                height={32}
+                                                                unoptimized
+                                                                className="size-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <Package
+                                                                className="size-3.5 text-muted-foreground"
+                                                                aria-hidden
+                                                            />
+                                                        )}
+                                                    </span>
+                                                    <span className="min-w-0 truncate">
+                                                        {m.brand
+                                                            ? `${m.name} — ${m.brand}`
+                                                            : m.name}
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+
+                            {dosageBlock}
+                            {concernPicker}
+                        </div>
+
+                        {removeButton}
+                    </div>
+                ) : (
+                    <div className="min-w-0 flex-1 space-y-3">
+                        <div className="flex items-start gap-2">
+                            <div className="grid flex-1 gap-2 sm:grid-cols-[1fr_1.4fr]">
+                                <Input
+                                    value={item.brand}
+                                    placeholder="Brand (optional)"
+                                    aria-label="Brand"
+                                    onChange={editIdentity("brand")}
+                                />
+                                <Input
+                                    value={item.name}
+                                    placeholder="Product, e.g. niacinamide serum"
+                                    aria-label="Product name"
+                                    onChange={editIdentity("name")}
+                                />
+                            </div>
+
+                            <div className="flex shrink-0 gap-0.5">
+                                {reorder && (
+                                    <>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            aria-label="Move up"
+                                            disabled={!reorder.canMoveUp}
+                                            onClick={() => reorder.onMove(-1)}
+                                        >
+                                            <ArrowUp aria-hidden />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            aria-label="Move down"
+                                            disabled={!reorder.canMoveDown}
+                                            onClick={() => reorder.onMove(1)}
+                                        >
+                                            <ArrowDown aria-hidden />
+                                        </Button>
+                                    </>
+                                )}
+                                {removeButton}
+                            </div>
+                        </div>
+
+                        {dosageBlock}
+                        {concernPicker}
                     </div>
                 )}
-                <div className="min-w-0 flex-1 space-y-3">
-                    <div className="flex items-start gap-2">
-                        <div className="grid flex-1 gap-2 sm:grid-cols-[1fr_1.4fr]">
-                            <Input
-                                value={item.brand}
-                                placeholder="Brand (optional)"
-                                aria-label="Brand"
-                                onChange={editIdentity("brand")}
-                            />
-                            <Input
-                                value={item.name}
-                                placeholder="Product, e.g. niacinamide serum"
-                                aria-label="Product name"
-                                onChange={editIdentity("name")}
-                            />
-                        </div>
-
-                        <div className="flex shrink-0 gap-0.5">
-                            {reorder && (
-                                <>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        aria-label="Move up"
-                                        disabled={!reorder.canMoveUp}
-                                        onClick={() => reorder.onMove(-1)}
-                                    >
-                                        <ArrowUp aria-hidden />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        aria-label="Move down"
-                                        disabled={!reorder.canMoveDown}
-                                        onClick={() => reorder.onMove(1)}
-                                    >
-                                        <ArrowDown aria-hidden />
-                                    </Button>
-                                </>
-                            )}
-                            {onRemove && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label="Remove product"
-                                    onClick={onRemove}
-                                >
-                                    <X aria-hidden />
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-
-                    {dosage && (
-                        // Free text on purpose: "2 pumps", "pea-sized", "20 mg"
-                        // are all legitimate and no unit picker fits them all.
-                        <Input
-                            value={item.dosage}
-                            placeholder="Amount per use (optional), e.g. 2 pumps"
-                            aria-label="Amount per use"
-                            onChange={(e) =>
-                                onChange({ dosage: e.target.value })
-                            }
-                        />
-                    )}
-
-                    <ConcernPicker
-                        targets={item.targets}
-                        note={item.note}
-                        label={concernLabel}
-                        onChange={(targets) => onChange({ targets })}
-                    />
-                </div>
             </div>
         </Card>
     );

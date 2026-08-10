@@ -364,9 +364,9 @@ Images live in Vercel Blob, private; they are never committed and never enter
 the fixture.
 
 A framing guide holds face scale roughly constant across captures. Automatic
-crop-to-0.55 is deferred — until it exists, consistency rests on the guide and
-the user, and rule 3 is the standing warning about what happens if scale drifts
-within one series.
+crop-to-`TARGET_FACE_FRACTION` is deferred — until it exists, consistency
+rests on the guide and the user, and rule 3 is the standing warning about what
+happens if scale drifts within one series.
 
 **No noise-floor burst.** Instrument noise floor falls back to the reference
 figures with a visible caveat, refined from the user's own consecutive captures

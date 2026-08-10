@@ -77,6 +77,53 @@ silently swallow any concern `ANALYSIS_CONCERNS` had gained since the enum was
 first created in a given database, which is exactly how `tear_trough` almost
 shipped without a database column value to hold it.
 
+**A live capture's initial/final photo could 400 with `spawnSync unzip
+ENOENT`, as of 2026-08-09.** `src/results.mjs`'s `downloadResult()` unpacked
+YouCam's result ZIP by shelling out to the system `unzip` binary — present on
+a macOS dev machine, absent from Vercel's function runtime, so every
+production analysis failed at the last step, after the unit had already been
+billed. Fixed by replacing the shell-out with a dependency-free ZIP reader
+(`node:zlib`'s `inflateRawSync` over the central directory), verified
+byte-identical against an `unzip`-extracted result already in
+`data/analysis/`. Same class of bug as the `sips` note above it in this file —
+a tool that exists on the laptop and nowhere else, on the path of a feature
+that only breaks once it's deployed.
+
+**The live capture guide now targets 0.80 face fraction, not 0.55, as of
+2026-08-09.** `TARGET_FACE_FRACTION` and `FACE_FRACTION_TOLERANCE` in
+`src/face-geometry.mjs` moved from 0.55/0.15 to 0.80/0.10 (band 0.70–0.90)
+because the guide oval at 0.55 read as too small on screen to work as a
+framing target. Unlike the `sips` and `unzip` bugs, this one is not a
+mistake to fix — it's a deliberate change to a measurement constant covered by
+rule 3 below, made after confirming with the user that it should apply for
+real (raising the shutter-gating band, not just the drawn oval) and not just
+cosmetically. Consequences to hold in mind:
+- It invalidates comparability between a capture analysed before this change
+  and one analysed after, for the same trial (rule 3). This is not
+  hypothetical: as of 2026-08-09 a real trial (`user_3HZJ5Bq3Df9znNyHfT7fzRNqEbG`,
+  "Eye Cream", `status: active`) already has 2 analysed `trial_captures`, both
+  taken under the old 0.55 target. If it already holds both the initial and
+  final slot the daily-analysis pivot allows, it's internally consistent and
+  done. If not — if a future analysis still lands on this trial — that capture
+  will be at 0.80 and will not agree with its own earlier one.
+- The same constant is the default `targetFraction` for `computeCropBox()` /
+  `normalizeFace()` in `src/face.mjs`, which the **offline** reference
+  pipeline (`prepare.mjs` → `normalize-faces.mjs`) also uses. The already-built
+  reference series in `data/normalized/` was normalized at 0.55 and is
+  unaffected by a default changing under it — but a future run of
+  `normalize-faces.mjs` without an explicit `targetFraction: 0.55` override
+  would silently crop new photos at 0.80 and no longer match it (rule 3
+  again). There is no reference-series work planned that would hit this, but
+  it's the kind of thing that only surfaces as a wrong answer, not an error.
+- `scripts/test-face-fraction.mjs` only ever verified a *lower* bound (walking
+  up from a known-rejected fraction until the API accepts one); it has never
+  measured whether the API — or a human framing a selfie — has any trouble
+  with a face at 0.80–0.90 of frame. The band is tighter than, but sits at
+  roughly the same floor as, the STRICT Camera Kit preset's 0.75 that got
+  Camera Kit called "hard to satisfy" (`docs/youcam-api.md`,
+  `docs/capture-quality.md` §5). If the shutter starts feeling like it rarely
+  unlocks, that comparison is where to look first.
+
 ```bash
 npm install                              # Node 22+, macOS (sips is used for HEIC)
 npm run dev                              # the web app, http://localhost:3000
@@ -432,7 +479,7 @@ Camera capture / archive photos
   → prepare.mjs         HEIC→JPEG, DisplayP3→sRGB, EXIF orientation baked in
   → capture guide       BlazeFace blocks bad framing/scale/pose      [live only]
                         light colour, sharpness, clipping, occlusion  [not built]
-  → normalize-faces.mjs BlazeFace detect, crop to 0.55 face fraction, 1920×2560
+  → normalize-faces.mjs BlazeFace detect, crop to TARGET_FACE_FRACTION, 1920×2560
   → analyze-all.mjs     YouCam HD Skin Analysis, results cached
   → device-offset.mjs   per-metric cross-device correction (dormant single-device)
   → detection gate      MDE from real timestamps; 3-way verdict          [not built]
@@ -458,7 +505,9 @@ Capture constraints, measured rather than assumed:
 - short side **≥ 1080 px** (HD minimum), long side **≤ 2560 px** (the model works
   at 1920×2560; anything larger is discarded)
 - face height **≥ 0.55** of frame height, or the API returns
-  `error_src_face_too_small`
+  `error_src_face_too_small` — the live guide targets a stricter 0.80 ± 0.10
+  (`TARGET_FACE_FRACTION` in `src/face-geometry.mjs`), well clear of this
+  floor; see "Repository state" above
 - **lighting must be held constant.** Varying it raised texture noise from 2.1 to
   57.6 points on photos 39 seconds apart — larger than 18 months of real change.
   Standardized capture is the measurement, not UI polish.

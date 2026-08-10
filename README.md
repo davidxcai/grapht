@@ -122,7 +122,7 @@ sample-photos/          source HEIC/JPEG, any device, any orientation
   ↓  scripts/prepare.mjs            HEIC→JPEG, P3→sRGB, EXIF rotation baked in
 data/prepared/          upright sRGB JPEGs + data/manifest.json
   ↓  quality gate                   block bad captures, warn on drift    [not built]
-  ↓  scripts/normalize-faces.mjs    BlazeFace detect → crop to 0.55 face fraction
+  ↓  scripts/normalize-faces.mjs    BlazeFace detect → crop to TARGET_FACE_FRACTION
 data/normalized/        1920×2560, consistent face scale across all devices
   ↓  scripts/analyze-all.mjs        YouCam HD skin analysis  ← the only step that costs units
 data/analysis/          per-photo scores, masks, raw JSON

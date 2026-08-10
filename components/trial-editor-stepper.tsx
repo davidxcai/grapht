@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -19,7 +18,6 @@ import {
     Loader2,
     Lock,
     Moon,
-    Package,
     Pencil,
     Plus,
     Sun,
@@ -33,8 +31,8 @@ import { Choice } from "@/components/choice";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ConcernPicker } from "@/components/concern-picker";
 import {
+    ProductDraftCard,
     blankProductDraft,
     provenanceOfDraft,
     type ProductDraft,
@@ -198,220 +196,6 @@ function StepFooter({
                 </Button>
             )}
         </div>
-    );
-}
-
-/** A product card for the stepper's product step. Unlike the shared
- *  ProductDraftCard (routine editor), the catalog search lives inline —
- *  typing into the one product field searches directly rather than through a
- *  separate search bar — and the image slot is always reserved so adding a
- *  product never reflows the cards above it. Reordering is handled by the
- *  caller's <Sortable>/<SortableItem> wrapper; this card only supplies the
- *  drag handle via <SortableItemHandle>. */
-function ProductStepCard({
-    item,
-    canRemove,
-    onChange,
-    onRemove,
-    onPick,
-}: {
-    item: ProductDraft;
-    canRemove: boolean;
-    onChange: (change: Partial<ProductDraft>) => void;
-    onRemove: () => void;
-    onPick: (match: CatalogPickerMatch) => void;
-}) {
-    const [searchOpen, setSearchOpen] = useState(false);
-    const [matches, setMatches] = useState<CatalogPickerMatch[]>([]);
-    const [amountOpen, setAmountOpen] = useState(() => Boolean(item.dosage.trim()));
-    const requestId = useRef(0);
-    const query = item.name.trim();
-
-    useEffect(() => {
-        if (!query || item.catalogProductId) {
-            setMatches([]);
-            return;
-        }
-        const id = ++requestId.current;
-        const timer = setTimeout(async () => {
-            const results = await searchCatalogForPicker(query);
-            if (requestId.current === id) setMatches(results);
-        }, 250);
-        return () => clearTimeout(timer);
-    }, [query, item.catalogProductId]);
-
-    // A catalog pick shows "Product — Brand" so the match isn't lost, but
-    // typing edits `name` alone — brand only ever comes from a pick.
-    const displayValue =
-        item.catalogProductId && item.brand
-            ? `${item.name} — ${item.brand}`
-            : item.name;
-
-    const editIdentity = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchOpen(true);
-        onChange({
-            name: e.target.value,
-            brand: "",
-            inci: null,
-            catalogProductId: null,
-            image: null,
-        });
-    };
-
-    return (
-        <Card className="gap-3 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row">
-                <div className="aspect-square w-full shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-foreground/10 sm:w-auto sm:self-stretch">
-                    {item.image ? (
-                        <Image
-                            src={item.image}
-                            alt=""
-                            width={160}
-                            height={160}
-                            unoptimized
-                            className="size-full object-contain"
-                        />
-                    ) : (
-                        <div className="flex size-full items-center justify-center">
-                            <Package
-                                className="size-10 text-muted-foreground/40"
-                                aria-hidden
-                            />
-                        </div>
-                    )}
-                </div>
-
-                <div className="flex min-w-0 flex-1 items-start gap-2">
-                    <SortableItemHandle
-                        render={
-                            <button
-                                type="button"
-                                aria-label="Drag to reorder"
-                                className="mt-2 shrink-0 text-muted-foreground/50 hover:text-muted-foreground"
-                            />
-                        }
-                    >
-                        <GripVertical className="size-4" aria-hidden />
-                    </SortableItemHandle>
-
-                    <div className="min-w-0 flex-1 space-y-3">
-                        <div className="relative">
-                            <Input
-                                value={displayValue}
-                                placeholder="Search Products"
-                                aria-label="Search products"
-                                onChange={editIdentity}
-                                onFocus={() => setSearchOpen(true)}
-                                onBlur={() =>
-                                    setTimeout(() => setSearchOpen(false), 150)
-                                }
-                            />
-
-                            {searchOpen && matches.length > 0 && (
-                                <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-lg border bg-popover p-1 text-sm shadow-md ring-1 ring-foreground/10">
-                                    {matches.map((m) => (
-                                        <li key={m.id}>
-                                            <button
-                                                type="button"
-                                                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left hover:bg-slate-100/50"
-                                                onMouseDown={(e) =>
-                                                    e.preventDefault()
-                                                }
-                                                onClick={() => {
-                                                    onPick(m);
-                                                    setSearchOpen(false);
-                                                    setMatches([]);
-                                                }}
-                                            >
-                                                <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
-                                                    {m.image ? (
-                                                        <Image
-                                                            src={m.image}
-                                                            alt=""
-                                                            width={32}
-                                                            height={32}
-                                                            unoptimized
-                                                            className="size-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <Package
-                                                            className="size-3.5 text-muted-foreground"
-                                                            aria-hidden
-                                                        />
-                                                    )}
-                                                </span>
-                                                <span className="min-w-0 truncate">
-                                                    {m.brand
-                                                        ? `${m.name} — ${m.brand}`
-                                                        : m.name}
-                                                </span>
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-
-                        {/* Free text on purpose: "2 pumps", "pea-sized",
-                            "20 mg" are all legitimate and no unit picker
-                            fits them all. Collapsed by default since most
-                            products don't need one specified. */}
-                        {amountOpen ? (
-                            <div className="flex items-center gap-1.5">
-                                <Input
-                                    value={item.dosage}
-                                    placeholder="e.g. 2 pumps"
-                                    aria-label="Amount per use"
-                                    autoFocus={!item.dosage}
-                                    className="flex-1"
-                                    onChange={(e) =>
-                                        onChange({ dosage: e.target.value })
-                                    }
-                                />
-                                <Button
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label="Remove amount"
-                                    onClick={() => {
-                                        onChange({ dosage: "" });
-                                        setAmountOpen(false);
-                                    }}
-                                >
-                                    <X aria-hidden />
-                                </Button>
-                            </div>
-                        ) : (
-                            <button
-                                type="button"
-                                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                                onClick={() => setAmountOpen(true)}
-                            >
-                                <Plus className="size-3" aria-hidden />
-                                Add amount
-                            </button>
-                        )}
-
-                        <ConcernPicker
-                            targets={item.targets}
-                            note={item.note}
-                            label="What's this for?"
-                            onChange={(targets) => onChange({ targets })}
-                        />
-                    </div>
-
-                    {canRemove && (
-                        <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label="Remove product"
-                            onClick={onRemove}
-                        >
-                            <X aria-hidden />
-                        </Button>
-                    )}
-                </div>
-            </div>
-        </Card>
     );
 }
 
@@ -757,16 +541,42 @@ export function TrialEditorStepper({
                         >
                             {items.map((item) => (
                                 <SortableItem key={item.key} value={item.key}>
-                                    <ProductStepCard
+                                    <ProductDraftCard
                                         item={item}
-                                        canRemove={items.length > 1}
+                                        concernLabel="What's this for?"
+                                        dosage="collapsible"
                                         onChange={(change) => patch(item.key, change)}
-                                        onRemove={() =>
-                                            setItems((prev) =>
-                                                prev.filter((i) => i.key !== item.key),
-                                            )
+                                        onRemove={
+                                            items.length > 1
+                                                ? () =>
+                                                      setItems((prev) =>
+                                                          prev.filter(
+                                                              (i) => i.key !== item.key,
+                                                          ),
+                                                      )
+                                                : undefined
                                         }
-                                        onPick={(match) => applyCatalogMatch(item, match)}
+                                        search={{
+                                            search: searchCatalogForPicker,
+                                            onPick: (match) =>
+                                                applyCatalogMatch(item, match),
+                                        }}
+                                        dragHandle={
+                                            <SortableItemHandle
+                                                render={
+                                                    <button
+                                                        type="button"
+                                                        aria-label="Drag to reorder"
+                                                        className="mt-2 shrink-0 text-muted-foreground/50 hover:text-muted-foreground"
+                                                    />
+                                                }
+                                            >
+                                                <GripVertical
+                                                    className="size-4"
+                                                    aria-hidden
+                                                />
+                                            </SortableItemHandle>
+                                        }
                                     />
                                 </SortableItem>
                             ))}

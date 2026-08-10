@@ -17,7 +17,11 @@ import {
   yawRatio,
   describeLighting,
 } from '../lib/capture-guide.ts';
-import { FACE_CENTER_Y, TARGET_FACE_FRACTION } from '../src/face-geometry.mjs';
+import {
+  FACE_CENTER_Y,
+  FACE_FRACTION_TOLERANCE,
+  TARGET_FACE_FRACTION,
+} from '../src/face-geometry.mjs';
 
 let failures = 0;
 function check(name, fn) {
@@ -114,8 +118,13 @@ check('a face at the target is ready', () => {
   assert.equal(Math.abs(state.faceFraction - TARGET_FACE_FRACTION) < 1e-9, true);
 });
 
-check('±0.05 off target is still accepted, matching normalize-faces.mjs', () => {
-  for (const fraction of [0.51, 0.55, 0.59]) {
+check('±FACE_FRACTION_TOLERANCE off target is still accepted', () => {
+  const margin = FACE_FRACTION_TOLERANCE * 0.9;
+  for (const fraction of [
+    TARGET_FACE_FRACTION - margin,
+    TARGET_FACE_FRACTION,
+    TARGET_FACE_FRACTION + margin,
+  ]) {
     const face = perfectFace(WINDOW);
     const height = WINDOW.height * fraction;
     face.height = height;
@@ -126,12 +135,12 @@ check('±0.05 off target is still accepted, matching normalize-faces.mjs', () =>
 
 check('too far and too close are named separately', () => {
   const far = perfectFace(WINDOW);
-  far.height = WINDOW.height * 0.4;
+  far.height = WINDOW.height * (TARGET_FACE_FRACTION - FACE_FRACTION_TOLERANCE - 0.1);
   far.y = WINDOW.height * FACE_CENTER_Y - far.height / 2;
   assert.equal(gradeFrame([far], WINDOW, null).hint, 'move-closer');
 
   const near = perfectFace(WINDOW);
-  near.height = WINDOW.height * 0.75;
+  near.height = WINDOW.height * Math.min(TARGET_FACE_FRACTION + FACE_FRACTION_TOLERANCE + 0.1, 0.99);
   near.y = WINDOW.height * FACE_CENTER_Y - near.height / 2;
   assert.equal(gradeFrame([near], WINDOW, null).hint, 'move-back');
 });
