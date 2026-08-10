@@ -30,6 +30,7 @@ import {
   setUserReview,
   updateCaptureAnalysis,
   updateTrialSettings,
+  updateTrialVisibility,
   type InterventionInput,
 } from '@/lib/trial-store';
 import { getRoutine, snapshotRoutine } from '@/lib/routines';
@@ -544,6 +545,36 @@ export async function saveTrialSettings(
     return { ok: true, data: { id } };
   } catch (error) {
     return { ok: false, error: `Could not save your changes — ${(error as Error).message}` };
+  }
+}
+
+/**
+ * The header's quick Public/Private toggle — the same setting
+ * `saveTrialSettings()` moves, exposed on its own so flipping it doesn't
+ * require the whole settings form's other fields along for the ride.
+ */
+export async function setTrialVisibility(
+  id: string,
+  visibility: Trial['visibility'],
+): Promise<ActionResult<{ visibility: Trial['visibility'] }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to change who can see this trial.' };
+
+  if (isFixtureTrial(id)) {
+    return { ok: false, error: 'This is the built-in sample trial, so its visibility is fixed.' };
+  }
+
+  const value = visibility === 'public' ? 'public' : 'private';
+  try {
+    const saved = await updateTrialVisibility(userId, id, value);
+    if (!saved) return { ok: false, error: 'That trial no longer exists.' };
+
+    revalidatePath('/');
+    revalidatePath('/dashboard');
+    revalidatePath(`/trials/${id}`);
+    return { ok: true, data: { visibility: value } };
+  } catch (error) {
+    return { ok: false, error: `Could not change visibility — ${(error as Error).message}` };
   }
 }
 

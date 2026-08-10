@@ -451,6 +451,29 @@ export async function updateTrialSettings(
 }
 
 /**
+ * Flip who can see a trial — the one setting the header's quick toggle needs,
+ * without the rest of `TrialSettingsInput` a caller would otherwise have to
+ * round-trip just to change one column. Never touches an ended trial's window
+ * or schedule, same as `updateTrialSettings` — there's nothing in this write
+ * that could anyway.
+ */
+export async function updateTrialVisibility(
+  userId: string,
+  id: string,
+  visibility: Trial['visibility'],
+): Promise<boolean> {
+  if (!UUID.test(id)) return false;
+  const sql = getSql();
+  const rows = (await sql`
+    update trials
+       set visibility = ${visibility}::trial_visibility,
+           updated_at = now()
+     where id = ${id} and user_id = ${userId}
+     returning id`) as Record<string, unknown>[];
+  return rows.length > 0;
+}
+
+/**
  * Add a capture to a running trial — the daily log.
  *
  * `captured_at` is left to the column default, so the instant is the server's

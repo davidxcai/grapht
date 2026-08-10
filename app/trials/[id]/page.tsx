@@ -1,13 +1,16 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Eye } from 'lucide-react';
+import { Eye, Pencil } from 'lucide-react';
 
 import { ApplyCheckIn } from '@/components/apply-check-in';
+import { Button } from '@/components/ui/button';
 import { CompletedBadge } from '@/components/completed-badge';
 import { SaveTrialButton } from '@/components/save-trial-button';
 import { TimeOfDayBadge } from '@/components/time-of-day-badge';
 import { TrialComments } from '@/components/trial-comments';
 import { TrialDetailTabs } from '@/components/trial-detail-tabs';
 import { TrialGauge } from '@/components/trial-gauge';
+import { TrialVisibilityToggle } from '@/components/trial-visibility-toggle';
 import { getFixtureTrials, isFixtureTrial, loadTrials } from '@/lib/trial-store';
 import {
   getPublicTrial,
@@ -106,6 +109,20 @@ export default async function TrialDetail({ params }: { params: Promise<{ id: st
               </span>
             )}
           </p>
+        )}
+
+        {/* Owner-only controls, under the title rather than buried in a tab:
+            what the trial's settings are (Edit trial) and who can see it
+            (the toggle). A visitor sees neither — if they can view the
+            trial, it's already public, so there's nothing to show them. */}
+        {canEdit && (
+          <div className="mt-4 flex justify-center gap-2">
+            <Button variant="outline" size="sm" render={<Link href={`/trials/${trial.id}/edit`} />}>
+              <Pencil aria-hidden />
+              Edit trial
+            </Button>
+            <TrialVisibilityToggle trialId={trial.id} visibility={trial.visibility} />
+          </div>
         )}
 
         {/* The quick check-in, right under the title (ideas.md): press when the

@@ -20,8 +20,8 @@ interface Props {
 function RoutineSnapshotCard({ routine }: { routine: RoutineSnapshot }) {
   return (
     <Card className="gap-3 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h4 className="truncate text-sm font-medium">{routine.routineName}</h4>
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <h4 className="min-w-0 truncate text-sm font-medium">{routine.routineName}</h4>
         <span className="shrink-0 text-xs text-muted-foreground">
           {routine.items.length} {routine.items.length === 1 ? 'product' : 'products'}
         </span>
@@ -93,9 +93,9 @@ export function TrialProducts({ trial }: Props) {
             ))}
 
             {typed.length > 0 && (
-              <ul className="space-y-1">
+              <ul className="min-w-0 space-y-1">
                 {typed.map((name) => (
-                  <li key={name} className="text-sm text-muted-foreground">
+                  <li key={name} className="truncate text-sm text-muted-foreground">
                     {name}
                   </li>
                 ))}

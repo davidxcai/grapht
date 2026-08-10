@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrialCalendar } from '@/components/trial-calendar';
 import { TrialPhotos } from '@/components/trial-photos';
 import { MetricList } from '@/components/metric-list';
-import { TrialDetails } from '@/components/trial-details';
+import { TrialProducts } from '@/components/trial-products';
 import { TrialSummary } from '@/components/trial-summary';
 import { EndTrialButton } from '@/components/end-trial-button';
 import { AddFinalPhoto } from '@/components/add-final-photo';
@@ -12,12 +12,19 @@ import { isInconclusive, type Trial } from '@/lib/trials';
 import type { LogRecord, MetricChange } from '@/lib/trial-detail';
 
 /**
- * The trial detail page: photos, details, progress, summary.
+ * The trial detail page: progress, details, summary.
  *
- * Photos leads because the photo is what the user came to see and the thing they
- * can judge for themselves. Details is how the trial was set up. Progress carries
- * the measurements. Summary is empty until the trial is ended, and says so rather
- * than hiding.
+ * Progress leads because the photo is what the user came to see and the thing
+ * they can judge for themselves — the calendar rides along with it as the
+ * other half of "what's been logged." Details is how the trial was set up and
+ * what it's tracking; ending the trial lives there too, since that's a
+ * decision about the setup, not about today's photo. Summary is empty until
+ * the trial is ended, and says so rather than hiding.
+ *
+ * What used to be a fourth tab's worth of settings (start/end date, logging
+ * schedule, time of day, visibility) now lives under the trial title instead
+ * — an Edit trial link and a visibility toggle — so this file no longer
+ * renders any of it.
  */
 
 interface Props {
@@ -55,19 +62,18 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
   const routineName = baselineRoutine?.routineName || 'routine';
 
   return (
-    <Tabs defaultValue="photos" className="mt-6">
+    <Tabs defaultValue="progress" className="mt-6">
       <TabsList className="w-full">
-        <TabsTrigger value="photos">Photos</TabsTrigger>
-        <TabsTrigger value="details">Details</TabsTrigger>
         <TabsTrigger value="progress">Progress</TabsTrigger>
+        <TabsTrigger value="details">Details</TabsTrigger>
         <TabsTrigger value="summary">Summary</TabsTrigger>
       </TabsList>
 
-      {/* ---------------------------------------------------------- photos */}
+      {/* --------------------------------------------------------- progress */}
       {/* Today lives inside the roll as its last frame, so the old "come back
           tomorrow" note is gone — it contradicted a camera button sitting right
           beside it, and the empty frame already says what is missing. */}
-      <TabsContent value="photos" className="mt-5">
+      <TabsContent value="progress" className="mt-5">
         <TrialPhotos
           trialId={trial.id}
           captures={trial.captures}
@@ -79,34 +85,31 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
           canEdit={canEdit}
           applications={trial.applications ?? []}
         />
+
+        <div className="mt-8">
+          <div className="flex items-baseline justify-between">
+            <h3 className="text-sm font-medium">Days logged</h3>
+            <p className="text-sm text-muted-foreground tabular-nums">
+              {record.daysLogged} {record.daysLogged === 1 ? 'day' : 'days'}
+            </p>
+          </div>
+          <div className="mt-3">
+            <TrialCalendar
+              startDate={trial.window.startDate}
+              loggedDays={loggedDays}
+              endDate={trial.window.endDate}
+            />
+          </div>
+        </div>
       </TabsContent>
 
       {/* --------------------------------------------------------- details */}
       <TabsContent value="details" className="mt-5">
-        <TrialDetails trial={trial} canEdit={canEdit} />
-      </TabsContent>
-
-      {/* -------------------------------------------------------- progress */}
-      <TabsContent value="progress" className="mt-5">
         <div className="grid gap-8 lg:grid-cols-2">
-          {/* Calendar */}
-          <div>
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-sm font-medium">Days logged</h3>
-              <p className="text-sm text-muted-foreground tabular-nums">
-                {record.daysLogged} {record.daysLogged === 1 ? 'day' : 'days'}
-              </p>
-            </div>
-            <div className="mt-3">
-              <TrialCalendar
-                startDate={trial.window.startDate}
-                loggedDays={loggedDays}
-                endDate={trial.window.endDate}
-              />
-            </div>
-          </div>
+          {/* Left column: products & routine */}
+          <TrialProducts trial={trial} />
 
-          {/* Tracked metrics */}
+          {/* Right column: what those products (and the baseline they sit on) are tracking */}
           <div>
             {onlyBaseline ? (
               <p className="rounded-lg border border-dashed px-5 py-6 text-center text-sm text-muted-foreground">
@@ -115,21 +118,15 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
               </p>
             ) : (
               <div className="space-y-8">
-                <MetricList
-                  metrics={tracked}
-                  title="Product Concerns"
-                />
-                <MetricList
-                  metrics={untracked}
-                  title={`From ${routineName} routine`}
-                />
+                <MetricList metrics={tracked} title="Product Concerns" />
+                <MetricList metrics={untracked} title={`From ${routineName} routine`} />
               </div>
             )}
           </div>
         </div>
 
         {!isCompleted && canEdit && (
-          <div className="border-t pt-8">
+          <div className="mt-8 border-t pt-8">
             <EndTrialButton
               trialId={trial.id}
               daysLogged={record.daysLogged}
