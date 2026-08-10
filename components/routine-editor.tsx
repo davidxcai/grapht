@@ -198,33 +198,45 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
     const hasProduct = items.some((i) => i.name.trim());
 
     return (
-        <div className="mt-8 space-y-6">
-            <div className="space-y-2">
-                <Label htmlFor="routine-name">Routine name</Label>
-                <Input
-                    id="routine-name"
-                    value={name}
-                    placeholder="e.g Morning"
-                    onChange={(e) => setName(e.target.value)}
-                />
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start lg:gap-x-10 lg:gap-y-8">
+            {/* Name + description sit above the products list on mobile, and
+             *  in the top of the right column on desktop — see the products
+             *  block below for how the two-column split is wired up. */}
+            <div className="space-y-6 lg:col-start-2 lg:row-start-1">
+                <div className="space-y-2">
+                    <Label htmlFor="routine-name">Routine name</Label>
+                    <Input
+                        id="routine-name"
+                        value={name}
+                        placeholder="e.g Morning"
+                        onChange={(e) => setName(e.target.value)}
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="routine-description">
+                        Description{" "}
+                        <span className="text-muted-foreground font-normal">
+                            (optional)
+                        </span>
+                    </Label>
+                    <Textarea
+                        id="routine-description"
+                        value={description}
+                        placeholder="What this routine is for, or anything worth remembering about it"
+                        onChange={(e) => setDescription(e.target.value)}
+                    />
+                </div>
             </div>
 
-            <div className="space-y-2">
-                <Label htmlFor="routine-description">
-                    Description{" "}
-                    <span className="text-muted-foreground font-normal">
-                        (optional)
-                    </span>
-                </Label>
-                <Textarea
-                    id="routine-description"
-                    value={description}
-                    placeholder="What this routine is for, or anything worth remembering about it"
-                    onChange={(e) => setDescription(e.target.value)}
-                />
-            </div>
-
-            <div className="space-y-3">
+            {/* Products: left column on desktop (`lg:col-start-1`), spanning
+             *  both rows (`lg:row-span-2`) so it sits beside the name/
+             *  description block above *and* the coverage/visibility/actions
+             *  block below. On mobile the `lg:` placement classes don't
+             *  apply, so this just falls into normal DOM order — between the
+             *  two blocks above and below — reproducing the original single-
+             *  column order. */}
+            <div className="space-y-3 lg:col-start-1 lg:row-start-1 lg:row-span-2">
                 <div className="flex items-baseline justify-between">
                     <h2 className="text-sm font-medium">Products</h2>
                     <p className="text-xs text-muted-foreground">
@@ -289,101 +301,107 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                 </Button>
             </div>
 
-            <Separator />
+            {/* Coverage, visibility, error and actions: bottom of the right
+             *  column on desktop, and the tail of the single column on
+             *  mobile. */}
+            <div className="space-y-6 lg:col-start-2 lg:row-start-2">
+                <Separator />
 
-            <div>
-                <h2 className="text-sm font-medium">This routine covers</h2>
-                <ConcernChips
-                    concerns={coverage}
-                    className="mt-3"
-                    empty="Nothing tracked yet"
-                />
-            </div>
-
-            <Separator />
-
-            <div className="space-y-3">
-                <h2 className="text-sm font-medium">Who can see this?</h2>
-
-                <div className="flex gap-1.5">
-                    {VISIBILITIES.map((v) => (
-                        <Choice
-                            key={v.id}
-                            on={visibility === v.id}
-                            onClick={() => setVisibility(v.id)}
-                            className="flex flex-1 items-center justify-center gap-1.5 py-2"
-                        >
-                            <v.icon className="size-3.5" />
-                            {v.label}
-                        </Choice>
-                    ))}
+                <div>
+                    <h2 className="text-sm font-medium">This routine covers</h2>
+                    <ConcernChips
+                        concerns={coverage}
+                        className="mt-3"
+                        empty="Nothing tracked yet"
+                    />
                 </div>
 
-                <p className="text-xs text-muted-foreground">
-                    {visibility === "public"
-                        ? "Anyone with the link can view this routine. You can make it private again at any time."
-                        : "Only you can see this routine. You can share it with anyone at any time."}
-                </p>
-            </div>
+                <Separator />
 
-            {error && (
-                <p role="alert" className="text-sm text-destructive">
-                    {error}
-                </p>
-            )}
+                <div className="space-y-3">
+                    <h2 className="text-sm font-medium">Who can see this?</h2>
 
-            <div className="flex items-center justify-between gap-3">
-                <Button
-                    onClick={save}
-                    disabled={saving || !hasProduct}
-                    className={"w-full"}
-                >
-                    {saving && <Loader2 className="animate-spin" aria-hidden />}
-                    {routine ? "Save Changes" : "Create Routine"}
-                </Button>
+                    <div className="flex gap-1.5">
+                        {VISIBILITIES.map((v) => (
+                            <Choice
+                                key={v.id}
+                                on={visibility === v.id}
+                                onClick={() => setVisibility(v.id)}
+                                className="flex flex-1 items-center justify-center gap-1.5 py-2"
+                            >
+                                <v.icon className="size-3.5" />
+                                {v.label}
+                            </Choice>
+                        ))}
+                    </div>
 
-                {routine && (
-                    <AlertDialog
-                        open={confirmOpen}
-                        onOpenChange={setConfirmOpen}
-                    >
-                        <AlertDialogTrigger
-                            render={
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-muted-foreground"
-                                >
-                                    <Trash2 aria-hidden />
-                                    Delete
-                                </Button>
-                            }
-                        />
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                    Delete &ldquo;{routine.name}&rdquo;?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Trials that already use this routine keep
-                                    their own copy of it, so their results
-                                    don&rsquo;t change. You just won&rsquo;t be
-                                    able to pick it for a new one.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Keep</AlertDialogCancel>
-                                <AlertDialogAction
-                                    variant="destructive"
-                                    disabled={deleting}
-                                    onClick={destroy}
-                                >
-                                    Delete
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                    <p className="text-xs text-muted-foreground">
+                        {visibility === "public"
+                            ? "Anyone with the link can view this routine. You can make it private again at any time."
+                            : "Only you can see this routine. You can share it with anyone at any time."}
+                    </p>
+                </div>
+
+                {error && (
+                    <p role="alert" className="text-sm text-destructive">
+                        {error}
+                    </p>
                 )}
+
+                <div className="flex items-center justify-between gap-3">
+                    <Button
+                        onClick={save}
+                        disabled={saving || !hasProduct}
+                        className={"w-full"}
+                    >
+                        {saving && <Loader2 className="animate-spin" aria-hidden />}
+                        {routine ? "Save Changes" : "Create Routine"}
+                    </Button>
+
+                    {routine && (
+                        <AlertDialog
+                            open={confirmOpen}
+                            onOpenChange={setConfirmOpen}
+                        >
+                            <AlertDialogTrigger
+                                render={
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-muted-foreground"
+                                    >
+                                        <Trash2 aria-hidden />
+                                        Delete
+                                    </Button>
+                                }
+                            />
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                        Delete &ldquo;{routine.name}&rdquo;?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Trials that already use this routine
+                                        keep their own copy of it, so their
+                                        results don&rsquo;t change. You just
+                                        won&rsquo;t be able to pick it for a
+                                        new one.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Keep</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        variant="destructive"
+                                        disabled={deleting}
+                                        onClick={destroy}
+                                    >
+                                        Delete
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
+                </div>
             </div>
         </div>
     );
