@@ -5,7 +5,7 @@
  *  start the bar. */
 import { useRouter } from "nextjs-toploader/app";
 import { useState, useTransition } from "react";
-import { Loader2, Lock, Plus, Trash2, Users } from "lucide-react";
+import { GripVertical, Loader2, Lock, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -26,14 +26,17 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ConcernChips } from "@/components/concern-chips";
-import { SearchCombobox } from "@/components/search-combobox";
 import {
     ProductDraftCard,
     blankProductDraft,
-    isBlankDraft,
     provenanceOfDraft,
     type ProductDraft,
 } from "@/components/product-draft-card";
+import {
+    Sortable,
+    SortableItem,
+    SortableItemHandle,
+} from "@/src/components/reui/sortable";
 import { orderConcerns } from "@/lib/concerns";
 import {
     removeRoutine,
@@ -91,15 +94,6 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
             prev.map((i) => (i.key === key ? { ...i, ...change } : i)),
         );
 
-    const move = (index: number, by: number) =>
-        setItems((prev) => {
-            const next = [...prev];
-            const to = index + by;
-            if (to < 0 || to >= next.length) return prev;
-            [next[index], next[to]] = [next[to], next[index]];
-            return next;
-        });
-
     async function suggest(item: ProductDraft) {
         if (!item.name.trim()) {
             patch(item.key, { note: "Enter a product name first." });
@@ -133,24 +127,21 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
         });
     }
 
-    /** A pick from the catalog search bar above the list: add a new card
-     *  (or fill the still-untouched first one) and immediately ask the
-     *  classifier what it targets, using the catalog's real INCI list. */
-    async function addFromCatalog(match: CatalogPickerMatch) {
-        const draft: ProductDraft = {
-            ...blankProductDraft("draft"),
+    /** A pick from the card's own inline search fills brand, name, image and
+     *  the catalog's real INCI list — no AI call. Metrics still come from the
+     *  "Suggest" button in ConcernPicker, which the user must trigger
+     *  themselves: the classifier is a paid Gemini call and must never fire
+     *  automatically just because a catalog match was picked. Mirrors
+     *  `applyCatalogMatch` in trial-editor-stepper.tsx — the two product
+     *  pickers must behave identically. */
+    function applyCatalogMatch(item: ProductDraft, match: CatalogPickerMatch) {
+        patch(item.key, {
             brand: match.brand ?? "",
             name: match.name,
             inci: match.inci,
             image: match.image,
             catalogProductId: match.id,
-        };
-        setItems((prev) =>
-            prev.length === 1 && isBlankDraft(prev[0])
-                ? [draft]
-                : [...prev, draft],
-        );
-        await suggest(draft);
+        });
     }
 
     function save() {
@@ -241,36 +232,50 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                     </p>
                 </div>
 
-                <SearchCombobox<CatalogPickerMatch>
-                    search={searchCatalogForPicker}
-                    itemKey={(m) => m.id}
-                    itemLabel={(m) =>
-                        m.brand ? `${m.name} — ${m.brand}` : m.name
-                    }
-                    itemImage={(m) => m.image}
-                    onSelect={addFromCatalog}
-                    placeholder="Search products to add…"
-                />
-
-                {items.map((item, index) => (
-                    <ProductDraftCard
-                        key={item.key}
-                        item={item}
-                        onChange={(change) => patch(item.key, change)}
-                        onRemove={() =>
-                            setItems((prev) =>
-                                prev.filter((i) => i.key !== item.key),
-                            )
-                        }
-                        onSuggest={() => suggest(item)}
-                        concernLabel="What it targets"
-                        reorder={{
-                            canMoveUp: index > 0,
-                            canMoveDown: index < items.length - 1,
-                            onMove: (by) => move(index, by),
-                        }}
-                    />
-                ))}
+                <Sortable
+                    value={items}
+                    onValueChange={setItems}
+                    getItemValue={(i) => i.key}
+                    strategy="vertical"
+                    className="space-y-3"
+                >
+                    {items.map((item) => (
+                        <SortableItem key={item.key} value={item.key}>
+                            <ProductDraftCard
+                                item={item}
+                                onChange={(change) => patch(item.key, change)}
+                                onRemove={() =>
+                                    setItems((prev) =>
+                                        prev.filter((i) => i.key !== item.key),
+                                    )
+                                }
+                                onSuggest={() => suggest(item)}
+                                concernLabel="What it targets"
+                                search={{
+                                    search: searchCatalogForPicker,
+                                    onPick: (match) =>
+                                        applyCatalogMatch(item, match),
+                                }}
+                                dragHandle={
+                                    <SortableItemHandle
+                                        render={
+                                            <button
+                                                type="button"
+                                                aria-label="Drag to reorder"
+                                                className="shrink-0 text-muted-foreground/50 hover:text-muted-foreground"
+                                            />
+                                        }
+                                    >
+                                        <GripVertical
+                                            className="size-4"
+                                            aria-hidden
+                                        />
+                                    </SortableItemHandle>
+                                }
+                            />
+                        </SortableItem>
+                    ))}
+                </Sortable>
 
                 <Button
                     variant="outline"

@@ -22,7 +22,12 @@ async function loadOptions(userId: string): Promise<{
                 id: r.id,
                 name: r.name,
                 coverage: routineCoverage(r),
-                items: r.items.map((i) => ({ id: i.id, name: i.name, image: i.image })),
+                items: r.items.map((i) => ({
+                    id: i.id,
+                    name: i.name,
+                    image: i.image,
+                    catalogProductId: i.catalogProductId,
+                })),
             })),
             error: null,
         };

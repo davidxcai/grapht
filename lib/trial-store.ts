@@ -665,6 +665,43 @@ export async function deleteCapturePhoto(userId: string, photoId: string): Promi
 }
 
 /**
+ * Permanently delete a trial and everything under it. `on delete cascade`
+ * (scripts/migrate-trials.mjs) takes care of interventions, captures, extra
+ * photos, applications, comments and saves — one row delete is enough.
+ *
+ * Postgres can't reach into Blob storage, so the blob pathnames are read out
+ * *before* the delete removes the rows that named them, and handed back for
+ * the caller to clean up. Ownership is checked twice — once implicitly by
+ * scoping the select, once explicitly in the delete's `where` — so a stranger's
+ * id costs nothing and deletes nothing.
+ *
+ * Returns null when no row matched: someone else's id, or the fixture, which
+ * has no row here at all.
+ */
+export async function deleteTrial(userId: string, id: string): Promise<string[] | null> {
+  if (!UUID.test(id)) return null;
+  const sql = getSql();
+
+  const pathnames = (await sql`
+    select blob_pathname from trial_captures
+     where trial_id = ${id}::uuid and blob_pathname is not null
+       and exists (select 1 from trials where id = ${id}::uuid and user_id = ${userId})
+    union all
+    select p.blob_pathname from trial_capture_photos p
+      join trial_captures c on c.id = p.capture_id
+     where c.trial_id = ${id}::uuid
+       and exists (select 1 from trials where id = ${id}::uuid and user_id = ${userId})
+  `) as Record<string, unknown>[];
+
+  const rows = (await sql`
+    delete from trials
+     where id = ${id}::uuid and user_id = ${userId}
+     returning id`) as Record<string, unknown>[];
+
+  return rows.length > 0 ? pathnames.map((r) => r.blob_pathname as string) : null;
+}
+
+/**
  * Store the generated summary. Completed trials only — the summary is a
  * retrospective on a closed window, never a mid-trial verdict.
  */

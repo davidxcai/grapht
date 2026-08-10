@@ -1,13 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Package, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ConcernPicker } from "@/components/concern-picker";
+import { Thumbnail } from "@/components/thumbnail";
 import { cn } from "@/lib/utils";
 import type { CatalogPickerMatch } from "@/lib/catalog";
 import type { Provenance, RankedConcern } from "@/lib/routines";
@@ -88,6 +88,17 @@ export function blankProductDraft(keyPrefix: string): ProductDraft {
     };
 }
 
+/**
+ * The editable product row — shared verbatim by `RoutineEditor` and
+ * `TrialEditorStepper` (via the `search`/`dragHandle` props below) rather
+ * than each owning its own picker. The two callers must stay behaviourally
+ * identical: same inline catalog search, same reserved image slot, same
+ * `Sortable`/`SortableItemHandle` drag-to-reorder, same manual-only
+ * "Suggest" (never auto-fired on a catalog pick — that's a paid Gemini
+ * call). For the read-only equivalent see `ProductCard`; for the shared
+ * image box see `Thumbnail`. Prefer extending this over building a second
+ * product-editing row.
+ */
 export function ProductDraftCard({
     item,
     onChange,
@@ -95,7 +106,6 @@ export function ProductDraftCard({
     onSuggest,
     concernLabel,
     dosage = false,
-    reorder,
     dragHandle,
     search,
 }: {
@@ -111,25 +121,17 @@ export function ProductDraftCard({
      *  starts hidden behind an "Add amount" toggle (trial style), since most
      *  tracked products don't need one specified. */
     dosage?: boolean | "collapsible";
-    /** Shows the move up/down arrows — routine-only, since a routine's order
-     *  is meaningful ("in the order you use them") and a trial's tracked
-     *  list isn't. Mutually exclusive with `dragHandle`. */
-    reorder?: {
-        canMoveUp: boolean;
-        canMoveDown: boolean;
-        onMove: (by: number) => void;
-    };
-    /** Renders next to the identity field in place of the reorder arrows —
-     *  the trial stepper wraps its cards in its own <Sortable>/<SortableItem>
-     *  and passes a <SortableItemHandle> here rather than owning ordering
-     *  itself. Mutually exclusive with `reorder`. */
+    /** Renders next to the identity field — both the routine editor and the
+     *  trial stepper wrap their cards in their own <Sortable>/<SortableItem>
+     *  and pass a <SortableItemHandle> here, since the product-adding flow
+     *  is deliberately identical between them. */
     dragHandle?: React.ReactNode;
-    /** Enables inline catalog search on the identity field itself (trial
-     *  style): the two-field brand/name input collapses into one searchable
-     *  field, a match fills brand from the catalog, and the image slot is
-     *  always reserved so a pick never reflows the cards above it. Omit for
-     *  a separate SearchCombobox above the list instead (routine style),
-     *  where the image slot only takes up space once a pick has set one. */
+    /** Enables inline catalog search on the identity field itself: the
+     *  two-field brand/name input collapses into one searchable field, a
+     *  match fills brand from the catalog, and the image slot is always
+     *  reserved so a pick never reflows the cards above it. Both the routine
+     *  editor and the trial stepper pass this now — the product-adding flow
+     *  is deliberately identical between them. */
     search?: {
         search: (query: string) => Promise<CatalogPickerMatch[]>;
         onPick: (match: CatalogPickerMatch) => void;
@@ -258,168 +260,111 @@ export function ProductDraftCard({
 
     return (
         <Card className="gap-3 p-4">
-            <div
-                className={cn(
-                    "flex",
-                    search
-                        ? "flex-col gap-3 sm:flex-row"
-                        : item.image
-                          ? "gap-4 max-sm:flex-col"
-                          : "flex-col gap-4",
-                )}
-            >
-                {search ? (
-                    <div className="aspect-square w-full max-w-sm max-h-sm shrink-0 self-start overflow-hidden rounded-lg bg-muted ring-1 ring-foreground/10 sm:self-stretch sm:max-h-none sm:max-w-none sm:w-auto">
-                        {item.image ? (
-                            <Image
+            <div className="flex items-center gap-2">
+                {dragHandle}
+
+                <div
+                    className={cn(
+                        "flex min-w-0 flex-1",
+                        search
+                            ? "flex-col gap-3 sm:flex-row"
+                            : item.image
+                              ? "gap-4 max-sm:flex-col"
+                              : "flex-col gap-4",
+                    )}
+                >
+                    {search ? (
+                        <Thumbnail
+                            src={item.image}
+                            size={160}
+                            className="w-full max-w-40 self-start rounded-lg ring-1 ring-foreground/10 sm:w-40"
+                        />
+                    ) : (
+                        item.image && (
+                            <Thumbnail
                                 src={item.image}
-                                alt=""
-                                width={160}
-                                height={160}
-                                unoptimized
-                                className="size-full object-contain"
+                                size={160}
+                                className="w-full max-w-40 self-start rounded-lg sm:w-40"
                             />
-                        ) : (
-                            <div className="flex size-full items-center justify-center">
-                                <Package
-                                    className="size-10 text-muted-foreground/40"
-                                    aria-hidden
-                                />
+                        )
+                    )}
+
+                    {search ? (
+                        <div className="flex min-w-0 flex-1 items-start gap-2">
+                            <div className="min-w-0 flex-1 space-y-3">
+                                <div className="relative">
+                                    <Input
+                                        value={displayValue}
+                                        placeholder="Search Products"
+                                        aria-label="Search products"
+                                        onChange={editInlineName}
+                                        onFocus={() => setSearchOpen(true)}
+                                        onBlur={() =>
+                                            setTimeout(() => setSearchOpen(false), 150)
+                                        }
+                                    />
+
+                                    {searchOpen && matches.length > 0 && (
+                                        <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-lg border bg-popover p-1 text-sm shadow-md ring-1 ring-foreground/10">
+                                            {matches.map((m) => (
+                                                <li key={m.id}>
+                                                    <button
+                                                        type="button"
+                                                        className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left hover:bg-slate-100/50"
+                                                        onMouseDown={(e) =>
+                                                            e.preventDefault()
+                                                        }
+                                                        onClick={() => {
+                                                            search.onPick(m);
+                                                            setSearchOpen(false);
+                                                            setMatches([]);
+                                                        }}
+                                                    >
+                                                        <Thumbnail src={m.image} size={32} className="size-8 rounded" />
+                                                        <span className="min-w-0 truncate">
+                                                            {m.brand
+                                                                ? `${m.name} — ${m.brand}`
+                                                                : m.name}
+                                                        </span>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+
+                                {dosageBlock}
+                                {concernPicker}
                             </div>
-                        )}
-                    </div>
-                ) : (
-                    item.image && (
-                        <div className="aspect-square w-full max-w-sm max-h-sm shrink-0 self-start overflow-hidden rounded-lg bg-white sm:self-stretch sm:max-h-none sm:max-w-none sm:w-auto">
-                            <Image
-                                src={item.image}
-                                alt=""
-                                width={160}
-                                height={160}
-                                unoptimized
-                                className="size-full object-contain"
-                            />
+
+                            {removeButton}
                         </div>
-                    )
-                )}
-
-                {search ? (
-                    <div className="flex min-w-0 flex-1 items-start gap-2">
-                        {dragHandle}
-
+                    ) : (
                         <div className="min-w-0 flex-1 space-y-3">
-                            <div className="relative">
-                                <Input
-                                    value={displayValue}
-                                    placeholder="Search Products"
-                                    aria-label="Search products"
-                                    onChange={editInlineName}
-                                    onFocus={() => setSearchOpen(true)}
-                                    onBlur={() =>
-                                        setTimeout(() => setSearchOpen(false), 150)
-                                    }
-                                />
+                            <div className="flex items-start gap-2">
+                                <div className="grid flex-1 gap-2 sm:grid-cols-[1fr_1.4fr]">
+                                    <Input
+                                        value={item.brand}
+                                        placeholder="Brand (optional)"
+                                        aria-label="Brand"
+                                        onChange={editIdentity("brand")}
+                                    />
+                                    <Input
+                                        value={item.name}
+                                        placeholder="Product, e.g. niacinamide serum"
+                                        aria-label="Product name"
+                                        onChange={editIdentity("name")}
+                                    />
+                                </div>
 
-                                {searchOpen && matches.length > 0 && (
-                                    <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-lg border bg-popover p-1 text-sm shadow-md ring-1 ring-foreground/10">
-                                        {matches.map((m) => (
-                                            <li key={m.id}>
-                                                <button
-                                                    type="button"
-                                                    className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left hover:bg-slate-100/50"
-                                                    onMouseDown={(e) =>
-                                                        e.preventDefault()
-                                                    }
-                                                    onClick={() => {
-                                                        search.onPick(m);
-                                                        setSearchOpen(false);
-                                                        setMatches([]);
-                                                    }}
-                                                >
-                                                    <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
-                                                        {m.image ? (
-                                                            <Image
-                                                                src={m.image}
-                                                                alt=""
-                                                                width={32}
-                                                                height={32}
-                                                                unoptimized
-                                                                className="size-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <Package
-                                                                className="size-3.5 text-muted-foreground"
-                                                                aria-hidden
-                                                            />
-                                                        )}
-                                                    </span>
-                                                    <span className="min-w-0 truncate">
-                                                        {m.brand
-                                                            ? `${m.name} — ${m.brand}`
-                                                            : m.name}
-                                                    </span>
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
+                                {removeButton}
                             </div>
 
                             {dosageBlock}
                             {concernPicker}
                         </div>
-
-                        {removeButton}
-                    </div>
-                ) : (
-                    <div className="min-w-0 flex-1 space-y-3">
-                        <div className="flex items-start gap-2">
-                            <div className="grid flex-1 gap-2 sm:grid-cols-[1fr_1.4fr]">
-                                <Input
-                                    value={item.brand}
-                                    placeholder="Brand (optional)"
-                                    aria-label="Brand"
-                                    onChange={editIdentity("brand")}
-                                />
-                                <Input
-                                    value={item.name}
-                                    placeholder="Product, e.g. niacinamide serum"
-                                    aria-label="Product name"
-                                    onChange={editIdentity("name")}
-                                />
-                            </div>
-
-                            <div className="flex shrink-0 gap-0.5">
-                                {reorder && (
-                                    <>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon-sm"
-                                            aria-label="Move up"
-                                            disabled={!reorder.canMoveUp}
-                                            onClick={() => reorder.onMove(-1)}
-                                        >
-                                            <ArrowUp aria-hidden />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon-sm"
-                                            aria-label="Move down"
-                                            disabled={!reorder.canMoveDown}
-                                            onClick={() => reorder.onMove(1)}
-                                        >
-                                            <ArrowDown aria-hidden />
-                                        </Button>
-                                    </>
-                                )}
-                                {removeButton}
-                            </div>
-                        </div>
-
-                        {dosageBlock}
-                        {concernPicker}
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </Card>
     );

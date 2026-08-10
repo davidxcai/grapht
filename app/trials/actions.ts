@@ -20,6 +20,7 @@ import {
   closeTrial,
   createTrial,
   deleteCapturePhoto,
+  deleteTrial,
   getTrialHeader,
   isFixtureTrial,
   loadTrials,
@@ -543,6 +544,33 @@ export async function saveTrialSettings(
     return { ok: true, data: { id } };
   } catch (error) {
     return { ok: false, error: `Could not save your changes — ${(error as Error).message}` };
+  }
+}
+
+/**
+ * Delete a trial outright — its own row and everything under it (products,
+ * photos, applications, comments, saves), plus the photos themselves in Blob.
+ * There is no undo, and unlike ending a trial, deleting removes it from the
+ * dashboard and the community surfaces entirely rather than closing it out.
+ */
+export async function removeTrial(id: string): Promise<ActionResult> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to delete a trial.' };
+
+  if (isFixtureTrial(id)) {
+    return { ok: false, error: 'This is the built-in sample trial and cannot be deleted.' };
+  }
+
+  try {
+    const pathnames = await deleteTrial(userId, id);
+    if (!pathnames) return { ok: false, error: 'That trial no longer exists.' };
+    await Promise.all(pathnames.map((p) => del(p).catch(() => {})));
+
+    revalidatePath('/');
+    revalidatePath('/dashboard');
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: `Could not delete this trial — ${(error as Error).message}` };
   }
 }
 

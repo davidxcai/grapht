@@ -5,8 +5,9 @@ import { Card } from '@/components/ui/card';
 import { CompletedBadge } from '@/components/completed-badge';
 import { TimeOfDayBadge } from '@/components/time-of-day-badge';
 import { ConcernChips } from '@/components/concern-chips';
+import { ProductRow } from '@/components/product-row';
 import { formatCount } from '@/lib/format';
-import { interventionLabel, interventionTargets, isInconclusive, toCardData } from '@/lib/trials';
+import { interventionTargets, isInconclusive, toCardData } from '@/lib/trials';
 import type { PublicTrial } from '@/lib/community';
 
 /**
@@ -42,13 +43,11 @@ export function CommunityTrialCard({ entry }: { entry: PublicTrial }) {
           {` · ${daysLogged} logged`}
         </p>
 
-        <ul className="space-y-0.5">
+        <div className="space-y-2">
           {trial.routine.interventions.map((i) => (
-            <li key={i.name} className="truncate text-sm text-muted-foreground">
-              {interventionLabel(i)}
-            </li>
+            <ProductRow key={i.name} name={i.name} image={i.image} />
           ))}
-        </ul>
+        </div>
 
         {targets.length > 0 && <ConcernChips concerns={targets} className="mt-1" />}
 

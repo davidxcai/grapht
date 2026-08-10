@@ -1,10 +1,10 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
-import { Package, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 import { Input } from '@/components/ui/input';
+import { Thumbnail } from '@/components/thumbnail';
 import { cn } from '@/lib/utils';
 
 /**
@@ -89,22 +89,7 @@ export function SearchCombobox<T>({
                     setOpen(false);
                   }}
                 >
-                  {itemImage && (
-                    <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
-                      {image ? (
-                        <Image
-                          src={image}
-                          alt=""
-                          width={32}
-                          height={32}
-                          unoptimized
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <Package className="size-3.5 text-muted-foreground" aria-hidden />
-                      )}
-                    </span>
-                  )}
+                  {itemImage && <Thumbnail src={image} size={32} className="size-8 rounded" />}
                   <span className="min-w-0 truncate">{itemLabel(opt)}</span>
                 </button>
               </li>

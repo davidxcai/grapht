@@ -1,13 +1,13 @@
-import Image from 'next/image';
 import type { ReactNode } from 'react';
-import { Package } from 'lucide-react';
 
 import { ConcernChips } from '@/components/concern-chips';
+import { ProductRow } from '@/components/product-row';
 
 export interface RoutineSummaryItem {
   id: string;
   name: string;
   image: string | null;
+  catalogProductId: string | null;
 }
 
 export interface RoutineSummaryData {
@@ -31,11 +31,18 @@ export function RoutineSummary({
   as: Heading = 'h2',
   titleClassName = 'text-base',
   trailing,
+  linkItems = false,
 }: {
   routine: RoutineSummaryData;
   as?: 'h1' | 'h2' | 'h3';
   titleClassName?: string;
   trailing?: ReactNode;
+  /** Opt-in, not opt-out: `RoutineCard` is nested inside its own outer link,
+   *  where a per-item link to `/products/[id]` would land inside that `<a>`,
+   *  and the trial-editor's chosen-routine preview is mid-form — navigating
+   *  away there would drop the in-progress trial. Only the routine's own
+   *  standalone page (`app/routines/[id]/page.tsx`) has nothing to lose. */
+  linkItems?: boolean;
 }) {
   return (
     <>
@@ -48,30 +55,18 @@ export function RoutineSummary({
       </div>
 
       <div>
-        <p className="mb-1.5 text-xs text-muted-foreground">Covers</p>
         <ConcernChips concerns={routine.coverage} empty="No metrics tagged yet" />
       </div>
 
       {routine.items.length > 0 && (
         <div className="space-y-2">
           {routine.items.map((item) => (
-            <div key={item.id} className="flex min-w-0 items-center gap-2">
-              <div className="size-10 shrink-0 overflow-hidden rounded bg-muted flex items-center justify-center">
-                {item.image ? (
-                  <Image
-                    src={item.image}
-                    alt=""
-                    width={40}
-                    height={40}
-                    unoptimized
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  <Package className="size-5 text-muted-foreground" />
-                )}
-              </div>
-              <p className="truncate text-sm text-muted-foreground">{item.name}</p>
-            </div>
+            <ProductRow
+              key={item.id}
+              name={item.name}
+              image={item.image}
+              href={linkItems && item.catalogProductId ? `/products/${item.catalogProductId}` : null}
+            />
           ))}
         </div>
       )}

@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
 
@@ -8,6 +7,7 @@ import { ConcernChips } from '@/components/concern-chips';
 import { ProductSearch } from '@/components/product-search';
 import { CatalogFacets } from '@/components/catalog-facets';
 import { CatalogConcernFilter } from '@/components/catalog-concern-filter';
+import { Thumbnail } from '@/components/thumbnail';
 import { searchCatalog, type CatalogSearchResult } from '@/lib/catalog';
 import { formatCount } from '@/lib/format';
 
@@ -45,20 +45,7 @@ function ProductCard({ product }: { product: CatalogSearchResult }) {
   return (
     <Link href={`/products/${product.id}`} className="group block">
       <Card className="flex-row gap-4 overflow-hidden p-0 transition-colors group-hover:bg-slate-100/50 max-sm:flex-col">
-        <div className="flex aspect-square shrink-0 items-center justify-center bg-muted max-sm:h-40 max-sm:w-full">
-          {product.image ? (
-            <Image
-              src={product.image}
-              alt=""
-              width={112}
-              height={112}
-              unoptimized
-              className="size-full object-contain"
-            />
-          ) : (
-            <Package className="size-6 text-muted-foreground" aria-hidden />
-          )}
-        </div>
+        <Thumbnail src={product.image} size={112} className="w-28 bg-muted max-sm:h-40 max-sm:w-full" />
         <div className="flex min-w-0 flex-1 flex-col gap-2 py-5 pr-5 max-sm:px-5 max-sm:pt-0">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">

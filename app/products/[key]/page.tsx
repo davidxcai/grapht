@@ -1,17 +1,17 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { buttonVariants } from '@/components/ui/button';
 import { CardGrid, EmptyCard } from '@/components/card-grid';
 import { ConcernChips } from '@/components/concern-chips';
 import { CommunityTrialCard } from '@/components/community-trial-card';
 import { RoutineCard } from '@/components/routine-card';
+import { Thumbnail } from '@/components/thumbnail';
+import { IngredientTable } from '@/components/ingredient-table';
 import { getCommunityProduct, getCommunityProductByCatalogId, type CommunityProduct } from '@/lib/community';
 import { getCatalogProduct, type CatalogProductDetail } from '@/lib/catalog';
-import { listRoutines, routinesWithProduct } from '@/lib/routines';
-import { currentUserId } from '@/lib/auth';
+import { listPublicRoutines, publicRoutinesWithProduct } from '@/lib/routines';
 import { formatCount } from '@/lib/format';
 
 /**
@@ -131,16 +131,13 @@ export default async function ProductDetail({
   const image = catalog?.image ?? community?.image ?? null;
   const trials = community?.trials ?? [];
 
-  // Routines have no public surface (unlike trials) — this is always the
-  // signed-in viewer's own saved routines, never anyone else's.
-  const userId = await currentUserId();
-  const myRoutines = userId
-    ? routinesWithProduct(await listRoutines(userId), {
-        catalogProductId: catalog?.id ?? null,
-        brand,
-        name,
-      })
-    : [];
+  // Community-wide, like `trials` above — every published routine that
+  // carries this product, not just the signed-in viewer's own.
+  const routines = publicRoutinesWithProduct(await listPublicRoutines(), {
+    catalogProductId: catalog?.id ?? null,
+    brand,
+    name,
+  });
   // Already newest-first: `trials` comes from published rows queried
   // `order by created_at desc` (lib/community.ts), so slicing here keeps new
   // trials on page 1 without re-sorting.
@@ -167,20 +164,7 @@ export default async function ProductDetail({
 
       <div className="mt-6 space-y-8">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,340px)_1fr]">
-          <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border bg-white lg:sticky lg:top-10">
-            {image ? (
-              <Image
-                src={image}
-                alt=""
-                width={340}
-                height={340}
-                unoptimized
-                className="size-full object-contain"
-              />
-            ) : (
-              <Package className="size-12 text-neutral-300" aria-hidden />
-            )}
-          </div>
+          <Thumbnail src={image} size={340} className="rounded-lg border lg:sticky lg:top-10" />
 
           <div className="min-w-0 space-y-6">
             <div>
@@ -214,58 +198,35 @@ export default async function ProductDetail({
               <h2 className="text-sm font-medium">
                 Ingredients{catalog ? ` (${catalog.ingredientCount})` : ''}
               </h2>
-              {!catalog || catalog.ingredients.length === 0 ? (
+              {!catalog ? (
                 <p className="mt-3 text-sm text-muted-foreground">No ingredient panel on file for this product.</p>
               ) : (
-                <div className="mt-3 overflow-x-auto rounded-lg border">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/40 text-left text-xs text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2 font-medium">Ingredient</th>
-                        <th className="px-3 py-2 font-medium">Function</th>
-                        <th className="px-3 py-2 font-medium">Irritancy</th>
-                        <th className="px-3 py-2 font-medium">Comedogenicity</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {catalog.ingredients.map((ing, i) => (
-                        <tr key={`${ing.slug}-${i}`}>
-                          <td className="px-3 py-2">{ing.name}</td>
-                          <td className="px-3 py-2 text-muted-foreground">
-                            {ing.functions.length ? ing.functions.join(', ') : '—'}
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground">{ing.irritancy ?? '—'}</td>
-                          <td className="px-3 py-2 text-muted-foreground">{ing.comedogenicity ?? '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="mt-3">
+                  <IngredientTable ingredients={catalog.ingredients} count={catalog.ingredientCount} />
                 </div>
               )}
             </section>
           </div>
         </div>
 
-        {userId && (
-          <section>
-            <h2 className="text-lg font-medium">Routines that use this</h2>
-            {myRoutines.length === 0 ? (
-              <div className="mt-4">
-                <CardGrid>
-                  <EmptyCard href="/routines/new" label="Add to a routine" message="not in any routines yet, be the first" />
-                </CardGrid>
-              </div>
-            ) : (
-              <div className="mt-4">
-                <CardGrid>
-                  {myRoutines.map((routine) => (
-                    <RoutineCard key={routine.id} routine={routine} />
-                  ))}
-                </CardGrid>
-              </div>
-            )}
-          </section>
-        )}
+        <section>
+          <h2 className="text-lg font-medium">Routines that use this</h2>
+          {routines.length === 0 ? (
+            <div className="mt-4">
+              <CardGrid>
+                <EmptyCard href="/routines/new" label="Add to a routine" message="not in any routines yet, be the first" />
+              </CardGrid>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <CardGrid>
+                {routines.map(({ routine, handle }) => (
+                  <RoutineCard key={routine.id} routine={routine} handle={handle} />
+                ))}
+              </CardGrid>
+            </div>
+          )}
+        </section>
 
         <section>
           <h2 className="text-lg font-medium">Trials that use this</h2>

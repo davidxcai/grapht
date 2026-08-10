@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { ConcernChips } from '@/components/concern-chips';
 import { ProductCard } from '@/components/product-card';
+import { ProductRow } from '@/components/product-row';
 import type { Trial } from '@/lib/trials';
 import type { RoutineSnapshot } from '@/lib/routines';
 
@@ -27,13 +28,15 @@ function RoutineSnapshotCard({ routine }: { routine: RoutineSnapshot }) {
       </div>
 
       {routine.items.length > 0 && (
-        <ul className="space-y-1">
+        <div className="space-y-2">
           {routine.items.map((item) => (
-            <li key={item.name} className="text-sm text-muted-foreground">
-              {item.name}
-            </li>
+            <ProductRow
+              key={item.name}
+              name={item.name}
+              href={item.catalogProductId ? `/products/${item.catalogProductId}` : null}
+            />
           ))}
-        </ul>
+        </div>
       )}
 
       <div>
@@ -79,12 +82,6 @@ export function TrialProducts({ trial }: Props) {
           rather than as the fact that there is nothing to confound with. */}
       <section>
         <h3 className="text-sm font-medium">Routine</h3>
-        {baseline.length > 0 && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Already in your routine, and not being tested:
-          </p>
-        )}
-
         {baseline.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">
             Nothing — this trial isn&rsquo;t sitting on a saved routine.

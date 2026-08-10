@@ -8,7 +8,7 @@ export interface RoutineOption {
     id: string;
     name: string;
     coverage: string[];
-    items: { id: string; name: string; image: string | null }[];
+    items: { id: string; name: string; image: string | null; catalogProductId: string | null }[];
 }
 import {
     Camera,
@@ -567,7 +567,7 @@ export function TrialEditorStepper({
                                                     <button
                                                         type="button"
                                                         aria-label="Drag to reorder"
-                                                        className="mt-2 shrink-0 text-muted-foreground/50 hover:text-muted-foreground"
+                                                        className="shrink-0 text-muted-foreground/50 hover:text-muted-foreground"
                                                     />
                                                 }
                                             >

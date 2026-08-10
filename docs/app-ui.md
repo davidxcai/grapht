@@ -249,6 +249,16 @@ an absent `DATABASE_URL` costs the routines tab and leaves the demo path intact.
 The `analysis_concern` enum is generated from `src/concerns.mjs`, so the
 database rejects `pores` exactly as `normalizeConcerns()` does.
 
+A routine can be published (`RoutineVisibility`, `getPublicRoutine()`,
+2026-08-09) — `/routines/[id]` renders a read-only page with the owner's
+@username for anyone with the link, same split as `/trials/[id]`. A
+product's page (§8) surfaces this: "Routines that use this" is community-wide
+— every public routine carrying the product, from any owner — not just the
+signed-in viewer's own, mirroring "Trials that use this" directly below it
+(`publicRoutinesWithProduct()` in `lib/routines.ts`; fixed 2026-08-09 after
+the section shipped scoped to `listRoutines(userId)` and stayed that way
+after publishing landed).
+
 Open: whether a routine can be *derived* from a finished trial's baseline;
 whether editing a routine should offer to fork rather than mutate, once more
 than one trial references it.
@@ -893,7 +903,11 @@ search (§9). A published trial page shows
 its owner's @username and view count, takes comments (the owner's switch), and
 can be saved — saves land on a dashboard tab. The product index is derived
 entirely from published trials: a product exists because someone trialled it,
-and its page is the trials themselves.
+and its page is the trials themselves. A product page also lists every
+published routine (§3.1) that carries the product, across every owner —
+`lib/routines.ts`'s `listPublicRoutines()` / `publicRoutinesWithProduct()`,
+the same `visibility = 'public'`-only, no-owner-filter shape as
+`listPublicTrials()` here.
 
 Two of the old open items are resolved by construction: **no likes** — views
 are the only count, so a feed can't be sorted against the premise — and

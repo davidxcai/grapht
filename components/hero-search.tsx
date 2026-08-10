@@ -1,12 +1,12 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Package, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 import { Input } from '@/components/ui/input';
+import { Thumbnail } from '@/components/thumbnail';
 import { searchHeroProducts } from '@/app/search/actions';
 import type { CatalogPickerMatch } from '@/lib/catalog';
 
@@ -81,20 +81,7 @@ export function HeroSearch() {
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 hover:bg-slate-100/50"
               >
-                <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
-                  {opt.image ? (
-                    <Image
-                      src={opt.image}
-                      alt=""
-                      width={32}
-                      height={32}
-                      unoptimized
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <Package className="size-3.5 text-muted-foreground" aria-hidden />
-                  )}
-                </span>
+                <Thumbnail src={opt.image} size={32} className="size-8 rounded" />
                 <span className="min-w-0 truncate">
                   {opt.brand && <span className="text-muted-foreground">{opt.brand} </span>}
                   {opt.name}

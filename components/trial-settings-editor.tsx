@@ -3,7 +3,7 @@
 /** `nextjs-toploader/app`, not `next/navigation` — see routine-editor.tsx. */
 import { useRouter } from 'nextjs-toploader/app';
 import { useState, useTransition } from 'react';
-import { Loader2, Lock, Moon, Sun, Users } from 'lucide-react';
+import { Loader2, Lock, Moon, Sun, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { saveTrialSettings } from '@/app/trials/actions';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { removeTrial, saveTrialSettings } from '@/app/trials/actions';
 import type { Frequency, TimeOfDay, Trial, TrialStatus, TrialVisibility } from '@/lib/trials';
 
 /**
@@ -150,6 +161,8 @@ export function TrialSettingsEditor({ trialId, status, startDate, settings }: Pr
 
   const [error, setError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, startDeleting] = useTransition();
 
   function pickDuration(next: DurationMode, days?: number) {
     setDurationMode(next);
@@ -212,6 +225,23 @@ export function TrialSettingsEditor({ trialId, status, startDate, settings }: Pr
       }
       toast.success('Trial updated');
       router.push(`/trials/${trialId}`);
+      router.refresh();
+    });
+  }
+
+  function destroy() {
+    startDeleting(async () => {
+      const result = await removeTrial(trialId);
+      if (!result.ok) {
+        // Close first, same reason as routine-editor.tsx: `AlertDialogAction`
+        // is a plain button, so the overlay would otherwise sit on top of the
+        // error and the failure would read as nothing having happened.
+        setConfirmOpen(false);
+        setError(result.error);
+        return;
+      }
+      toast.success('Trial deleted');
+      router.push('/dashboard');
       router.refresh();
     });
   }
@@ -410,19 +440,48 @@ export function TrialSettingsEditor({ trialId, status, startDate, settings }: Pr
           </p>
         )}
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1"
-            disabled={saving}
-            onClick={() => router.push(`/trials/${trialId}`)}
-          >
-            Cancel
-          </Button>
-          <Button className="flex-1" onClick={save} disabled={saving}>
-            {saving && <Loader2 className="animate-spin" aria-hidden />}
-            {saving ? 'Saving…' : 'Save'}
-          </Button>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-1 gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              disabled={saving}
+              onClick={() => router.push(`/trials/${trialId}`)}
+            >
+              Cancel
+            </Button>
+            <Button className="flex-1" onClick={save} disabled={saving}>
+              {saving && <Loader2 className="animate-spin" aria-hidden />}
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
+
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogTrigger
+              render={
+                <Button variant="ghost" size="sm" className="text-muted-foreground">
+                  <Trash2 aria-hidden />
+                  Delete
+                </Button>
+              }
+            />
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete &ldquo;{name || settings.name}&rdquo;?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This removes the trial and every photo, measurement, comment
+                  and save under it for good. There is no undo.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Keep</AlertDialogCancel>
+                <AlertDialogAction variant="destructive" disabled={deleting} onClick={destroy}>
+                  {deleting && <Loader2 className="animate-spin" aria-hidden />}
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </section>
     </div>

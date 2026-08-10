@@ -124,6 +124,28 @@ cosmetically. Consequences to hold in mind:
   `docs/capture-quality.md` §5). If the shutter starts feeling like it rarely
   unlocks, that comparison is where to look first.
 
+**A product page's "Routines that use this" showed only the signed-in
+viewer's own routines, as of 2026-08-09.** `routinesWithProduct()` in
+`lib/routines.ts` was written to filter `listRoutines(userId)` — the
+owner-scoped read — under the comment "routines have no public surface."
+That was true when it was written but went stale the moment routine
+publishing shipped (`RoutineVisibility`, `getPublicRoutine()`,
+`/routines/[id]`'s public branch): a routine can be `visibility = 'public'`
+and readable by anyone with the link, exactly like a trial, but
+`app/products/[key]/page.tsx` never queried past the current user to find
+one. The section was gated on `userId` entirely, so a signed-out visitor saw
+no routines section at all, and a signed-in visitor saw only their own —
+never another user's published routine, even one using the exact product on
+the page. "Trials that use this" right below it never had this bug:
+`listPublicTrials()` in `lib/community.ts` was always `where visibility =
+'public'` with no owner filter. Fixed by adding `listPublicRoutines()` (same
+shape as `listPublicTrials()`) and `publicRoutinesWithProduct()` alongside
+the original owner-scoped `routinesWithProduct()`, and switching the product
+page to the community-wide read; the section is no longer gated on
+`userId`. `RoutineCard` takes an optional `handle` prop, shown only when the
+card can belong to any owner, so a stranger's routine on the product page
+reads `@handle` the way `CommunityTrialCard` already does.
+
 ```bash
 npm install                              # Node 22+, macOS (sips is used for HEIC)
 npm run dev                              # the web app, http://localhost:3000
@@ -242,6 +264,38 @@ raw literal `"{acne,texture}"` — a string. Nothing throws; coverage just
 silently renders empty. `ITEM_COLUMNS` in `lib/routines.ts` and
 `INTERVENTION_COLUMNS` in `lib/trial-store.ts` are the only places this is
 spelled out.
+
+**Every product photo renders through one shared primitive — reuse it rather
+than hand-rolling another `<Image>`/`Package` pair.** `Thumbnail`
+(`components/thumbnail.tsx`) is always `object-contain` on white with a
+package-icon fallback, sized via a `size` prop and boxed via `className`. It
+didn't exist until 2026-08-09: the same `<Image>`-or-`<Package>` snippet had
+been copy-pasted into eleven call sites — `product-card.tsx`,
+`product-draft-card.tsx`, `catalog-product-card.tsx`,
+`trending-product-card.tsx`, `hero-search.tsx`, `search-combobox.tsx`,
+`routine-summary.tsx`, `trial-card.tsx`, `app/catalog/page.tsx`, and
+`app/products/[key]/page.tsx` — and had quietly drifted: four of them used
+`object-cover` (cropping bottle caps and labels the other seven were careful
+to protect), and the background alternated between white and muted for no
+reason tied to the content. A new need for a product photo should reach for
+`Thumbnail` directly (a small reference next to other content, e.g. nav
+search) or for one of these existing cards, never a new bespoke one:
+
+- **`ProductCard`** (`components/product-card.tsx`) — read-only row: thumbnail
+  + name/brand/dosage/targets, links to `/products/[id]` when a catalog id
+  exists. A trial's tracked products.
+- **`ProductDraftCard`** (`components/product-draft-card.tsx`) — the editable
+  row, shared verbatim by the routine editor and the trial stepper: inline
+  catalog search (`search` prop), drag-to-reorder (`dragHandle` prop, via
+  `src/components/reui/sortable.tsx`'s `Sortable`), the concern picker,
+  dosage. The routine editor and trial stepper must stay behaviourally
+  identical here, not just visually similar — same inline search, same
+  reserved image slot, same drag handle, same "Suggest" is manual, never
+  auto-fired on a catalog pick (that's a paid Gemini call).
+- **`CatalogProductCard`** (`components/catalog-product-card.tsx`) — grid tile
+  (image on top, text below) for `/search` and `/catalog`.
+- **`TrendingProductCard`** (`components/trending-product-card.tsx`) —
+  homepage trending row, same shape as `ProductCard`.
 
 Screens are designed in `docs/app-ui.md` and ratified one section at a time.
 Read the section before building it. Two rules from §3 apply project-wide:

@@ -1,27 +1,22 @@
-import Image from 'next/image';
 import Link from 'next/link';
-import { CircleCheck, CircleDashed, Package } from 'lucide-react';
+import { CircleCheck, CircleDashed } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
 import { CompletedBadge } from '@/components/completed-badge';
 import { TimeOfDayBadge } from '@/components/time-of-day-badge';
 import { ConcernChips } from '@/components/concern-chips';
+import { ProductRow } from '@/components/product-row';
 import { TrialRing } from '@/components/trial-ring';
-import {
-  interventionLabel,
-  interventionTargets,
-  isInconclusive,
-  type TrialCardData,
-} from '@/lib/trials';
+import { interventionTargets, isInconclusive, type TrialCardData } from '@/lib/trials';
 
 /**
  * The whole dashboard, repeated. Ring, name, what it tracks, today's log state.
  * Everything else is one tap deeper — the homescreen makes no demands.
  *
- * "What it tracks" is both the interventions (signed `+`/`−`, so removals read
- * as removals) and the concerns their `targets[]` union to, as chips — the
- * metrics this trial can actually attribute a change to. Never the baseline's
- * coverage, which is confounded, not tracked.
+ * "What it tracks" is both the interventions themselves and the concerns
+ * their `targets[]` union to, as chips — the metrics this trial can actually
+ * attribute a change to. Never the baseline's coverage, which is confounded,
+ * not tracked.
  */
 export function TrialCard({ data }: { data: TrialCardData }) {
   const { trial, dayNumber, totalDays, loggedToday } = data;
@@ -65,23 +60,7 @@ export function TrialCard({ data }: { data: TrialCardData }) {
 
         <div className="space-y-2">
           {trial.routine.interventions.map((i) => (
-            <div key={i.name} className="flex min-w-0 items-center gap-2">
-              <div className="size-10 shrink-0 overflow-hidden rounded bg-muted flex items-center justify-center">
-                {i.image ? (
-                  <Image
-                    src={i.image}
-                    alt=""
-                    width={40}
-                    height={40}
-                    unoptimized
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  <Package className="size-5 text-muted-foreground" />
-                )}
-              </div>
-              <p className="truncate text-sm text-muted-foreground">{interventionLabel(i)}</p>
-            </div>
+            <ProductRow key={i.name} name={i.name} image={i.image} />
           ))}
         </div>
       </Card>

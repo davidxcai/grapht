@@ -212,27 +212,84 @@ export async function getPublicRoutine(
   };
 }
 
+export interface PublicRoutine {
+  routine: Routine;
+  /** The owner's @username, null when the owner never finished sign-up. */
+  handle: string | null;
+}
+
+/**
+ * Every published routine, across every owner — the read source for a
+ * product page's "Routines that use this" section. Same split as
+ * `listPublicTrials()` in lib/community.ts: `visibility = 'public'` is the
+ * only guard, so this is not owner-scoped like `listRoutines()`.
+ */
+export async function listPublicRoutines(): Promise<PublicRoutine[]> {
+  const sql = getSql();
+  const [routineRows, itemRows] = await Promise.all([
+    sql`select r.*, p.username as owner_handle
+          from routines r
+          left join profiles p on p.user_id = r.user_id
+         where r.visibility = 'public'
+         order by r.created_at desc`,
+    sql.query(
+      `select ${ITEM_COLUMNS} from routine_items i
+       join routines r on r.id = i.routine_id
+       ${CATALOG_JOIN}
+       where r.visibility = 'public'
+       order by i.position asc, i.created_at asc`,
+    ),
+  ]);
+
+  const byRoutine = new Map<string, RoutineItem[]>();
+  for (const row of itemRows as Record<string, unknown>[]) {
+    const key = row.routine_id as string;
+    const list = byRoutine.get(key) ?? [];
+    list.push(toItem(row));
+    byRoutine.set(key, list);
+  }
+
+  return (routineRows as Record<string, unknown>[]).map((r) => ({
+    routine: toRoutine(r, byRoutine.get(r.id as string) ?? []),
+    handle: (r.owner_handle as string | null) ?? null,
+  }));
+}
+
+function routineHasProduct(
+  routine: Routine,
+  product: { catalogProductId: string | null; brand: string | null; name: string },
+): boolean {
+  const name = product.name.trim().toLowerCase();
+  const brand = (product.brand ?? '').trim().toLowerCase();
+  return routine.items.some((i) => {
+    if (product.catalogProductId && i.catalogProductId === product.catalogProductId) return true;
+    return i.name.trim().toLowerCase() === name && (i.brand ?? '').trim().toLowerCase() === brand;
+  });
+}
+
 /**
  * The subset of `routines` that carry this product — either by catalog id
  * (the reliable match, when the product page resolved one) or by brand+name
  * (the fallback for a product only ever added by typed name, barcode, or
- * ingredient photo, which has no catalog row to match on). Pure filter over
- * already-fetched routines, mirroring `aggregateProducts()`'s brand+name
- * comparison in lib/community.ts — routines have no public surface, so this
- * never reaches into the database itself.
+ * ingredient photo, which has no catalog row to match on). Pure filter,
+ * mirroring `aggregateProducts()`'s brand+name comparison in lib/community.ts.
  */
 export function routinesWithProduct(
   routines: Routine[],
   product: { catalogProductId: string | null; brand: string | null; name: string },
 ): Routine[] {
-  const name = product.name.trim().toLowerCase();
-  const brand = (product.brand ?? '').trim().toLowerCase();
-  return routines.filter((r) =>
-    r.items.some((i) => {
-      if (product.catalogProductId && i.catalogProductId === product.catalogProductId) return true;
-      return i.name.trim().toLowerCase() === name && (i.brand ?? '').trim().toLowerCase() === brand;
-    }),
-  );
+  return routines.filter((r) => routineHasProduct(r, product));
+}
+
+/** Same filter as `routinesWithProduct()`, over `listPublicRoutines()`'s
+ *  `{ routine, handle }` shape instead of bare routines — the product page's
+ *  "Routines that use this" pulls from every owner's published routines, not
+ *  just the signed-in viewer's own. */
+export function publicRoutinesWithProduct(
+  routines: PublicRoutine[],
+  product: { catalogProductId: string | null; brand: string | null; name: string },
+): PublicRoutine[] {
+  return routines.filter((r) => routineHasProduct(r.routine, product));
 }
 
 /* ---------- writes ---------- */
@@ -338,7 +395,17 @@ export function routineCoverage(routine: Routine): string[] {
 export interface RoutineSnapshot {
   routineId: string;
   routineName: string;
-  items: { brand: string | null; name: string; targets: string[] }[];
+  items: {
+    brand: string | null;
+    name: string;
+    targets: string[];
+    /** Identity pointer only, not measurement data — safe to carry on an
+     *  otherwise-frozen snapshot since it never changes what the trial
+     *  attributed to what. Lets the Details tab link the row to the
+     *  product page; there's no live image join for it, so the row falls
+     *  back to the placeholder icon rather than a stale cached photo. */
+    catalogProductId: string | null;
+  }[];
   coverage: string[];
   frozenAt: string;
 }
@@ -359,7 +426,12 @@ export function snapshotRoutine(routine: Routine): RoutineSnapshot {
     routineId: routine.id,
     routineName: routine.name,
     items: routine.items.map((i) =>
-      Object.freeze({ brand: i.brand, name: i.name, targets: Object.freeze([...i.targets]) }),
+      Object.freeze({
+        brand: i.brand,
+        name: i.name,
+        targets: Object.freeze([...i.targets]),
+        catalogProductId: i.catalogProductId,
+      }),
     ),
     coverage: Object.freeze(routineCoverage(routine)),
     frozenAt: new Date().toISOString(),

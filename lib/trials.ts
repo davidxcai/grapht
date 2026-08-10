@@ -215,7 +215,8 @@ export function toCardData(trial: Trial, now = new Date()): TrialCardData {
 
   const elapsed = daysBetween(startDate, today) + 1;
   // An open-ended trial has no ceiling to clamp against; it just keeps counting.
-  const dayNumber = Math.max(0, totalDays === null ? elapsed : Math.min(elapsed, totalDays));
+  // 1-indexed (see the field doc above) — a trial that exists is on at least day 1.
+  const dayNumber = Math.max(1, totalDays === null ? elapsed : Math.min(elapsed, totalDays));
 
   const capturedDays = new Set(trial.captures.map((c) => localDay(new Date(c.capturedAt))));
 

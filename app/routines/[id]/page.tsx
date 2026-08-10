@@ -51,6 +51,7 @@ export default async function RoutineDetail({ params }: { params: Promise<{ id: 
           routine={{ name: routine.name, coverage, items: routine.items }}
           as="h1"
           titleClassName="text-2xl"
+          linkItems
         />
       </Card>
 
