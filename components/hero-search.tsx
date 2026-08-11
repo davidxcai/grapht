@@ -3,9 +3,13 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { SearchIcon } from "lucide-react";
 
-import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Thumbnail } from "@/components/thumbnail";
 import { searchHeroProducts } from "@/app/search/actions";
 import type { CatalogPickerMatch } from "@/lib/catalog";
@@ -53,23 +57,27 @@ export function HeroSearch() {
                     setOpen(false);
                     goToSearchPage();
                 }}
-                className="flex h-12 w-full items-center gap-3 rounded-xl border border-input bg-input/10 px-4 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 dark:bg-input/20"
+                className="w-full"
             >
-                <button type="submit" aria-label="Search" className="shrink-0">
-                    <Search className="size-5 text-foreground" aria-hidden />
-                </button>
-                <Input
-                    value={q}
-                    onChange={(e) => {
-                        setQ(e.target.value);
-                        setOpen(true);
-                    }}
-                    onFocus={() => setOpen(true)}
-                    onBlur={() => setTimeout(() => setOpen(false), 150)}
-                    placeholder="Search products, brands, ingredients…"
-                    aria-label="Search"
-                    className="h-full flex-1 rounded-none border-0 p-0 text-base focus-visible:ring-0 md:text-base"
-                />
+                <InputGroup className="h-14 px-4">
+                    <InputGroupAddon>
+                        <button type="submit" aria-label="Search" className="shrink-0">
+                            <SearchIcon className="size-6 text-foreground" aria-hidden />
+                        </button>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                        value={q}
+                        onChange={(e) => {
+                            setQ(e.target.value);
+                            setOpen(true);
+                        }}
+                        onFocus={() => setOpen(true)}
+                        onBlur={() => setTimeout(() => setOpen(false), 150)}
+                        placeholder="Search products, brands, ingredients…"
+                        aria-label="Search"
+                        className="text-base"
+                    />
+                </InputGroup>
             </form>
 
             {open && q.trim() && options.length > 0 && (

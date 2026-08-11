@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GoogleButton } from '@/components/google-button';
+import { PasswordStrengthInput } from '@/components/password-strength-input';
 import { Divider, FieldError, FormError } from '@/components/auth-parts';
 
 export function SignupForm() {
@@ -131,15 +132,15 @@ export function SignupForm() {
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="password">Password</Label>
-          <Input
+          <PasswordStrengthInput
             id="password"
-            type="password"
             name="password"
             autoComplete="new-password"
             required
             className="h-10"
             aria-invalid={Boolean(errors.fields.password)}
             value={password}
+            userInputs={email ? [email] : undefined}
             onChange={(e) => {
               setPassword(e.target.value);
               setMismatch(null);
