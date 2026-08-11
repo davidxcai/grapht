@@ -1,5 +1,6 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrialCalendar } from "@/components/trial-calendar";
 import { TrialPhotos } from "@/components/trial-photos";
@@ -33,9 +34,13 @@ interface Props {
     record: LogRecord;
     /** False for the reference series, which has no row to edit. */
     canEdit: boolean;
+    /** Live catalog thumbnails for the frozen baseline snapshot's products,
+     *  keyed by catalog id — looked up server-side since the snapshot itself
+     *  carries no image (lib/routines.ts). */
+    productImages: Record<string, string | null>;
 }
 
-export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
+export function TrialDetailTabs({ trial, changes, record, canEdit, productImages }: Props) {
     const isCompleted = trial.status === "completed";
     const isOpenEnded = trial.window.endDate === null;
     const loggedDays = record.days
@@ -70,11 +75,12 @@ export function TrialDetailTabs({ trial, changes, record, canEdit }: Props) {
             <TabsContent value="details" className="mt-5">
                 <div className="grid gap-8 lg:grid-cols-2">
                     {/* Left column: products & routine */}
-                    <TrialProducts trial={trial} />
+                    <TrialProducts trial={trial} productImages={productImages} />
 
                     {/* Right column: what those products (and the baseline they sit on) are tracking */}
                     <div>
-                        <h3 className="text-sm font-medium">
+                        <h3 className="flex items-center gap-2 text-sm font-medium">
+                            <Sparkles className="h-4 w-4" />
                             AI Skin Analysis
                         </h3>
                         {noData ? (

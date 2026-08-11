@@ -19,9 +19,11 @@ import {
   recordView,
   type TrialComment,
 } from '@/lib/community';
+import { catalogProductImages } from '@/lib/catalog';
 import { logRecord, metricChanges } from '@/lib/trial-detail';
 import { isInconclusive } from '@/lib/trials';
 import { currentUserId } from '@/lib/auth';
+import type { RoutineSnapshot } from '@/lib/routines';
 
 /**
  * The trial detail page — the daily log for the owner, and the published
@@ -76,6 +78,18 @@ export default async function TrialDetail({ params }: { params: Promise<{ id: st
 
   const lastAppliedAt = trial.applications?.[trial.applications.length - 1] ?? null;
   const views = trial.viewCount ?? 0;
+
+  // The frozen baseline snapshot carries a catalog id for identity/linking
+  // only (lib/routines.ts) and never a cached image. This is the same
+  // pointer, joined here for the same non-measurement, display-only purpose
+  // a live routine already gets via ITEM_COLUMNS's `image` join.
+  const baselineCatalogIds = trial.routine.baseline
+    .filter((e): e is RoutineSnapshot => typeof e !== 'string')
+    .flatMap((r) => r.items.map((i) => i.catalogProductId))
+    .filter((id): id is string => id !== null);
+  const productImages: Record<string, string | null> = Object.fromEntries(
+    await catalogProductImages(baselineCatalogIds),
+  );
 
   return (
     <main className="w-full px-5 py-10 lg:px-10">
@@ -145,7 +159,13 @@ export default async function TrialDetail({ params }: { params: Promise<{ id: st
         )}
       </header>
 
-      <TrialDetailTabs trial={trial} changes={changes} record={record} canEdit={canEdit} />
+      <TrialDetailTabs
+        trial={trial}
+        changes={changes}
+        record={record}
+        canEdit={canEdit}
+        productImages={productImages}
+      />
 
       {stored && isPublic && (
         <TrialComments

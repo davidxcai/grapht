@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { HeroSearch } from "@/components/hero-search";
 import { BrandMarquee } from "@/components/brand-marquee";
 import { TrialCard } from "@/components/trial-card";
@@ -29,6 +31,21 @@ function Empty({ children }: { children: React.ReactNode }) {
     );
 }
 
+function SectionHeader({ title, href }: { title: string; href: string }) {
+    return (
+        <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">{title}</h2>
+            <Link
+                href={href}
+                className="inline-flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground"
+            >
+                See all
+                <ChevronRight className="size-4" aria-hidden />
+            </Link>
+        </div>
+    );
+}
+
 export default async function Home() {
     const [ongoing, completed, trending] = await Promise.all([
         listRecentPublicTrials("active", HOME_SECTION_LIMIT),
@@ -55,7 +72,7 @@ export default async function Home() {
 
             {trending.length > 0 && (
                 <section className="mt-8">
-                    <h2 className="text-lg font-semibold">Trending products</h2>
+                    <SectionHeader title="Trending products" href="/search?sortProducts=trending" />
                     <CardGrid className="mt-5">
                         {trending.map((product) => (
                             <CatalogProductCard
@@ -75,7 +92,7 @@ export default async function Home() {
             )}
 
             <section className="mt-8">
-                <h2 className="text-lg font-semibold">Active user trials</h2>
+                <SectionHeader title="Active user trials" href="/search?tab=trials&sortTrials=active" />
                 {ongoing.length === 0 ? (
                     <div className="mt-5">
                         <Empty>Nothing to show</Empty>
@@ -94,7 +111,7 @@ export default async function Home() {
             </section>
 
             <section className="mt-8">
-                <h2 className="text-lg font-semibold">Completed user trials</h2>
+                <SectionHeader title="Completed user trials" href="/search?tab=trials&sortTrials=completed" />
                 {completed.length === 0 ? (
                     <div className="mt-5">
                         <Empty>Nothing to show</Empty>

@@ -53,7 +53,7 @@ export function CatalogProductCard({ product }: { product: CatalogProductCardDat
             )}
           </div>
           {product.concernTags.length > 0 && (
-            <ConcernChips concerns={product.concernTags.slice(0, 3)} tone="product" />
+            <ConcernChips concerns={product.concernTags.slice(0, 3)} />
           )}
         </div>
       </Card>

@@ -7,19 +7,26 @@ import type { RoutineSnapshot } from "@/lib/routines";
 
 interface Props {
     trial: Trial;
+    /** Live catalog thumbnails for the frozen baseline's products, keyed by
+     *  catalog id — the snapshot itself carries no image (lib/routines.ts). */
+    productImages: Record<string, string | null>;
 }
 
 /**
- * The routine this trial sits on, as it stood the day the trial started.
- *
  * Shows what a routine card shows — name, how many products, and what it covers
  * — so the routine reads the same here as it does on the dashboard. "Covers" is
  * the only word available: a baseline is acknowledged and never attributed, so
  * these are the metrics whose movement it could already explain.
  */
-function RoutineSnapshotCard({ routine }: { routine: RoutineSnapshot }) {
+function RoutineSnapshotCard({
+    routine,
+    productImages,
+}: {
+    routine: RoutineSnapshot;
+    productImages: Record<string, string | null>;
+}) {
     return (
-        <Card className="gap-3 p-4">
+        <Card className="min-w-0 gap-3 p-4">
             <div className="flex min-w-0 items-center justify-between gap-3">
                 <h4 className="min-w-0 truncate text-sm font-medium">
                     {routine.routineName}
@@ -36,6 +43,11 @@ function RoutineSnapshotCard({ routine }: { routine: RoutineSnapshot }) {
                         <ProductRow
                             key={item.name}
                             name={item.name}
+                            image={
+                                item.catalogProductId
+                                    ? (productImages[item.catalogProductId] ?? null)
+                                    : null
+                            }
                             href={
                                 item.catalogProductId
                                     ? `/products/${item.catalogProductId}`
@@ -68,7 +80,7 @@ function RoutineSnapshotCard({ routine }: { routine: RoutineSnapshot }) {
  * The baseline is grouped under its routine's frozen name — a snapshot, so the
  * name is whatever the routine was called on the day the trial started.
  */
-export function TrialProducts({ trial }: Props) {
+export function TrialProducts({ trial, productImages }: Props) {
     const { interventions, baseline } = trial.routine;
 
     // A bare string is a product typed straight into the trial; a snapshot is a
@@ -80,7 +92,7 @@ export function TrialProducts({ trial }: Props) {
     );
 
     return (
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
             <section>
                 <h3 className="text-sm font-medium">Products</h3>
                 {interventions.length === 0 ? (
@@ -112,6 +124,7 @@ export function TrialProducts({ trial }: Props) {
                             <RoutineSnapshotCard
                                 key={entry.routineId}
                                 routine={entry}
+                                productImages={productImages}
                             />
                         ))}
 

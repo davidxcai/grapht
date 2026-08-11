@@ -103,9 +103,10 @@ function toSearchResult(row: CatalogProductRow): CatalogSearchResult {
  * `az` without one — see the `az` case below). `trending` and `most-used`
  * both measure real usage across trials and routines, matched by catalog id
  * only (the same catalog-id-only join `countProductUsersByCatalogId` uses);
- * they differ in window — `trending` counts only trials with a capture or
- * check-in in the last 7 days (mirrors `listTrendingProducts()` in
- * lib/community.ts), `most-used` counts all-time distinct users. `unused` is
+ * they differ in window — `trending` counts trials with a capture or
+ * check-in, and routines edited, in the last 7 days (mirrors
+ * `listTrendingProducts()` in lib/community.ts), `most-used` counts all-time
+ * distinct users. `unused` is
  * `most-used` ascending, not a filter — it surfaces the catalog's long tail
  * rather than hiding everything else.
  */
@@ -198,16 +199,23 @@ export async function searchCatalog({
       const sinceIndex = params.length;
       joins = `
        left join (
-         select v.catalog_product_id as id, count(distinct v.trial_id) as n
-           from trial_interventions v
-           join trials t on t.id = v.trial_id
-          where v.catalog_product_id is not null
-            and v.trial_id in (
-              select trial_id from trial_captures where captured_at >= $${sinceIndex}
-              union
-              select trial_id from trial_applications where applied_at >= $${sinceIndex}
-            )
-          group by v.catalog_product_id
+         select id, count(distinct source_id) as n from (
+           select v.catalog_product_id as id, v.trial_id as source_id
+             from trial_interventions v
+             join trials t on t.id = v.trial_id
+            where v.catalog_product_id is not null
+              and v.trial_id in (
+                select trial_id from trial_captures where captured_at >= $${sinceIndex}
+                union
+                select trial_id from trial_applications where applied_at >= $${sinceIndex}
+              )
+           union
+           select i.catalog_product_id as id, i.routine_id as source_id
+             from routine_items i
+             join routines r on r.id = i.routine_id
+            where i.catalog_product_id is not null
+              and r.updated_at >= $${sinceIndex}
+         ) matched group by id
        ) trending on trending.id = p.id`;
       orderBy = `order by coalesce(trending.n, 0) desc, p.name asc`;
       break;
@@ -275,6 +283,27 @@ export async function catalogProductIdsWithIngredient(
     [ids, [ingredientSlug]],
   )) as { id: string }[];
   return new Set(rows.map((r) => r.id));
+}
+
+/**
+ * Live thumbnails for a set of catalog ids, keyed for a display-only join.
+ *
+ * A frozen `RoutineSnapshot` (lib/routines.ts) keeps `catalogProductId` as an
+ * "identity pointer only, not measurement data" — safe to carry on otherwise-
+ * frozen trial data because it never changes what got attributed to what.
+ * This is that same pointer used for the same non-measurement purpose: a
+ * picture. Nothing here is cached onto the snapshot, so the thumbnail always
+ * reflects whatever the catalog currently has, exactly like a live routine's
+ * `image` join in `ITEM_COLUMNS`.
+ */
+export async function catalogProductImages(ids: string[]): Promise<Map<string, string | null>> {
+  if (ids.length === 0) return new Map();
+  const sql = getSql();
+  const rows = (await sql.query(
+    `select id, image_url from catalog_products where id = any($1::uuid[])`,
+    [ids],
+  )) as { id: string; image_url: string | null }[];
+  return new Map(rows.map((r) => [r.id, r.image_url]));
 }
 
 export async function getCatalogProduct(id: string): Promise<CatalogProductDetail | null> {

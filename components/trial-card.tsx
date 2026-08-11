@@ -10,6 +10,7 @@ import { ConcernChips } from "@/components/concern-chips";
 import { ProductRow } from "@/components/product-row";
 import { TrialGauge } from "@/components/trial-gauge";
 import {
+    baselineTargets,
     interventionTargets,
     isInconclusive,
     type TrialCardData,
@@ -72,6 +73,7 @@ export function TrialCard({
     const { trial, dayNumber, totalDays, loggedToday } = data;
     const isCompleted = trial.status === "completed";
     const targets = interventionTargets(trial);
+    const routineTargets = baselineTargets(trial);
 
     // A bare string baseline entry is a product typed straight into the trial
     // and has no name of its own — only a saved-routine snapshot does.
@@ -116,12 +118,23 @@ export function TrialCard({
                     )}
                 </div>
 
-                {targets.length > 0 && (
-                    <ConcernChips
-                        concerns={targets}
-                        className="justify-center"
-                        tone="product"
-                    />
+                {(targets.length > 0 || routineTargets.length > 0) && (
+                    <div className="flex flex-wrap justify-center gap-1.5">
+                        {targets.length > 0 && (
+                            <ConcernChips
+                                concerns={targets}
+                                className="justify-center"
+                                tone="product"
+                            />
+                        )}
+                        {routineTargets.length > 0 && (
+                            <ConcernChips
+                                concerns={routineTargets}
+                                className="justify-center"
+                                tone="routine"
+                            />
+                        )}
+                    </div>
                 )}
 
                 <div className="space-y-2">

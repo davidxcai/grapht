@@ -352,9 +352,10 @@ export interface CommunityProduct {
   /** Distinct owners who have trialled it. */
   users: number;
   /** How many trials use this product. Always `trials.length` for a
-   *  community (public-only) rollup; for `listTrendingProducts()` this also
-   *  counts private trials, so it can exceed `trials.length` (which stays
-   *  public-only — see that function's doc comment for why). */
+   *  community (public-only) rollup; for `listTrendingProducts()` this counts
+   *  distinct trials *and* routines instead (private ones included), so it
+   *  can exceed `trials.length` (which stays public-only trial count — see
+   *  that function's doc comment for why). */
   trialCount: number;
   trials: PublicTrial[];
   /** Joined from `catalog_products.image_url` via an intervention's
@@ -607,13 +608,17 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Row shape for the trending aggregation: just enough to roll a product up
- * and count trials/owners, deliberately missing everything that would
- * identify a private trial (name, dates, captures, visibility). This is what
- * keeps `listTrendingProducts()` safe to include private trials in — nothing
- * that isn't already public product/catalog data leaves this function.
+ * and count trials/routines/owners, deliberately missing everything that
+ * would identify a private trial or routine (name, dates, captures,
+ * visibility). This is what keeps `listTrendingProducts()` safe to include
+ * private trials and routines in — nothing that isn't already public
+ * product/catalog data leaves this function. `sourceId` is a trial id from
+ * one branch of the union query or a routine id from the other; the two id
+ * spaces never collide (both are uuids from separate tables) so they can
+ * share one "distinct sources" count.
  */
 interface TrendingIntervention {
-  trialId: string;
+  sourceId: string;
   userId: string;
   brand: string | null;
   name: string;
@@ -624,21 +629,25 @@ interface TrendingIntervention {
 }
 
 /**
- * The homepage's "Trending" rail: products from trials with real activity in
- * the last 7 days — a capture logged or a routine check-in — ranked by how
- * many such trials used them, across **every** trial regardless of
- * visibility. "Used" means evidence of actual use, not merely a trial that
- * happens to still be open; a trial nobody has touched in a month doesn't
- * make its products trending just by existing.
+ * The homepage's "Trending" rail: products in real use in the last 7 days —
+ * a trial with a capture or check-in logged, or a routine edited — ranked by
+ * how many such trials and routines used them, across **every** trial and
+ * routine regardless of visibility. "Used" means evidence of actual use, not
+ * merely a trial or routine that happens to still exist; one nobody has
+ * touched in a month doesn't make its products trending just by existing.
+ * (Routines have no daily check-in log the way trials do, so `updated_at` —
+ * last edited — is the closest available proxy for "still in use.")
  *
- * A private trial's product can surface here — that's the point, trending
- * should reflect real usage rather than just what's been published — but the
- * trial itself must stay unrevealed. So this bypasses `listPublicTrials()`
- * entirely and pulls only brand/name/targets/image straight out of
- * `trial_interventions`, never a trial's name, dates, captures or visibility.
- * The returned `CommunityProduct.trials` is always `[]` here; `trialCount`
- * (which can include private trials) is the number this rail actually
- * displays, and every card links to the product page, never a trial.
+ * A private trial's or routine's product can surface here — that's the
+ * point, trending should reflect real usage rather than just what's been
+ * published — but the trial or routine itself must stay unrevealed. So this
+ * bypasses `listPublicTrials()`/`listPublicRoutines()` entirely and pulls
+ * only brand/name/targets/image straight out of `trial_interventions` and
+ * `routine_items`, never a trial's or routine's name, dates, captures or
+ * visibility. The returned `CommunityProduct.trials` is always `[]` here;
+ * `trialCount` (which can include private trials and routines) is the number
+ * this rail actually displays, and every card links to the product page,
+ * never a trial or routine.
  */
 export async function listTrendingProducts(limit: number): Promise<CommunityProduct[]> {
   const since = new Date(Date.now() - WEEK_MS);
@@ -647,7 +656,7 @@ export async function listTrendingProducts(limit: number): Promise<CommunityProd
   try {
     const sql = getSql();
     const result = (await sql`
-      select v.trial_id, t.user_id, v.brand, v.name, v.dosage,
+      select v.trial_id as source_id, t.user_id, v.brand, v.name, v.dosage,
              v.targets::text[] as targets, v.catalog_product_id, cp.image_url as image
         from trial_interventions v
         join trials t on t.id = v.trial_id
@@ -656,9 +665,16 @@ export async function listTrendingProducts(limit: number): Promise<CommunityProd
          select trial_id from trial_captures where captured_at >= ${since}
          union
          select trial_id from trial_applications where applied_at >= ${since}
-       )`) as Record<string, unknown>[];
+       )
+       union all
+      select i.routine_id as source_id, r.user_id, i.brand, i.name, null as dosage,
+             i.targets::text[] as targets, i.catalog_product_id, cp.image_url as image
+        from routine_items i
+        join routines r on r.id = i.routine_id
+        left join catalog_products cp on cp.id = i.catalog_product_id
+       where r.updated_at >= ${since}`) as Record<string, unknown>[];
     rows = result.map((r) => ({
-      trialId: r.trial_id as string,
+      sourceId: r.source_id as string,
       userId: r.user_id as string,
       brand: (r.brand as string | null) ?? null,
       name: r.name as string,
@@ -674,7 +690,7 @@ export async function listTrendingProducts(limit: number): Promise<CommunityProd
   const byKey = new Map<
     string,
     Omit<CommunityProduct, 'targets' | 'trialCount' | 'users'> & {
-      trialIds: Set<string>;
+      sourceIds: Set<string>;
       owners: Set<string>;
       targetCounts: Map<string, number>;
     }
@@ -693,13 +709,13 @@ export async function listTrendingProducts(limit: number): Promise<CommunityProd
         trials: [],
         image: null,
         catalogProductId: null,
-        trialIds: new Set(),
+        sourceIds: new Set(),
         owners: new Set(),
         targetCounts: new Map(),
       };
       byKey.set(key, product);
     }
-    product.trialIds.add(row.trialId);
+    product.sourceIds.add(row.sourceId);
     product.owners.add(row.userId);
     if (row.dosage && !product.dosages.includes(row.dosage)) product.dosages.push(row.dosage);
     if (!product.image && row.image) product.image = row.image;
@@ -710,10 +726,10 @@ export async function listTrendingProducts(limit: number): Promise<CommunityProd
   }
 
   const products = [...byKey.values()]
-    .map(({ trialIds, owners, targetCounts, ...product }) => ({
+    .map(({ sourceIds, owners, targetCounts, ...product }) => ({
       ...product,
       users: owners.size,
-      trialCount: trialIds.size,
+      trialCount: sourceIds.size,
       targets: [...targetCounts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t),
     }))
     .sort((a, b) => b.trialCount - a.trialCount || a.name.localeCompare(b.name));

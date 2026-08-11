@@ -26,12 +26,14 @@ import {
     X,
 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CameraCapture } from "@/components/camera-capture";
 import { Choice } from "@/components/choice";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ProductCard } from "@/components/product-card";
 import {
     ProductDraftCard,
     blankProductDraft,
@@ -916,24 +918,38 @@ export function TrialEditorStepper({
                     </div>
                 );
 
-            case "review":
+            case "review": {
+                const activeTimeOfDay = TIMES_OF_DAY.find(
+                    (t) => t.id === timeOfDay,
+                )!;
+                const trackedProducts = items.filter((i) => i.name.trim());
+
                 return (
                     <div className="space-y-6">
                         <div className="space-y-3">
                             <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                                 Review
                             </p>
-                            <TitleEditor
-                                value={name}
-                                onChange={(next) => {
-                                    setName(next);
-                                    setNameTouched(true);
-                                }}
-                            />
+                            <div className="flex items-center gap-2">
+                                <TitleEditor
+                                    value={name}
+                                    onChange={(next) => {
+                                        setName(next);
+                                        setNameTouched(true);
+                                    }}
+                                />
+                                <Badge variant="secondary" className="gap-1">
+                                    <activeTimeOfDay.icon
+                                        className="size-3"
+                                        aria-hidden
+                                    />
+                                    {activeTimeOfDay.label}
+                                </Badge>
+                            </div>
                         </div>
 
-                        <div className="grid gap-6 lg:grid-cols-[minmax(0,260px)_1fr] lg:items-start">
-                            <div className="order-2 mx-auto w-full max-w-[260px] lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2">
+                        <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+                            <div className="mx-auto w-full max-w-[260px] sm:mx-0 sm:w-40 sm:shrink-0">
                                 <Card className="items-center gap-0 overflow-hidden p-0">
                                     {preview ? (
                                         // eslint-disable-next-line @next/next/no-img-element -- a local
@@ -957,91 +973,109 @@ export function TrialEditorStepper({
                                 </Card>
                             </div>
 
-                            <div className="order-1 space-y-2 rounded-xl border p-4 text-sm lg:order-none lg:col-start-2 lg:row-start-1">
-                                <div className="flex justify-between gap-4">
-                                    <span className="text-muted-foreground">
-                                        Time of day
-                                    </span>
-                                    <span>
-                                        {
-                                            TIMES_OF_DAY.find(
-                                                (t) => t.id === timeOfDay,
-                                            )?.label
-                                        }
-                                    </span>
+                            <div className="min-w-0 flex-1 space-y-6">
+                                <div className="grid grid-cols-2 divide-x rounded-xl border text-sm">
+                                    <div className="p-4">
+                                        <p className="text-xs text-muted-foreground">
+                                            Duration
+                                        </p>
+                                        <p className="font-medium">
+                                            {durationDays()
+                                                ? `${durationDays()} days`
+                                                : "Open-ended"}
+                                        </p>
+                                    </div>
+                                    <div className="p-4">
+                                        <p className="text-xs text-muted-foreground">
+                                            Frequency
+                                        </p>
+                                        <p className="font-medium">
+                                            {frequency === "custom"
+                                                ? `Every ${everyN} days`
+                                                : FREQUENCIES.find(
+                                                      (f) =>
+                                                          f.id === frequency,
+                                                  )?.label}
+                                        </p>
+                                    </div>
                                 </div>
+
                                 {trackProduct && (
-                                    <div className="flex justify-between gap-4">
-                                        <span className="text-muted-foreground">
+                                    <section className="space-y-2">
+                                        <h2 className="text-sm font-medium">
                                             Product(s)
-                                        </span>
-                                        <span className="text-right">
-                                            {items
-                                                .filter((i) => i.name.trim())
-                                                .map((i) => i.name)
-                                                .join(", ") || "—"}
-                                        </span>
-                                    </div>
+                                        </h2>
+                                        {trackedProducts.length === 0 ? (
+                                            <p className="text-sm text-muted-foreground">
+                                                No products added.
+                                            </p>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {trackedProducts.map((i) => (
+                                                    <ProductCard
+                                                        key={i.key}
+                                                        linkable={false}
+                                                        intervention={{
+                                                            name: i.name,
+                                                            brand: i.brand,
+                                                            image: i.image,
+                                                            dosage: i.dosage,
+                                                            targets: i.targets,
+                                                            catalogProductId:
+                                                                i.catalogProductId,
+                                                        }}
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+                                    </section>
                                 )}
+
                                 {trackRoutine && (
-                                    <div className="flex justify-between gap-4">
-                                        <span className="text-muted-foreground">
+                                    <section className="space-y-2">
+                                        <h2 className="text-sm font-medium">
                                             Routine
-                                        </span>
-                                        <span>
-                                            {chosenRoutine?.name ?? "—"}
-                                        </span>
-                                    </div>
+                                        </h2>
+                                        {chosenRoutine ? (
+                                            <Card className="gap-3 p-5">
+                                                <RoutineSummary
+                                                    routine={chosenRoutine}
+                                                />
+                                            </Card>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">
+                                                No routine chosen.
+                                            </p>
+                                        )}
+                                    </section>
                                 )}
-                                <div className="flex justify-between gap-4">
-                                    <span className="text-muted-foreground">
-                                        Duration
-                                    </span>
-                                    <span>
-                                        {durationDays()
-                                            ? `${durationDays()} days`
-                                            : "Open-ended"}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between gap-4">
-                                    <span className="text-muted-foreground">
-                                        Frequency
-                                    </span>
-                                    <span>
-                                        {frequency === "custom"
-                                            ? `Every ${everyN} days`
-                                            : FREQUENCIES.find(
-                                                  (f) => f.id === frequency,
-                                              )?.label}
-                                    </span>
-                                </div>
+
+                                <section className="space-y-3">
+                                    <h2 className="text-sm font-medium">
+                                        Who can see this?
+                                    </h2>
+
+                                    <div className="flex gap-1.5">
+                                        {VISIBILITIES.map((v) => (
+                                            <Choice
+                                                key={v.id}
+                                                on={visibility === v.id}
+                                                onClick={() =>
+                                                    setVisibility(v.id)
+                                                }
+                                                className="flex flex-1 items-center justify-center gap-1.5 py-2"
+                                            >
+                                                <v.icon className="size-3.5" />
+                                                {v.label}
+                                            </Choice>
+                                        ))}
+                                    </div>
+
+                                    <p className="text-xs text-muted-foreground">
+                                        You can change this at any time.
+                                    </p>
+                                </section>
                             </div>
-
-                            <section className="order-3 space-y-3 lg:order-none lg:col-start-2 lg:row-start-2">
-                                <h2 className="text-sm font-medium">
-                                    Who can see this?
-                                </h2>
-
-                                <div className="flex gap-1.5">
-                                    {VISIBILITIES.map((v) => (
-                                        <Choice
-                                            key={v.id}
-                                            on={visibility === v.id}
-                                            onClick={() =>
-                                                setVisibility(v.id)
-                                            }
-                                            className="flex flex-1 items-center justify-center gap-1.5 py-2"
-                                        >
-                                            <v.icon className="size-3.5" />
-                                            {v.label}
-                                        </Choice>
-                                    ))}
-                                </div>
-
-                                <p className="text-xs text-muted-foreground">
-                                    You can change this at any time.
-                                </p>
-                            </section>
                         </div>
 
                         {error && (
@@ -1075,6 +1109,7 @@ export function TrialEditorStepper({
                         </div>
                     </div>
                 );
+            }
         }
     }
 

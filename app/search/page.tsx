@@ -51,10 +51,13 @@ type SearchParams = {
   concern?: string;
   community?: string;
   page?: string;
+  tab?: string;
   sortProducts?: string;
   sortTrials?: string;
   sortRoutines?: string;
 };
+
+const TABS = new Set(['products', 'trials', 'routines']);
 
 const PRODUCT_SORTS: SortOption[] = [
   { value: 'relevance', label: 'Relevance' },
@@ -219,6 +222,8 @@ export default async function SearchPage({
     params.sortRoutines && ROUTINE_SORT_VALUES.has(params.sortRoutines) ? params.sortRoutines : 'newest'
   ) as RoutineSort;
 
+  const tab = params.tab && TABS.has(params.tab) ? params.tab : 'products';
+
   const [communityProductIds, allTrials, allRoutines] = await Promise.all([
     communityOnly ? listCommunityProductIds() : Promise.resolve(null),
     listPublicTrials(),
@@ -281,7 +286,7 @@ export default async function SearchPage({
         </div>
       </div>
 
-      <Tabs defaultValue="products" className="mt-6">
+      <Tabs defaultValue={tab} className="mt-6">
         <TabsList className="w-full sm:w-fit">
           <TabsTrigger value="products">Products ({formatCount(productTotal)})</TabsTrigger>
           <TabsTrigger value="trials">Trials ({formatCount(trials.length)})</TabsTrigger>
