@@ -3,19 +3,22 @@ import { ChevronRight } from "lucide-react";
 import { HeroSearch } from "@/components/hero-search";
 import { BrandMarquee } from "@/components/brand-marquee";
 import { TrialCard } from "@/components/trial-card";
+import { RoutineCard } from "@/components/routine-card";
 import { CatalogProductCard } from "@/components/catalog-product-card";
 import { CardGrid } from "@/components/card-grid";
 import { listRecentPublicTrials, listTrendingProducts } from "@/lib/community";
 import { toCardData } from "@/lib/trials";
+import { listPublicRoutines } from "@/lib/routines";
 
 const HOME_SECTION_LIMIT = 4;
 
 /**
- * The front door: search over the front of the page, every published trial
- * below it, ongoing and finished (ideas.md). Free to browse signed out —
- * watching someone else's trial run is the pitch for starting your own, so a
- * first-time visitor lands on the trials themselves rather than on a page
- * describing them.
+ * The front door: search over the front of the page, then recent published
+ * trials (active and completed interleaved by recency, ideas.md) and recent
+ * published routines below it. Free to browse signed out — watching someone
+ * else's trial run is the pitch for starting your own, so a first-time
+ * visitor lands on the trials themselves rather than on a page describing
+ * them.
  *
  * The search box never changes what renders here — it only navigates away,
  * to a product page or to /search (components/hero-search.tsx). Ordering is
@@ -47,9 +50,9 @@ function SectionHeader({ title, href }: { title: string; href: string }) {
 }
 
 export default async function Home() {
-    const [ongoing, completed, trending] = await Promise.all([
-        listRecentPublicTrials("active", HOME_SECTION_LIMIT),
-        listRecentPublicTrials("completed", HOME_SECTION_LIMIT),
+    const [trials, routines, trending] = await Promise.all([
+        listRecentPublicTrials(HOME_SECTION_LIMIT),
+        listPublicRoutines(),
         listTrendingProducts(HOME_SECTION_LIMIT),
     ]);
 
@@ -92,14 +95,14 @@ export default async function Home() {
             )}
 
             <section className="mt-8">
-                <SectionHeader title="Active user trials" href="/search?tab=trials&sortTrials=active" />
-                {ongoing.length === 0 ? (
+                <SectionHeader title="User trials" href="/search?tab=trials" />
+                {trials.length === 0 ? (
                     <div className="mt-5">
                         <Empty>Nothing to show</Empty>
                     </div>
                 ) : (
                     <CardGrid className="mt-5">
-                        {ongoing.map((entry) => (
+                        {trials.map((entry) => (
                             <TrialCard
                                 key={entry.trial.id}
                                 data={toCardData(entry.trial)}
@@ -111,17 +114,17 @@ export default async function Home() {
             </section>
 
             <section className="mt-8">
-                <SectionHeader title="Completed user trials" href="/search?tab=trials&sortTrials=completed" />
-                {completed.length === 0 ? (
+                <SectionHeader title="User routines" href="/search?tab=routines" />
+                {routines.length === 0 ? (
                     <div className="mt-5">
                         <Empty>Nothing to show</Empty>
                     </div>
                 ) : (
                     <CardGrid className="mt-5">
-                        {completed.map((entry) => (
-                            <TrialCard
-                                key={entry.trial.id}
-                                data={toCardData(entry.trial)}
+                        {routines.slice(0, HOME_SECTION_LIMIT).map((entry) => (
+                            <RoutineCard
+                                key={entry.routine.id}
+                                routine={entry.routine}
                                 handle={entry.handle}
                             />
                         ))}

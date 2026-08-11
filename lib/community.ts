@@ -161,26 +161,30 @@ export async function listPublicTrials(): Promise<PublicTrial[]> {
 }
 
 /**
- * The homepage feed: the N most recently created public trials in the given
- * status, straight from the database — no fixture, since the sample series
- * is a fixed demo asset rather than part of the live recency stream. Fetches
- * matching ids first so the LIMIT applies before the capture/intervention
- * joins in `storedPublicTrials` pull in a whole trial's history.
+ * The homepage feed: the N most recently created public trials, regardless of
+ * status (active and completed interleaved by recency) unless a specific
+ * status is passed — straight from the database, no fixture, since the
+ * sample series is a fixed demo asset rather than part of the live recency
+ * stream. Fetches matching ids first so the LIMIT applies before the
+ * capture/intervention joins in `storedPublicTrials` pull in a whole trial's
+ * history.
  */
 export async function listRecentPublicTrials(
-  status: TrialStatus,
   limit: number,
+  status?: TrialStatus,
 ): Promise<PublicTrial[]> {
   try {
     const sql = getSql();
     const idRows = (await sql`
       select id from trials
-       where visibility = 'public' and status = ${status}
+       where visibility = 'public' and (${status ?? null}::text is null or status = ${status ?? null})
        order by created_at desc
        limit ${limit}`) as Record<string, unknown>[];
     const ids = idRows.map((r) => r.id as string);
     if (ids.length === 0) return [];
-    return await storedPublicTrials(`t.visibility = 'public' and t.id = any($1)`, [ids]);
+    const rows = await storedPublicTrials(`t.visibility = 'public' and t.id = any($1)`, [ids]);
+    const order = new Map(ids.map((id, i) => [id, i]));
+    return rows.sort((a, b) => (order.get(a.trial.id) ?? 0) - (order.get(b.trial.id) ?? 0));
   } catch {
     return [];
   }
