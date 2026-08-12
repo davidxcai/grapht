@@ -290,8 +290,10 @@ search) or for one of these existing cards, never a new bespoke one:
   `src/components/reui/sortable.tsx`'s `Sortable`), the concern picker,
   dosage. The routine editor and trial stepper must stay behaviourally
   identical here, not just visually similar — same inline search, same
-  reserved image slot, same drag handle, same "Suggest" is manual, never
-  auto-fired on a catalog pick (that's a paid Gemini call).
+  reserved image slot, same drag handle. Concern suggestions were removed
+  (`suggestConcerns`, and the `lib/product-classifier.ts` wrapper with it), so
+  neither editor ever calls Gemini: `targets[]` is ticked by hand and a saved
+  draft's provenance is always `user-edited`.
 - **`CatalogProductCard`** (`components/catalog-product-card.tsx`) — grid tile
   (image on top, text below) for `/search`, `/catalog`, and the homepage's
   trending rail. `ingredientCount` and `userCount` are both optional: a real

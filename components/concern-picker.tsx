@@ -5,22 +5,18 @@ import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { MultiSelect } from '@/components/multi-select';
 import { CONCERNS, concernLabel, orderConcerns } from '@/lib/concerns';
-import type { RankedConcern } from '@/lib/routines';
 
 /**
  * All fourteen concerns are always offered — narrowing the list would hide the
- * metric a routine confounds by accident (docs/trial-model.md). The pre-ticked
- * subset stays capped at three; broad targets make `|T| > 1` fire on every
- * metric and empty the attribution table (rule 9).
+ * metric a routine confounds by accident (docs/trial-model.md). Every tick is
+ * the user's own: nothing pre-selects them.
  */
 export function ConcernPicker({
   targets,
-  note,
   label,
   onChange,
 }: {
   targets: string[];
-  note: string | null;
   label: string;
   onChange: (targets: string[]) => void;
 }) {
@@ -60,8 +56,6 @@ export function ConcernPicker({
           ))}
         </ul>
       )}
-
-      {note && <p className="text-xs text-muted-foreground">{note}</p>}
     </div>
   );
 }
