@@ -12,6 +12,8 @@ import { clerkConfigured, currentUserId } from "@/lib/auth";
 import { getProfile } from "@/lib/profile-store";
 import { Greeting } from "@/components/greeting";
 import { timeGreeting } from "@/lib/greeting";
+import { MyProductsSection } from "@/components/my-products-section";
+import { loadMyProducts } from "@/app/products/actions";
 
 /**
  * The signed-in home — the marketing page took over `/`, so the daily surface
@@ -87,6 +89,7 @@ export default async function Dashboard({
     const active = trials.filter((t) => t.trial.status === "active");
     const completed = trials.filter((t) => t.trial.status === "completed");
     const { routines, error } = await loadRoutines(userId);
+    const { products: myProducts, error: myProductsError } = await loadMyProducts();
     const saved = await listSavedTrials(userId).catch(() => []);
     const tab = parseTab((await searchParams).tab);
 
@@ -149,6 +152,7 @@ export default async function Dashboard({
                             />
                         </CardGrid>
                     )}
+                    <MyProductsSection initialProducts={myProducts} error={myProductsError} />
                 </TabsContent>
 
                 <TabsContent value="saved" className="mt-5 space-y-3">

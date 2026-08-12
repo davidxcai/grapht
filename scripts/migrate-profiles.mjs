@@ -53,6 +53,10 @@ const STATEMENTS = [
   // how `routines_user_name_idx` treats a routine name.
   `create unique index if not exists profiles_username_idx
      on profiles (lower(username))`,
+
+  // Track whether an existing user's routine/trial products have already been
+  // copied into their My Products collection.
+  `alter table profiles add column if not exists my_products_seeded boolean not null default false`,
 ];
 
 const url = process.env.DATABASE_URL;

@@ -19,6 +19,9 @@ import { getCatalogProduct, type CatalogProductDetail } from '@/lib/catalog';
 import { listPublicRoutines, publicRoutinesWithProduct } from '@/lib/routines';
 import { toCardData } from '@/lib/trials';
 import { formatCount } from '@/lib/format';
+import { currentUserId } from '@/lib/auth';
+import { getProductCollectionState } from '@/lib/my-products';
+import { ProductCollectionButton } from '@/components/product-collection-button';
 
 /**
  * One product, merging what used to be two separate pages (a confusing split
@@ -142,6 +145,15 @@ export default async function ProductDetail({
     listPublicRoutines(),
     countProductUsers({ catalogProductId, brand, name }),
   ]);
+
+  const userId = await currentUserId();
+  const collectionState = userId
+    ? await getProductCollectionState(userId, {
+        catalogProductId,
+        brand,
+        name,
+      })
+    : { saved: false, inUse: false };
   const routines = publicRoutinesWithProduct(publicRoutines, {
     catalogProductId,
     brand,
@@ -187,6 +199,17 @@ export default async function ProductDetail({
                   ? `Used by ${formatCount(totalUsers)} ${totalUsers === 1 ? 'user' : 'users'}${community && community.dosages.length > 0 ? ` · used as ${community.dosages.join(', ')}` : ''}`
                   : 'Not used by anyone yet'}
               </p>
+              {userId && (
+                <div className="mt-3">
+                  <ProductCollectionButton
+                    catalogProductId={catalogProductId}
+                    brand={brand}
+                    name={name}
+                    initialSaved={collectionState.saved}
+                    initialInUse={collectionState.inUse}
+                  />
+                </div>
+              )}
             </div>
 
             {catalog && catalog.concernTags.length > 0 && (
