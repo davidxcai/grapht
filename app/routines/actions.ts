@@ -11,6 +11,7 @@ import {
 } from '@/lib/routines';
 import { classifyProduct, productIdentity } from '@/lib/product-classifier';
 import { currentUserId } from '@/lib/auth';
+import { degraded } from '@/lib/log';
 import { searchCatalogForPicker as searchCatalog, type CatalogPickerMatch } from '@/lib/catalog';
 
 /** Top name/brand matches for the routine editor's product-name autocomplete
@@ -138,11 +139,15 @@ export async function suggestConcerns(input: {
 
   try {
     const result = await classifyProduct({ brand, name, inci });
+    // A null key costs this suggestion its cache entry and nothing else, so it
+    // must not cost the suggestion itself — but `productIdentity()` throwing on
+    // a product the classifier just accepted is a bug, not a condition, and
+    // said nothing when it happened.
     let key: string | null = null;
     try {
       key = productIdentity({ brand, name, inci }).key;
-    } catch {
-      key = null;
+    } catch (error) {
+      degraded('suggestConcerns productIdentity', error, `${brand ?? ''} ${name}`.trim());
     }
 
     return {

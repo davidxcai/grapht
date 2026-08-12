@@ -2,6 +2,7 @@ import 'server-only';
 import { clerkClient } from '@clerk/nextjs/server';
 
 import { getSql } from '@/lib/db';
+import { degraded } from '@/lib/log';
 import { clerkConfigured } from '@/lib/auth';
 import { assembleTrials, getFixtureTrials, INTERVENTION_COLUMNS, CATALOG_JOIN } from '@/lib/trial-store';
 import { listPublicRoutines } from '@/lib/routines';
@@ -63,7 +64,8 @@ async function avatarsFor(userIds: string[]): Promise<Map<string, string>> {
       }
     }
     return avatars;
-  } catch {
+  } catch (error) {
+    degraded('avatarsFor', error, 'cards render without avatars');
     return new Map();
   }
 }
@@ -155,7 +157,8 @@ export async function listPublicTrials(): Promise<PublicTrial[]> {
   try {
     const stored = await storedPublicTrials(`t.visibility = 'public'`, []);
     return [...stored, ...fixturePublicTrials()];
-  } catch {
+  } catch (error) {
+    degraded('listPublicTrials', error, 'falling back to the fixture sample only');
     return fixturePublicTrials();
   }
 }
@@ -185,7 +188,8 @@ export async function listRecentPublicTrials(
     const rows = await storedPublicTrials(`t.visibility = 'public' and t.id = any($1)`, [ids]);
     const order = new Map(ids.map((id, i) => [id, i]));
     return rows.sort((a, b) => (order.get(a.trial.id) ?? 0) - (order.get(b.trial.id) ?? 0));
-  } catch {
+  } catch (error) {
+    degraded('listRecentPublicTrials', error, 'the homepage feed renders empty');
     return [];
   }
 }
@@ -203,7 +207,8 @@ export async function getPublicTrial(id: string): Promise<PublicTrial | null> {
   try {
     const rows = await storedPublicTrials(`t.visibility = 'public' and t.id = $1`, [id]);
     return rows[0] ?? null;
-  } catch {
+  } catch (error) {
+    degraded('getPublicTrial', error, `${id} reads as nonexistent`);
     return null;
   }
 }
@@ -219,8 +224,9 @@ export async function recordView(trialId: string, viewerId: string | null): Prom
     await sql`
       update trials set view_count = view_count + 1
        where id = ${trialId} and visibility = 'public' and user_id <> ${viewerId}`;
-  } catch {
-    // A lost view is not worth an error.
+  } catch (error) {
+    // A lost view is not worth an error, but it is worth a log line.
+    degraded('recordView', error, `view not counted for ${trialId}`);
   }
 }
 
@@ -558,7 +564,8 @@ export async function countProductUsers(product: {
       [product.catalogProductId, brand, name],
     )) as { n: string }[];
     dbUsers = Number(rows[0]?.n ?? 0);
-  } catch {
+  } catch (error) {
+    degraded('countProductUsers', error, 'count covers the fixture only');
     dbUsers = 0;
   }
 
@@ -603,7 +610,8 @@ export async function countProductUsersByCatalogId(catalogProductIds: string[]):
       [ids],
     )) as { id: string; n: string }[];
     return new Map(rows.map((r) => [r.id, Number(r.n)]));
-  } catch {
+  } catch (error) {
+    degraded('countProductUsersByCatalogId', error, 'cards read as zero users');
     return new Map();
   }
 }
@@ -687,7 +695,8 @@ export async function listTrendingProducts(limit: number): Promise<CommunityProd
       catalogProductId: (r.catalog_product_id as string | null) ?? null,
       image: (r.image as string | null) ?? null,
     }));
-  } catch {
+  } catch (error) {
+    degraded('listTrendingProducts', error, 'the trending rail renders empty');
     return [];
   }
 
@@ -766,7 +775,8 @@ export async function listCommunityUsers(): Promise<CommunityUser[]> {
       skinType: (r.skin_type as string | null) ?? null,
       publicTrials: r.trials as number,
     }));
-  } catch {
+  } catch (error) {
+    degraded('listCommunityUsers', error, 'the people list renders empty');
     return [];
   }
 }

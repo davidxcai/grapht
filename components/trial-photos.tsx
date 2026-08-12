@@ -200,7 +200,15 @@ export function TrialPhotos({
       const result = await logCapture(trialId, photo, navigator.userAgent, noteDraft);
       if (result.ok) {
         cancel();
-        toast.success('Photo logged');
+        // The photo landed either way; the note is reported separately so a
+        // lost one isn't hidden behind a success toast.
+        if (result.data.noteError) {
+          toast.warning('Photo logged, but your note was not saved', {
+            description: result.data.noteError,
+          });
+        } else {
+          toast.success('Photo logged');
+        }
         router.refresh();
       } else {
         setError(result.error);

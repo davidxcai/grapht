@@ -2,6 +2,8 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 import { auth, currentUser } from '@clerk/nextjs/server';
 
+import { degraded } from '@/lib/log';
+
 /**
  * Who is asking. Every stored row is scoped to the value `currentUserId()`
  * returns, and the data layer takes it as an argument rather than reaching for
@@ -40,9 +42,12 @@ export async function currentUserId(): Promise<string | null> {
   try {
     const { userId } = await auth();
     return userId ?? null;
-  } catch {
+  } catch (error) {
     /** Same deliberate degradation the dashboard applies to Neon: an
-     *  unreachable Clerk costs the user their session, never the fixture. */
+     *  unreachable Clerk costs the user their session, never the fixture.
+     *  Logged because from here on the request is indistinguishable from a
+     *  genuinely signed-out one — every write will refuse with "log in". */
+    degraded('currentUserId', error, 'the request continues as signed out');
     return null;
   }
 }
@@ -76,7 +81,8 @@ export async function getSession(): Promise<Session> {
       'Account';
 
     return { userId: user.id, name };
-  } catch {
+  } catch (error) {
+    degraded('getSession', error, 'the navbar renders signed out');
     return null;
   }
 }

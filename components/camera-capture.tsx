@@ -391,7 +391,11 @@ export function CameraCapture({ onCapture, onCancel }: Props) {
     const loop = () => {
       if (!live) return;
       timer = window.setTimeout(() => {
-        void step().finally(loop);
+        // `.finally` reschedules but does not handle: without this the loop's
+        // own failures were unhandled rejections nobody ever saw.
+        step()
+          .catch((cause: unknown) => console.error('capture guide tick failed', cause))
+          .finally(loop);
       }, DETECT_INTERVAL_MS);
     };
 
@@ -452,7 +456,12 @@ export function CameraCapture({ onCapture, onCancel }: Props) {
       );
     };
 
-    void open();
+    // Anything `open()` did not already turn into a `fail()` message would
+    // otherwise leave the pane blank with no explanation and nothing logged.
+    open().catch((cause: unknown) => {
+      console.error('camera open failed', cause);
+      fail('The camera could not be started. Reload the page, then try again.');
+    });
     return () => {
       live = false;
       stop();
