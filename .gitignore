@@ -9,3 +9,7 @@ next-env.d.ts
 public/captures/
 certificates/
 skincare-data/raw/incidecoder/
+
+# Scratch dumps of live YouCam responses. They carry presigned S3 result URLs
+# (X-Amz-Credential / X-Amz-Signature) for real photos — never commit one.
+me/

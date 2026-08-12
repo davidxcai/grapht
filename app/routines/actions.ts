@@ -127,6 +127,13 @@ export async function suggestConcerns(input: {
    *  than a typed name alone (docs/product-identity.md). */
   inci?: string[] | null;
 }): Promise<ActionResult<Suggestion>> {
+  /** The only action here that spends money on someone else's behalf: a
+   *  server action is reachable directly, so leaving this ungated let anyone
+   *  who could reach the deployment bill Gemini calls against GEMINI_API_KEY
+   *  with arbitrary text. Editors that call it always have a caller. */
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to get concern suggestions.' };
+
   const name = input.name?.trim();
   if (!name) return { ok: false, error: 'Enter a product name first.' };
   if (!process.env.GEMINI_API_KEY) {
