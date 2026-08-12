@@ -7,6 +7,7 @@ import { Camera, ChevronLeft, ChevronRight, Loader2, ScanFace } from 'lucide-rea
 import { toast } from 'sonner';
 
 import { CameraCapture } from '@/components/camera-capture';
+import { useObjectUrl } from '@/lib/use-object-url';
 import { CaptureExtras } from '@/components/capture-extras';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/carousel';
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { logCapture } from '@/app/trials/actions';
+import { daysInclusive } from '@/lib/days';
 import { hoursLabel, timeSinceApplied, type Capture } from '@/lib/trials';
 import { cn } from '@/lib/utils';
 
@@ -71,11 +73,10 @@ interface Props {
 
 type Slot = { kind: 'capture'; capture: Capture } | { kind: 'today' };
 
-const MS_PER_DAY = 86_400_000;
 const PAGE_SIZE = 16;
 
 function dayOf(startDate: string, capturedAt: string): number {
-  return Math.round((Date.parse(capturedAt.slice(0, 10)) - Date.parse(startDate)) / MS_PER_DAY) + 1;
+  return daysInclusive(startDate, capturedAt.slice(0, 10));
 }
 
 /** "August 9, 2026" — the long-form date shown under a photo, in place of a weekday-bearing caption. */
@@ -161,20 +162,10 @@ export function TrialPhotos({
   const [mode, setMode] = useState<'roll' | 'camera' | 'review'>('roll');
   const [noteDraft, setNoteDraft] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const preview = useObjectUrl(photo);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-
-  useEffect(() => {
-    if (!photo) {
-      setPreview(null);
-      return;
-    }
-    const url = URL.createObjectURL(photo);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [photo]);
 
   const accept = (file: File) => {
     setError(null);

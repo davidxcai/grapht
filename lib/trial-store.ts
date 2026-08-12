@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { getSql } from '@/lib/db';
+import { asDay } from '@/lib/days';
 import { DEMO_USER } from '@/lib/auth';
 import { validateConcerns } from '@/lib/concerns';
 import type { BaselineEntry, Capture, Frequency, Intervention, Trial } from '@/lib/trials';
@@ -77,14 +78,6 @@ export const INTERVENTION_COLUMNS = `v.id, v.trial_id, v.position, v.direction, 
  *  barcode, ingredient photo) have no catalog row at all. Mirrors
  *  `CATALOG_JOIN` in lib/routines.ts. */
 export const CATALOG_JOIN = `left join catalog_products cp on cp.id = v.catalog_product_id`;
-
-function asDay(value: unknown): string {
-  if (value instanceof Date) {
-    const offset = value.getTimezoneOffset() * 60_000;
-    return new Date(value.getTime() - offset).toISOString().slice(0, 10);
-  }
-  return String(value).slice(0, 10);
-}
 
 function toIntervention(row: Record<string, unknown>): Intervention {
   return {
@@ -474,6 +467,47 @@ export async function updateTrialVisibility(
 }
 
 /**
+ * The insert both capture paths share, differing only in the `exists` guard
+ * that decides whether the trial will accept one.
+ *
+ * The guard rides inside the insert rather than sitting in a read before it:
+ * checking first and writing second leaves a window in which the trial ends
+ * between the two, and a capture landing after the close would let a published
+ * retrospective drift out of step with its own data. `$1` is the trial id and
+ * `$9` the user id, so a guard can use either.
+ *
+ * Returns null when nothing was written, i.e. the guard did not hold.
+ */
+async function insertCapture(
+  userId: string,
+  trialId: string,
+  capture: CaptureInput,
+  guard: string,
+): Promise<string | null> {
+  if (!UUID.test(trialId)) return null;
+  const sql = getSql();
+  const rows = (await sql.query(
+    `insert into trial_captures
+       (trial_id, device, resolution, blob_url, blob_pathname, concerns, zones, skin_age)
+     select $1::uuid, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::numeric
+      where exists (${guard})
+     returning id`,
+    [
+      trialId,
+      capture.device,
+      capture.resolution,
+      capture.blobUrl,
+      capture.blobPathname,
+      JSON.stringify(capture.concerns),
+      JSON.stringify(capture.zones),
+      capture.skinAge,
+      userId,
+    ],
+  )) as Record<string, unknown>[];
+  return rows[0] ? (rows[0].id as string) : null;
+}
+
+/**
  * Add a capture to a running trial — the daily log.
  *
  * `captured_at` is left to the column default, so the instant is the server's
@@ -497,30 +531,13 @@ export async function addCapture(
   trialId: string,
   capture: CaptureInput,
 ): Promise<string | null> {
-  if (!UUID.test(trialId)) return null;
-  const sql = getSql();
-  const rows = (await sql.query(
-    `insert into trial_captures
-       (trial_id, device, resolution, blob_url, blob_pathname, concerns, zones, skin_age)
-     select $1::uuid, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::numeric
-      where exists (
-        select 1 from trials
-         where id = $1::uuid and user_id = $9 and status = 'active'
-      )
-     returning id`,
-    [
-      trialId,
-      capture.device,
-      capture.resolution,
-      capture.blobUrl,
-      capture.blobPathname,
-      JSON.stringify(capture.concerns),
-      JSON.stringify(capture.zones),
-      capture.skinAge,
-      userId,
-    ],
-  )) as Record<string, unknown>[];
-  return rows[0] ? (rows[0].id as string) : null;
+  return insertCapture(
+    userId,
+    trialId,
+    capture,
+    `select 1 from trials
+      where id = $1::uuid and user_id = $9 and status = 'active'`,
+  );
 }
 
 /**
@@ -562,31 +579,14 @@ export async function addFollowUpCapture(
   trialId: string,
   capture: CaptureInput,
 ): Promise<string | null> {
-  if (!UUID.test(trialId)) return null;
-  const sql = getSql();
-  const rows = (await sql.query(
-    `insert into trial_captures
-       (trial_id, device, resolution, blob_url, blob_pathname, concerns, zones, skin_age)
-     select $1::uuid, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8::numeric
-      where exists (
-        select 1 from trials t
-         where t.id = $1::uuid and t.user_id = $9 and t.status = 'completed'
-           and (select count(*) from trial_captures where trial_id = t.id and concerns is not null) < 2
-      )
-     returning id`,
-    [
-      trialId,
-      capture.device,
-      capture.resolution,
-      capture.blobUrl,
-      capture.blobPathname,
-      JSON.stringify(capture.concerns),
-      JSON.stringify(capture.zones),
-      capture.skinAge,
-      userId,
-    ],
-  )) as Record<string, unknown>[];
-  return rows[0] ? (rows[0].id as string) : null;
+  return insertCapture(
+    userId,
+    trialId,
+    capture,
+    `select 1 from trials t
+      where t.id = $1::uuid and t.user_id = $9 and t.status = 'completed'
+        and (select count(*) from trial_captures where trial_id = t.id and concerns is not null) < 2`,
+  );
 }
 
 /**

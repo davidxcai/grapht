@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Choice } from '@/components/choice';
+import { daysInclusive, localDay, parseDay } from '@/lib/days';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -94,18 +95,6 @@ const VISIBILITIES: { id: TrialVisibility; label: string; icon: typeof Sun }[] =
   { id: 'public', label: 'Public', icon: Users },
 ];
 
-const MS_PER_DAY = 86_400_000;
-
-function localDay(date: Date): string {
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
-}
-
-/** Inclusive of both ends, so it matches the `n/total` the day counter shows. */
-function lengthInDays(startDate: string, endDate: string): number {
-  const span = Date.parse(`${endDate}T00:00:00`) - Date.parse(`${startDate}T00:00:00`);
-  return Math.round(span / MS_PER_DAY) + 1;
-}
-
 function longDate(value: string): string {
   return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
     day: 'numeric',
@@ -133,7 +122,7 @@ export function TrialSettingsEditor({ trialId, status, startDate, settings }: Pr
   const router = useRouter();
   const isActive = status === 'active';
 
-  const initialLength = settings.endDate ? lengthInDays(startDate, settings.endDate) : null;
+  const initialLength = settings.endDate ? daysInclusive(startDate, settings.endDate) : null;
 
   const [name, setName] = useState(settings.name);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(settings.timeOfDay);
@@ -188,7 +177,7 @@ export function TrialSettingsEditor({ trialId, status, startDate, settings }: Pr
   function endDate(): string | null {
     const days = durationDays();
     if (days === null) return null;
-    const end = new Date(`${startDate}T00:00:00`);
+    const end = parseDay(startDate);
     end.setDate(end.getDate() + days - 1);
     return localDay(end);
   }

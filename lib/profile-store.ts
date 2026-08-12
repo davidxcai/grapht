@@ -3,20 +3,13 @@ import { redirect } from 'next/navigation';
 
 import { getSql } from '@/lib/db';
 import { clerkConfigured, requireUserId } from '@/lib/auth';
+import { asDay } from '@/lib/days';
 import type { Profile, ProfileInput, ProfileVisibility, SkinType } from '@/lib/profile';
 
 /**
  * The profile row in Neon. Types and the skin-type list live in `lib/profile.ts`
  * so the client form can import them without dragging the database in.
  */
-
-function asDay(value: unknown): string {
-  if (value instanceof Date) {
-    const offset = value.getTimezoneOffset() * 60_000;
-    return new Date(value.getTime() - offset).toISOString().slice(0, 10);
-  }
-  return String(value).slice(0, 10);
-}
 
 export async function getProfile(userId: string): Promise<Profile | null> {
   const sql = getSql();

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SearchIcon } from "lucide-react";
 
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/input-group";
 import { Thumbnail } from "@/components/thumbnail";
 import { searchHeroProducts } from "@/app/search/actions";
+import { useDebouncedSearch } from "@/lib/use-debounced-search";
 import type { CatalogPickerMatch } from "@/lib/catalog";
 
 /**
@@ -23,27 +23,10 @@ import type { CatalogPickerMatch } from "@/lib/catalog";
  */
 export function HeroSearch() {
     const router = useRouter();
-    const [q, setQ] = useState("");
-    const [options, setOptions] = useState<CatalogPickerMatch[]>([]);
-    const [open, setOpen] = useState(false);
-    const requestId = useRef(0);
-
-    useEffect(() => {
-        const trimmed = q.trim();
-        if (!trimmed) {
-            setOptions([]);
-            return;
-        }
-        const id = ++requestId.current;
-        const timer = setTimeout(async () => {
-            const results = await searchHeroProducts(trimmed);
-            if (requestId.current === id) setOptions(results);
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [q]);
+    const { trimmed, options, showOptions, setOpen, inputProps } =
+        useDebouncedSearch<CatalogPickerMatch>(searchHeroProducts, 300);
 
     function goToSearchPage() {
-        const trimmed = q.trim();
         router.push(
             trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : "/search",
         );
@@ -66,13 +49,7 @@ export function HeroSearch() {
                         </button>
                     </InputGroupAddon>
                     <InputGroupInput
-                        value={q}
-                        onChange={(e) => {
-                            setQ(e.target.value);
-                            setOpen(true);
-                        }}
-                        onFocus={() => setOpen(true)}
-                        onBlur={() => setTimeout(() => setOpen(false), 150)}
+                        {...inputProps}
                         placeholder="Search products, brands, ingredients…"
                         aria-label="Search"
                         className="text-base"
@@ -80,7 +57,7 @@ export function HeroSearch() {
                 </InputGroup>
             </form>
 
-            {open && q.trim() && options.length > 0 && (
+            {showOptions && (
                 <ul className="absolute z-10 mt-1 w-full overflow-auto rounded-lg border bg-popover p-1 text-sm shadow-md ring-1 ring-foreground/10">
                     {options.map((opt) => (
                         <li key={opt.id}>

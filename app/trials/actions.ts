@@ -36,8 +36,9 @@ import {
 import { getRoutine, snapshotRoutine } from '@/lib/routines';
 import { writeSummary } from '@/lib/summary';
 import { currentUserId } from '@/lib/auth';
+import { localDay } from '@/lib/days';
 import { isInconclusive, type BaselineEntry, type Frequency, type Trial } from '@/lib/trials';
-import type { ActionResult } from '@/app/routines/actions';
+import { causeMessage, failed, failedBecause, type ActionResult } from '@/lib/action-result';
 import { searchCatalogForPicker as searchCatalog, type CatalogPickerMatch } from '@/lib/catalog';
 
 /** Catalog matches for the product-name autocomplete in the trial editor
@@ -69,8 +70,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
  *  send its own — normally the browser's `startDate` is trusted instead,
  *  the same pattern already used for `endDate`. */
 function today(): string {
-  const now = new Date();
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+  return localDay(new Date());
 }
 
 function slugify(name: string): string {
@@ -94,10 +94,10 @@ export async function startTrial(
   photo: File,
 ): Promise<ActionResult<{ id: string }>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in to start a trial.' };
+  if (!userId) return failed('Log in to start a trial.');
 
   const name = input.name?.trim();
-  if (!name) return { ok: false, error: 'Give the trial a name.' };
+  if (!name) return failed('Give the trial a name.');
 
   const interventions = (input.interventions ?? []).filter((i) => i.name?.trim());
 
@@ -105,17 +105,14 @@ export async function startTrial(
   // (docs/trial-model.md) — but only against a saved routine, which is what it
   // is a removal *from*. With neither, there is nothing to measure against.
   if (interventions.length === 0 && !input.routineId) {
-    return {
-      ok: false,
-      error: 'Add a product to track, or pick the routine this trial sits on.',
-    };
+    return failed('Add a product to track, or pick the routine this trial sits on.');
   }
 
   if (!photo || photo.size === 0) {
-    return { ok: false, error: 'Add a photo to start from.' };
+    return failed('Add a photo to start from.');
   }
   const imageError = checkImage(photo);
-  if (imageError) return { ok: false, error: imageError };
+  if (imageError) return failed(imageError);
 
   // Frozen now, by value. Editing or deleting the routine later must not reach
   // into this trial and move a metric between `confounded` and `unexplained`
@@ -124,10 +121,10 @@ export async function startTrial(
   if (input.routineId) {
     try {
       const routine = await getRoutine(userId, input.routineId);
-      if (!routine) return { ok: false, error: 'That routine no longer exists.' };
+      if (!routine) return failed('That routine no longer exists.');
       baseline = [snapshotRoutine(routine)];
     } catch (error) {
-      return { ok: false, error: `Could not read that routine — ${(error as Error).message}` };
+      return failedBecause('Could not read that routine', error);
     }
   }
 
@@ -135,7 +132,7 @@ export async function startTrial(
   try {
     capture = await analyzeAndStore(photo, slugify(name));
   } catch (error) {
-    return { ok: false, error: describeCaptureFailure(error as Error) };
+    return failed(describeCaptureFailure(error as Error));
   }
 
   try {
@@ -168,10 +165,7 @@ export async function startTrial(
   } catch (error) {
     // The units are already spent at this point, so say so rather than letting
     // it read as a failed photo the user should retake.
-    return {
-      ok: false,
-      error: `Your photo was analysed but the trial could not be saved — ${(error as Error).message}`,
-    };
+    return failedBecause('Your photo was analysed but the trial could not be saved', error);
   }
 }
 
@@ -194,32 +188,32 @@ export async function logCapture(
   note?: string | null,
 ): Promise<ActionResult<{ id: string }>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in to add a photo.' };
+  if (!userId) return failed('Log in to add a photo.');
 
   if (isFixtureTrial(trialId)) {
-    return { ok: false, error: 'This is the built-in sample trial, so its photos are fixed.' };
+    return failed('This is the built-in sample trial, so its photos are fixed.');
   }
 
-  if (!photo || photo.size === 0) return { ok: false, error: 'Add a photo first.' };
+  if (!photo || photo.size === 0) return failed('Add a photo first.');
   const imageError = checkImage(photo);
-  if (imageError) return { ok: false, error: imageError };
+  if (imageError) return failed(imageError);
 
   let header;
   try {
     header = await getTrialHeader(userId, trialId);
   } catch (error) {
-    return { ok: false, error: `Could not read that trial — ${(error as Error).message}` };
+    return failedBecause('Could not read that trial', error);
   }
-  if (!header) return { ok: false, error: 'That trial no longer exists.' };
+  if (!header) return failed('That trial no longer exists.');
   if (header.status !== 'active') {
-    return { ok: false, error: 'This trial has ended, so no more photos can be added to it.' };
+    return failed('This trial has ended, so no more photos can be added to it.');
   }
 
   let stored;
   try {
     stored = await storeCapturePhoto(photo, slugify(header.name));
   } catch (error) {
-    return { ok: false, error: `That photo could not be saved — ${(error as Error).message}` };
+    return failedBecause('That photo could not be saved', error);
   }
 
   try {
@@ -242,10 +236,7 @@ export async function logCapture(
     // The write is guarded on `status = 'active'`, so no row means the trial was
     // ended between the check above and here.
     if (!id) {
-      return {
-        ok: false,
-        error: 'This trial has since ended, so that photo was not saved.',
-      };
+      return failed('This trial has since ended, so that photo was not saved.');
     }
 
     revalidatePath('/');
@@ -253,10 +244,7 @@ export async function logCapture(
     revalidatePath(`/trials/${trialId}`);
     return { ok: true, data: { id } };
   } catch (error) {
-    return {
-      ok: false,
-      error: `That photo could not be saved — ${(error as Error).message}`,
-    };
+    return failedBecause('That photo could not be saved', error);
   }
 }
 
@@ -294,10 +282,10 @@ export async function endTrial(
   device?: string | null,
 ): Promise<ActionResult<{ id: string; inconclusive: boolean }>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in to end a trial.' };
+  if (!userId) return failed('Log in to end a trial.');
 
   if (isFixtureTrial(id)) {
-    return { ok: false, error: 'This is the built-in sample trial and cannot be ended.' };
+    return failed('This is the built-in sample trial and cannot be ended.');
   }
 
   let trial: Trial | undefined;
@@ -305,10 +293,10 @@ export async function endTrial(
     const { trials } = await loadTrials(userId);
     trial = trials.find((t) => t.id === id);
   } catch (error) {
-    return { ok: false, error: `Could not read that trial — ${(error as Error).message}` };
+    return failedBecause('Could not read that trial', error);
   }
-  if (!trial) return { ok: false, error: 'That trial no longer exists.' };
-  if (trial.status !== 'active') return { ok: false, error: 'This trial has already ended.' };
+  if (!trial) return failed('That trial no longer exists.');
+  if (trial.status !== 'active') return failed('This trial has already ended.');
 
   // An active trial has exactly one analysed capture (the initial) until this
   // point — a second only ever lands here or via `addFinalPhoto()`, which
@@ -318,13 +306,13 @@ export async function endTrial(
 
   if (finalPhoto && finalPhoto.size > 0) {
     const imageError = checkImage(finalPhoto);
-    if (imageError) return { ok: false, error: imageError };
+    if (imageError) return failed(imageError);
 
     let capture;
     try {
       capture = await analyzeAndStore(finalPhoto, slugify(trial.name));
     } catch (error) {
-      return { ok: false, error: describeCaptureFailure(error as Error) };
+      return failed(describeCaptureFailure(error as Error));
     }
 
     try {
@@ -338,32 +326,26 @@ export async function endTrial(
         skinAge: capture.skinAge,
       });
       if (!captureId) {
-        return {
-          ok: false,
-          error: 'Your final photo was analysed but this trial has since ended.',
-        };
+        return failed('Your final photo was analysed but this trial has since ended.');
       }
       finalAnalyzed = true;
     } catch (error) {
-      return {
-        ok: false,
-        error: `Your final photo was analysed but could not be saved — ${(error as Error).message}`,
-      };
+      return failedBecause('Your final photo was analysed but could not be saved', error);
     }
   } else if (trial.captures.length > 1) {
     const latest = [...trial.captures].sort((a, b) => b.capturedAt.localeCompare(a.capturedAt))[0];
     if (!latest.blobUrl) {
-      return { ok: false, error: 'Your latest photo could not be found in storage.' };
+      return failed('Your latest photo could not be found in storage.');
     }
     try {
       const scores = await analyzeStoredCapture({ blobUrl: latest.blobUrl });
       const updated = await updateCaptureAnalysis(userId, id, latest.id, scores);
       if (!updated) {
-        return { ok: false, error: 'Your latest photo was analysed but could not be saved.' };
+        return failed('Your latest photo was analysed but could not be saved.');
       }
       finalAnalyzed = true;
     } catch (error) {
-      return { ok: false, error: describeCaptureFailure(error as Error) };
+      return failed(describeCaptureFailure(error as Error));
     }
   }
   // Else: nothing beyond the initial photo was ever logged. End as-is — the
@@ -372,14 +354,14 @@ export async function endTrial(
   try {
     const updated = await closeTrial(userId, id);
     if (!updated) {
-      return { ok: false, error: 'This trial has already ended.' };
+      return failed('This trial has already ended.');
     }
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath(`/trials/${id}`);
     return { ok: true, data: { id, inconclusive: !finalAnalyzed } };
   } catch (error) {
-    return { ok: false, error: `Could not end this trial — ${(error as Error).message}` };
+    return failedBecause('Could not end this trial', error);
   }
 }
 
@@ -395,10 +377,10 @@ export async function addFinalPhoto(
   device: string | null,
 ): Promise<ActionResult<{ id: string }>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in to add a photo.' };
+  if (!userId) return failed('Log in to add a photo.');
 
   if (isFixtureTrial(trialId)) {
-    return { ok: false, error: 'This is the built-in sample trial, so its photos are fixed.' };
+    return failed('This is the built-in sample trial, so its photos are fixed.');
   }
 
   let trial: Trial | undefined;
@@ -406,22 +388,22 @@ export async function addFinalPhoto(
     const { trials } = await loadTrials(userId);
     trial = trials.find((t) => t.id === trialId);
   } catch (error) {
-    return { ok: false, error: `Could not read that trial — ${(error as Error).message}` };
+    return failedBecause('Could not read that trial', error);
   }
-  if (!trial) return { ok: false, error: 'That trial no longer exists.' };
+  if (!trial) return failed('That trial no longer exists.');
   if (!isInconclusive(trial)) {
-    return { ok: false, error: 'This trial already has a result, so it cannot take another photo.' };
+    return failed('This trial already has a result, so it cannot take another photo.');
   }
 
-  if (!photo || photo.size === 0) return { ok: false, error: 'Add a photo first.' };
+  if (!photo || photo.size === 0) return failed('Add a photo first.');
   const imageError = checkImage(photo);
-  if (imageError) return { ok: false, error: imageError };
+  if (imageError) return failed(imageError);
 
   let capture;
   try {
     capture = await analyzeAndStore(photo, slugify(trial.name));
   } catch (error) {
-    return { ok: false, error: describeCaptureFailure(error as Error) };
+    return failed(describeCaptureFailure(error as Error));
   }
 
   try {
@@ -435,20 +417,16 @@ export async function addFinalPhoto(
       skinAge: capture.skinAge,
     });
     if (!captureId) {
-      return {
-        ok: false,
-        error: 'Your photo was analysed but this trial already has a result, so it was not saved.',
-      };
+      return failed(
+        'Your photo was analysed but this trial already has a result, so it was not saved.',
+      );
     }
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath(`/trials/${trialId}`);
     return { ok: true, data: { id: captureId } };
   } catch (error) {
-    return {
-      ok: false,
-      error: `Your photo was analysed but could not be saved — ${(error as Error).message}`,
-    };
+    return failedBecause('Your photo was analysed but could not be saved', error);
   }
 }
 
@@ -507,30 +485,30 @@ export async function saveTrialSettings(
   input: TrialSettingsUpdate,
 ): Promise<ActionResult<{ id: string }>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in to edit a trial.' };
+  if (!userId) return failed('Log in to edit a trial.');
 
   if (isFixtureTrial(id)) {
-    return { ok: false, error: 'This is the built-in sample trial, so its settings are fixed.' };
+    return failed('This is the built-in sample trial, so its settings are fixed.');
   }
 
   const name = input.name?.trim();
-  if (!name) return { ok: false, error: 'Give the trial a name.' };
+  if (!name) return failed('Give the trial a name.');
 
   const frequency = parseFrequency(input.frequency);
-  if (!frequency) return { ok: false, error: "That's not a logging schedule this app knows." };
+  if (!frequency) return failed("That's not a logging schedule this app knows.");
 
   const endDate = input.endDate?.trim() || null;
-  if (endDate && !DAY.test(endDate)) return { ok: false, error: 'That end date is not a real date.' };
+  if (endDate && !DAY.test(endDate)) return failed('That end date is not a real date.');
 
   let header;
   try {
     header = await getTrialHeader(userId, id);
   } catch (error) {
-    return { ok: false, error: `Could not read that trial — ${(error as Error).message}` };
+    return failedBecause('Could not read that trial', error);
   }
-  if (!header) return { ok: false, error: 'That trial no longer exists.' };
+  if (!header) return failed('That trial no longer exists.');
   if (endDate && endDate < header.startDate) {
-    return { ok: false, error: 'The end date cannot be before the trial started.' };
+    return failed('The end date cannot be before the trial started.');
   }
 
   try {
@@ -545,14 +523,14 @@ export async function saveTrialSettings(
       frequency,
       commentsEnabled: input.commentsEnabled !== false,
     });
-    if (!saved) return { ok: false, error: 'That trial no longer exists.' };
+    if (!saved) return failed('That trial no longer exists.');
 
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath(`/trials/${id}`);
     return { ok: true, data: { id } };
   } catch (error) {
-    return { ok: false, error: `Could not save your changes — ${(error as Error).message}` };
+    return failedBecause('Could not save your changes', error);
   }
 }
 
@@ -566,23 +544,23 @@ export async function setTrialVisibility(
   visibility: Trial['visibility'],
 ): Promise<ActionResult<{ visibility: Trial['visibility'] }>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in to change who can see this trial.' };
+  if (!userId) return failed('Log in to change who can see this trial.');
 
   if (isFixtureTrial(id)) {
-    return { ok: false, error: 'This is the built-in sample trial, so its visibility is fixed.' };
+    return failed('This is the built-in sample trial, so its visibility is fixed.');
   }
 
   const value = visibility === 'public' ? 'public' : 'private';
   try {
     const saved = await updateTrialVisibility(userId, id, value);
-    if (!saved) return { ok: false, error: 'That trial no longer exists.' };
+    if (!saved) return failed('That trial no longer exists.');
 
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath(`/trials/${id}`);
     return { ok: true, data: { visibility: value } };
   } catch (error) {
-    return { ok: false, error: `Could not change visibility — ${(error as Error).message}` };
+    return failedBecause('Could not change visibility', error);
   }
 }
 
@@ -594,22 +572,22 @@ export async function setTrialVisibility(
  */
 export async function removeTrial(id: string): Promise<ActionResult> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in to delete a trial.' };
+  if (!userId) return failed('Log in to delete a trial.');
 
   if (isFixtureTrial(id)) {
-    return { ok: false, error: 'This is the built-in sample trial and cannot be deleted.' };
+    return failed('This is the built-in sample trial and cannot be deleted.');
   }
 
   try {
     const pathnames = await deleteTrial(userId, id);
-    if (!pathnames) return { ok: false, error: 'That trial no longer exists.' };
+    if (!pathnames) return failed('That trial no longer exists.');
     await Promise.all(pathnames.map((p) => del(p).catch(() => {})));
 
     revalidatePath('/');
     revalidatePath('/dashboard');
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: `Could not delete this trial — ${(error as Error).message}` };
+    return failedBecause('Could not delete this trial', error);
   }
 }
 
@@ -619,19 +597,19 @@ export async function removeTrial(id: string): Promise<ActionResult> {
  */
 export async function applyProducts(trialId: string): Promise<ActionResult<null>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in to check in.' };
+  if (!userId) return failed('Log in to check in.');
 
   if (isFixtureTrial(trialId)) {
-    return { ok: false, error: 'This is the built-in sample trial.' };
+    return failed('This is the built-in sample trial.');
   }
 
   try {
     const logged = await logApplication(userId, trialId);
-    if (!logged) return { ok: false, error: 'That trial is not running.' };
+    if (!logged) return failed('That trial is not running.');
     revalidatePath(`/trials/${trialId}`);
     return { ok: true, data: null };
   } catch (error) {
-    return { ok: false, error: `Could not check in — ${(error as Error).message}` };
+    return failedBecause('Could not check in', error);
   }
 }
 
@@ -644,20 +622,20 @@ export async function saveCaptureNote(
   note: string,
 ): Promise<ActionResult<null>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in to edit a note.' };
+  if (!userId) return failed('Log in to edit a note.');
 
   if (isFixtureTrial(trialId)) {
-    return { ok: false, error: 'This is the built-in sample trial, so its photos are fixed.' };
+    return failed('This is the built-in sample trial, so its photos are fixed.');
   }
 
   const trimmed = note.trim().slice(0, MAX_NOTE) || null;
   try {
     const saved = await setCaptureNote(userId, trialId, captureId, trimmed);
-    if (!saved) return { ok: false, error: 'That photo no longer exists.' };
+    if (!saved) return failed('That photo no longer exists.');
     revalidatePath(`/trials/${trialId}`);
     return { ok: true, data: null };
   } catch (error) {
-    return { ok: false, error: `Could not save the note — ${(error as Error).message}` };
+    return failedBecause('Could not save the note', error);
   }
 }
 
@@ -675,25 +653,25 @@ export async function addCapturePhotos(
   form: FormData,
 ): Promise<ActionResult<null>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in to add photos.' };
+  if (!userId) return failed('Log in to add photos.');
 
   if (isFixtureTrial(trialId)) {
-    return { ok: false, error: 'This is the built-in sample trial, so its photos are fixed.' };
+    return failed('This is the built-in sample trial, so its photos are fixed.');
   }
 
   const files = form.getAll('photos').filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length === 0) return { ok: false, error: 'Add a photo first.' };
+  if (files.length === 0) return failed('Add a photo first.');
   if (files.length > MAX_EXTRA_PHOTOS) {
-    return { ok: false, error: `That's a lot of angles — keep it to ${MAX_EXTRA_PHOTOS} at a time.` };
+    return failed(`That's a lot of angles — keep it to ${MAX_EXTRA_PHOTOS} at a time.`);
   }
   for (const file of files) {
     const imageError = checkImage(file);
-    if (imageError) return { ok: false, error: imageError };
+    if (imageError) return failed(imageError);
   }
 
   try {
     const owned = await captureOwnedBy(userId, trialId, captureId);
-    if (!owned) return { ok: false, error: 'That photo no longer exists.' };
+    if (!owned) return failed('That photo no longer exists.');
 
     for (const file of files) {
       const extension = file.type === 'image/png' ? 'png' : 'jpg';
@@ -713,7 +691,7 @@ export async function addCapturePhotos(
     revalidatePath(`/trials/${trialId}`);
     return { ok: true, data: null };
   } catch (error) {
-    return { ok: false, error: `Could not add the photos — ${(error as Error).message}` };
+    return failedBecause('Could not add the photos', error);
   }
 }
 
@@ -722,16 +700,16 @@ export async function removeCapturePhoto(
   photoId: string,
 ): Promise<ActionResult<null>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in first.' };
+  if (!userId) return failed('Log in first.');
 
   try {
     const pathname = await deleteCapturePhoto(userId, photoId);
-    if (!pathname) return { ok: false, error: 'That photo no longer exists.' };
+    if (!pathname) return failed('That photo no longer exists.');
     await del(pathname).catch(() => {});
     revalidatePath(`/trials/${trialId}`);
     return { ok: true, data: null };
   } catch (error) {
-    return { ok: false, error: `Could not remove the photo — ${(error as Error).message}` };
+    return failedBecause('Could not remove the photo', error);
   }
 }
 
@@ -745,10 +723,10 @@ export async function removeCapturePhoto(
  */
 export async function generateSummary(trialId: string): Promise<ActionResult<{ text: string }>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in first.' };
+  if (!userId) return failed('Log in first.');
 
   if (isFixtureTrial(trialId)) {
-    return { ok: false, error: 'This is the built-in sample trial.' };
+    return failed('This is the built-in sample trial.');
   }
 
   let trial;
@@ -756,31 +734,28 @@ export async function generateSummary(trialId: string): Promise<ActionResult<{ t
     const { trials } = await loadTrials(userId);
     trial = trials.find((t) => t.id === trialId);
   } catch (error) {
-    return { ok: false, error: `Could not read that trial — ${(error as Error).message}` };
+    return failedBecause('Could not read that trial', error);
   }
-  if (!trial) return { ok: false, error: 'That trial no longer exists.' };
+  if (!trial) return failed('That trial no longer exists.');
   if (trial.status !== 'completed') {
-    return { ok: false, error: 'The summary is written when the trial ends.' };
+    return failed('The summary is written when the trial ends.');
   }
   if (isInconclusive(trial)) {
     // Every metric's series is <2 points, which `metricChanges()` reports as
     // `direction: 'flat'` — indistinguishable, to the gate, from "measured
     // twice and didn't move." Only one measurement exists here, so nothing
     // is safe to narrate; add a final photo first.
-    return {
-      ok: false,
-      error: 'This trial is inconclusive — add a final photo before writing a summary.',
-    };
+    return failed('This trial is inconclusive — add a final photo before writing a summary.');
   }
 
   try {
     const summary = await writeSummary(trial);
     const saved = await setSummary(userId, trialId, summary);
-    if (!saved) return { ok: false, error: 'That trial no longer exists.' };
+    if (!saved) return failed('That trial no longer exists.');
     revalidatePath(`/trials/${trialId}`);
     return { ok: true, data: { text: summary.text } };
   } catch (error) {
-    return { ok: false, error: `The summary could not be written — ${(error as Error).message}` };
+    return failedBecause('The summary could not be written', error);
   }
 }
 
@@ -792,19 +767,19 @@ export async function saveUserReview(
   review: string,
 ): Promise<ActionResult<null>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in first.' };
+  if (!userId) return failed('Log in first.');
 
   if (isFixtureTrial(trialId)) {
-    return { ok: false, error: 'This is the built-in sample trial.' };
+    return failed('This is the built-in sample trial.');
   }
 
   try {
     const saved = await setUserReview(userId, trialId, review.trim().slice(0, MAX_REVIEW) || null);
-    if (!saved) return { ok: false, error: 'Your words are saved when the trial has ended.' };
+    if (!saved) return failed('Your words are saved when the trial has ended.');
     revalidatePath(`/trials/${trialId}`);
     return { ok: true, data: null };
   } catch (error) {
-    return { ok: false, error: `Could not save — ${(error as Error).message}` };
+    return failedBecause('Could not save', error);
   }
 }
 

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 
 import { Input } from '@/components/ui/input';
 import { Thumbnail } from '@/components/thumbnail';
+import { useDebouncedSearch } from '@/lib/use-debounced-search';
 import { cn } from '@/lib/utils';
 
 /**
@@ -35,24 +35,7 @@ export function SearchCombobox<T>({
   placeholder?: string;
   className?: string;
 }) {
-  const [q, setQ] = useState('');
-  const [options, setOptions] = useState<T[]>([]);
-  const [open, setOpen] = useState(false);
-  const requestId = useRef(0);
-
-  useEffect(() => {
-    const trimmed = q.trim();
-    if (!trimmed) {
-      setOptions([]);
-      return;
-    }
-    const id = ++requestId.current;
-    const timer = setTimeout(async () => {
-      const results = await search(trimmed);
-      if (requestId.current === id) setOptions(results);
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [q, search]);
+  const { options, showOptions, reset, inputProps } = useDebouncedSearch(search);
 
   return (
     <div className={cn('relative', className)}>
@@ -60,18 +43,8 @@ export function SearchCombobox<T>({
         className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
         aria-hidden
       />
-      <Input
-        value={q}
-        onChange={(e) => {
-          setQ(e.target.value);
-          setOpen(true);
-        }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder={placeholder}
-        className="pl-9"
-      />
-      {open && q.trim() && options.length > 0 && (
+      <Input {...inputProps} placeholder={placeholder} className="pl-9" />
+      {showOptions && (
         <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-lg border bg-popover p-1 text-sm shadow-md ring-1 ring-foreground/10">
           {options.map((opt) => {
             const image = itemImage?.(opt);
@@ -84,9 +57,7 @@ export function SearchCombobox<T>({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     onSelect(opt);
-                    setQ('');
-                    setOptions([]);
-                    setOpen(false);
+                    reset();
                   }}
                 >
                   {itemImage && <Thumbnail src={image} size={32} className="size-8 rounded" />}

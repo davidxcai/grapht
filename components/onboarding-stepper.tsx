@@ -19,14 +19,12 @@ import {
   StepperTrigger,
 } from '@/src/components/reui/stepper';
 import { saveProfileDetails } from '@/app/profile/actions';
+import { checkAvatarFile } from '@/lib/avatar';
 import { PROFILE_VISIBILITIES, SKIN_TYPES, type ProfileVisibility, type SkinType } from '@/lib/profile';
 import { cn } from '@/lib/utils';
 
 const TOTAL_STEPS = 4;
 const STEP_TITLES = ['Name', 'Photo', 'Handle', 'Skin'];
-
-/** 4MB. Clerk's own limit is 10MB; this is a small square on a navbar. */
-const MAX_AVATAR_BYTES = 4 * 1024 * 1024;
 
 const USERNAME_RE = /^[a-z0-9](?:[a-z0-9_-]{1,22}[a-z0-9])?$/i;
 
@@ -120,12 +118,9 @@ export function OnboardingStepper() {
     setError(null);
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Pick an image file.');
-      return;
-    }
-    if (file.size > MAX_AVATAR_BYTES) {
-      setError('That picture is over 4MB.');
+    const invalid = checkAvatarFile(file);
+    if (invalid) {
+      setError(invalid);
       return;
     }
 

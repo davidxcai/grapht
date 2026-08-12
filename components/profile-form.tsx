@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { ThemeSelector } from '@/components/theme-selector';
 import { saveProfileDetails } from '@/app/profile/actions';
+import { checkAvatarFile } from '@/lib/avatar';
 import { PROFILE_VISIBILITIES, SKIN_TYPES, type ProfileVisibility } from '@/lib/profile';
 import { cn } from '@/lib/utils';
 
@@ -35,9 +36,6 @@ const VISIBILITY_OPTIONS: { id: ProfileVisibility; label: string; description: s
   { id: 'public', label: 'Public', description: 'Shown on trials and comments you publish' },
   { id: 'private', label: 'Private', description: 'Hidden from search and community pages' },
 ];
-
-/** 4MB. Clerk's own limit is 10MB; this is a small square on a navbar. */
-const MAX_AVATAR_BYTES = 4 * 1024 * 1024;
 
 /** `birthday` is stored as `YYYY-MM-DD`; parse in local time to dodge UTC day-shift. */
 function parseIsoDate(value: string): Date | undefined {
@@ -86,12 +84,9 @@ export function ProfileForm({ initial }: { initial: ProfileValues }) {
     setError(null);
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Pick an image file.');
-      return;
-    }
-    if (file.size > MAX_AVATAR_BYTES) {
-      setError('That picture is over 4MB.');
+    const invalid = checkAvatarFile(file);
+    if (invalid) {
+      setError(invalid);
       return;
     }
 
