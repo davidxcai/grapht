@@ -257,6 +257,80 @@ export async function getMyProduct(userId: string, id: string): Promise<MyProduc
   return toMyProduct(row, productInUse({ catalogProductId: row.catalog_product_id, brand: row.brand, name: row.name }, usage));
 }
 
+export async function syncMyProductsFromItems(
+  userId: string,
+  items: MyProductIdentity[],
+): Promise<void> {
+  const sql = getSql();
+
+  interface SyncItem {
+    catalogProductId: string | null;
+    brand: string | null;
+    name: string;
+  }
+
+  const byKey = new Map<string, SyncItem>();
+  const catalogIds: string[] = [];
+
+  for (const item of items) {
+    const name = item.name?.trim();
+    if (!name) continue;
+    const catalogProductId = item.catalogProductId ?? null;
+    const brand = (item.brand?.trim() || null) ?? null;
+    const key = catalogProductId || `${brand ?? ''}|${name.toLowerCase()}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, { catalogProductId, brand, name });
+      if (catalogProductId) catalogIds.push(catalogProductId);
+    }
+  }
+  if (byKey.size === 0) return;
+
+  const catalogMap = new Map<string, { brand: string | null; name: string }>();
+  if (catalogIds.length > 0) {
+    const rows = (await sql.query(
+      `select id, brand_name, name
+         from catalog_products
+        where id = any($1::uuid[])`,
+      [catalogIds],
+    )) as Record<string, unknown>[];
+    for (const row of rows) {
+      catalogMap.set(row.id as string, {
+        brand: (row.brand_name as string | null) ?? null,
+        name: row.name as string,
+      });
+    }
+  }
+
+  const userIds: string[] = [];
+  const catalogProductIds: (string | null)[] = [];
+  const brands: (string | null)[] = [];
+  const names: string[] = [];
+
+  for (const item of byKey.values()) {
+    if (item.catalogProductId && catalogMap.has(item.catalogProductId)) {
+      const catalog = catalogMap.get(item.catalogProductId)!;
+      userIds.push(userId);
+      catalogProductIds.push(item.catalogProductId);
+      brands.push(catalog.brand);
+      names.push(catalog.name);
+    } else {
+      userIds.push(userId);
+      catalogProductIds.push(null);
+      brands.push(item.brand);
+      names.push(item.name);
+    }
+  }
+
+  await sql.query(
+    `insert into user_products (user_id, catalog_product_id, brand, name)
+     select user_id, catalog_product_id, brand, name
+       from unnest($1::text[], $2::uuid[], $3::text[], $4::text[])
+         as data(user_id, catalog_product_id, brand, name)
+     on conflict do nothing`,
+    [userIds, catalogProductIds, brands, names],
+  );
+}
+
 export async function addMyProduct(
   userId: string,
   identity: MyProductIdentity,

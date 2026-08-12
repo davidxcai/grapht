@@ -12,6 +12,7 @@ import {
 import { classifyProduct, productIdentity } from '@/lib/product-classifier';
 import { currentUserId } from '@/lib/auth';
 import { searchCatalogForPicker as searchCatalog, type CatalogPickerMatch } from '@/lib/catalog';
+import { syncMyProductsFromItems } from '@/lib/my-products';
 
 /** Top name/brand matches for the routine editor's product-name autocomplete
  *  — same query as app/trials/actions.ts's wrapper, kept separate because
@@ -62,6 +63,16 @@ export async function saveRoutine(input: SaveRoutineInput): Promise<ActionResult
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath('/routines');
+
+    try {
+      await syncMyProductsFromItems(
+        userId,
+        items.map((i) => ({ catalogProductId: i.catalogProductId, brand: i.brand, name: i.name })),
+      );
+    } catch {
+      // Sync is best-effort; the routine itself has already been saved.
+    }
+
     return { ok: true, data: { id } };
   } catch (error) {
     const code = (error as { code?: string }).code;

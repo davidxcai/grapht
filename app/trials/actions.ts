@@ -40,6 +40,7 @@ import { currentUserId } from '@/lib/auth';
 import { isInconclusive, type BaselineEntry, type Frequency, type Trial } from '@/lib/trials';
 import type { ActionResult } from '@/app/routines/actions';
 import { searchCatalogForPicker as searchCatalog, type CatalogPickerMatch } from '@/lib/catalog';
+import { syncMyProductsFromItems } from '@/lib/my-products';
 
 /** Catalog matches for the product-name autocomplete in the trial editor
  *  (components/trial-editor.tsx) — each carries its INCI list so "Suggest"
@@ -168,6 +169,21 @@ export async function startTrial(
 
     revalidatePath('/');
     revalidatePath('/dashboard');
+
+    const productsToSync = [
+      ...interventions,
+      ...baseline.flatMap((entry) =>
+        typeof entry === 'string'
+          ? [{ name: entry }]
+          : entry.items.map((i) => ({ catalogProductId: i.catalogProductId, brand: i.brand, name: i.name })),
+      ),
+    ];
+    try {
+      await syncMyProductsFromItems(userId, productsToSync);
+    } catch {
+      // Sync is best-effort; the trial itself has already been saved.
+    }
+
     return { ok: true, data: { id } };
   } catch (error) {
     // The units are already spent at this point, so say so rather than letting
