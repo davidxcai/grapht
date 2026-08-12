@@ -10,6 +10,7 @@ import { TimeOfDayBadge } from '@/components/time-of-day-badge';
 import { TrialComments } from '@/components/trial-comments';
 import { TrialDetailTabs } from '@/components/trial-detail-tabs';
 import { TrialGauge } from '@/components/trial-gauge';
+import { TrialPhotosVisibilityToggle } from '@/components/trial-photos-visibility-toggle';
 import { TrialVisibilityToggle } from '@/components/trial-visibility-toggle';
 import { getFixtureTrials, isFixtureTrial, loadTrials } from '@/lib/trial-store';
 import {
@@ -56,6 +57,23 @@ export default async function TrialDetail({ params }: { params: Promise<{ id: st
     handle = published.handle;
     isOwner = false;
     await recordView(trial.id, userId);
+  }
+
+  // A public trial's photos are a separate opt-in. If the viewer is not the
+  // owner and photos are private, strip the photo URLs before the trial object
+  // reaches the client — the actual blob access is also gated in the photo
+  // route, but the URL should never appear in the page payload either.
+  const canViewPhotos = isOwner || trial.photosVisibility === 'public';
+  if (!canViewPhotos) {
+    trial = {
+      ...trial,
+      captures: trial.captures.map((c) => ({
+        ...c,
+        blobUrl: null,
+        photoUrl: null,
+        extraPhotos: [],
+      })),
+    };
   }
 
   const record = logRecord(trial);
@@ -130,7 +148,7 @@ export default async function TrialDetail({ params }: { params: Promise<{ id: st
             (the toggle). A visitor sees neither — if they can view the
             trial, it's already public, so there's nothing to show them. */}
         {canEdit && (
-          <div className="mt-4 flex justify-center gap-2">
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -141,6 +159,12 @@ export default async function TrialDetail({ params }: { params: Promise<{ id: st
               Edit trial
             </Button>
             <TrialVisibilityToggle trialId={trial.id} visibility={trial.visibility} />
+            {isPublic && (
+              <TrialPhotosVisibilityToggle
+                trialId={trial.id}
+                photosVisibility={trial.photosVisibility}
+              />
+            )}
           </div>
         )}
 

@@ -76,6 +76,8 @@ import type { CatalogPickerMatch } from "@/lib/catalog";
 import type { RankedConcern } from "@/lib/routines";
 import type { Frequency, TimeOfDay, TrialVisibility } from "@/lib/trials";
 
+const DEFAULT_PHOTOS_VISIBILITY: TrialVisibility = "private";
+
 /** 30 days is the pre-filled default — see docs/app-ui.md §4, "Duration". */
 const DURATIONS = [14, 30, 60];
 
@@ -301,6 +303,7 @@ export function TrialEditorStepper({
     const [routineId, setRoutineId] = useState<string | null>(null);
     const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("am");
     const [visibility, setVisibility] = useState<TrialVisibility>("private");
+    const [photosVisibility, setPhotosVisibility] = useState<TrialVisibility>(DEFAULT_PHOTOS_VISIBILITY);
 
     const [durationMode, setDurationMode] = useState<DurationMode>("preset");
     const [presetDays, setPresetDays] = useState(14);
@@ -470,6 +473,7 @@ export function TrialEditorStepper({
                             : "user-chosen",
                     timeOfDay,
                     visibility,
+                    photosVisibility,
                     frequency: frequencyValue(),
                     device: navigator.userAgent,
                 },

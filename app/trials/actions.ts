@@ -29,6 +29,7 @@ import {
   setSummary,
   setUserReview,
   updateCaptureAnalysis,
+  updateTrialPhotosVisibility,
   updateTrialSettings,
   updateTrialVisibility,
   type InterventionInput,
@@ -59,6 +60,7 @@ export interface NewTrialInput {
   endDateSource: Trial['window']['endDateSource'];
   timeOfDay: Trial['timeOfDay'];
   visibility: Trial['visibility'];
+  photosVisibility: Trial['photosVisibility'];
   frequency: Frequency;
   device: string | null;
 }
@@ -148,6 +150,8 @@ export async function startTrial(
       // Anything other than an explicit 'public' is private. Publishing is the
       // one choice here that can't be taken back from whoever already read it.
       visibility: input.visibility === 'public' ? 'public' : 'private',
+      // Photos stay private unless the owner explicitly opts in on a public trial.
+      photosVisibility: input.photosVisibility === 'public' ? 'public' : 'private',
       frequency: input.frequency,
       baseline,
       interventions,
@@ -458,6 +462,7 @@ export interface TrialSettingsUpdate {
   endDateSource: Trial['window']['endDateSource'];
   timeOfDay: Trial['timeOfDay'];
   visibility: Trial['visibility'];
+  photosVisibility: Trial['photosVisibility'];
   frequency: Frequency;
   commentsEnabled: boolean;
 }
@@ -542,6 +547,7 @@ export async function saveTrialSettings(
       // Same rule as creation: anything other than an explicit 'public' is
       // private, so a trial is never published by omission.
       visibility: input.visibility === 'public' ? 'public' : 'private',
+      photosVisibility: input.photosVisibility === 'public' ? 'public' : 'private',
       frequency,
       commentsEnabled: input.commentsEnabled !== false,
     });
@@ -583,6 +589,36 @@ export async function setTrialVisibility(
     return { ok: true, data: { visibility: value } };
   } catch (error) {
     return { ok: false, error: `Could not change visibility — ${(error as Error).message}` };
+  }
+}
+
+/**
+ * The header's quick photo-visibility toggle — the same one-column shortcut as
+ * `setTrialVisibility`, so the owner can flip photo sharing without opening
+ * the full settings form.
+ */
+export async function setTrialPhotosVisibility(
+  id: string,
+  photosVisibility: Trial['photosVisibility'],
+): Promise<ActionResult<{ photosVisibility: Trial['photosVisibility'] }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to change who can see these photos.' };
+
+  if (isFixtureTrial(id)) {
+    return { ok: false, error: 'This is the built-in sample trial, so its photos are fixed.' };
+  }
+
+  const value = photosVisibility === 'public' ? 'public' : 'private';
+  try {
+    const saved = await updateTrialPhotosVisibility(userId, id, value);
+    if (!saved) return { ok: false, error: 'That trial no longer exists.' };
+
+    revalidatePath('/');
+    revalidatePath('/dashboard');
+    revalidatePath(`/trials/${id}`);
+    return { ok: true, data: { photosVisibility: value } };
+  } catch (error) {
+    return { ok: false, error: `Could not change photo visibility — ${(error as Error).message}` };
   }
 }
 

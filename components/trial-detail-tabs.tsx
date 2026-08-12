@@ -43,6 +43,10 @@ interface Props {
 export function TrialDetailTabs({ trial, changes, record, canEdit, productImages }: Props) {
     const isCompleted = trial.status === "completed";
     const isOpenEnded = trial.window.endDate === null;
+
+    // Photos are a separate opt-in. The owner always sees them; strangers only
+    // see them when the trial is public *and* the owner has set photos public.
+    const canViewPhotos = canEdit || trial.photosVisibility === "public";
     const loggedDays = record.days
         .filter((d) => d.captures.length > 0)
         .map((d) => d.date);
@@ -111,17 +115,25 @@ export function TrialDetailTabs({ trial, changes, record, canEdit, productImages
           tomorrow" note is gone — it contradicted a camera button sitting right
           beside it, and the empty frame already says what is missing. */}
             <TabsContent value="progress" className="mt-5">
-                <TrialPhotos
-                    trialId={trial.id}
-                    captures={trial.captures}
-                    startDate={trial.window.startDate}
-                    totalDays={record.totalDays}
-                    dayNumber={record.dayNumber}
-                    canCapture={!isCompleted && canEdit}
-                    loggedToday={record.loggedToday}
-                    canEdit={canEdit}
-                    applications={trial.applications ?? []}
-                />
+                {canViewPhotos ? (
+                    <TrialPhotos
+                        trialId={trial.id}
+                        captures={trial.captures}
+                        startDate={trial.window.startDate}
+                        totalDays={record.totalDays}
+                        dayNumber={record.dayNumber}
+                        canCapture={!isCompleted && canEdit}
+                        loggedToday={record.loggedToday}
+                        canEdit={canEdit}
+                        applications={trial.applications ?? []}
+                    />
+                ) : (
+                    <div className="rounded-lg border border-dashed px-6 py-14 text-center">
+                        <p className="text-sm text-muted-foreground">
+                            The owner has kept this trial&apos;s photos private.
+                        </p>
+                    </div>
+                )}
 
                 <div className="mt-8">
                     <div className="flex items-baseline justify-between">
