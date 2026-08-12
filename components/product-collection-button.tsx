@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ProductCollectionBadges } from '@/components/product-collection-badges';
@@ -55,7 +55,12 @@ export function ProductCollectionButton({
     <div className="flex flex-wrap items-center gap-3">
       <ProductCollectionBadges saved={saved} inUse={initialInUse} showLabels />
       <Button onClick={toggle} disabled={isPending} variant={saved ? 'outline' : 'default'}>
-        {saved ? (
+        {isPending ? (
+          <>
+            <Loader2 className="size-4 animate-spin" data-icon="inline-start" aria-hidden />
+            {saved ? 'Removing...' : 'Adding...'}
+          </>
+        ) : saved ? (
           <>
             <X className="size-4" data-icon="inline-start" aria-hidden />
             Remove
