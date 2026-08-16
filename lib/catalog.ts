@@ -23,6 +23,27 @@ import { isAnalysisConcern } from '@/src/concerns.mjs';
  * anything at query time.
  */
 
+/**
+ * Nothing here takes an owner, so the only budget a caller can overspend is
+ * the database's: every `q`, `limit` and `offset` below arrives straight from
+ * a URL or an unauthenticated server action (app/search/actions.ts). A needle
+ * longer than a product name cannot match anything a search box meant, and an
+ * unbounded page size or offset turns one request into a full scan, so both
+ * are cut here rather than trusted from the caller.
+ */
+const MAX_QUERY_CHARS = 120;
+const MAX_PAGE_SIZE = 100;
+const MAX_OFFSET = 100_000;
+
+function needle(q: string | null | undefined): string {
+  return (q ?? '').trim().slice(0, MAX_QUERY_CHARS);
+}
+
+function clampRange(n: number, min: number, max: number): number {
+  if (!Number.isFinite(n)) return min;
+  return Math.min(Math.max(Math.trunc(n), min), max);
+}
+
 export interface CatalogSearchResult {
   id: string;
   brand: string | null;
@@ -158,7 +179,7 @@ export async function searchCatalog({
   const params: unknown[] = [];
   let qRawIndex: number | null = null;
 
-  const trimmedQ = q?.trim();
+  const trimmedQ = needle(q);
   if (trimmedQ) {
     params.push(`%${trimmedQ}%`);
     conditions.push(`(coalesce(p.brand_name, '') || ' ' || p.name) ilike $${params.length}`);
@@ -242,9 +263,9 @@ export async function searchCatalog({
       break;
   }
 
-  params.push(limit);
+  params.push(clampRange(limit, 1, MAX_PAGE_SIZE));
   const limitIndex = params.length;
-  params.push(offset);
+  params.push(clampRange(offset, 0, MAX_OFFSET));
   const offsetIndex = params.length;
 
   const rows = (await sql.query(
@@ -306,19 +327,23 @@ export async function catalogProductImages(ids: string[]): Promise<Map<string, s
   return new Map(rows.map((r) => [r.id, r.image_url]));
 }
 
+/** A catalog id is a uuid; anything else cannot name a row. Checked here rather
+ *  than by catching the query's cast failure, because that catch also absorbed
+ *  every real database error and turned an unreachable Neon into "no such
+ *  product" — a 404 the visitor has no reason to doubt. A malformed id still
+ *  404s; a failed lookup now propagates. */
+const CATALOG_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getCatalogProduct(id: string): Promise<CatalogProductDetail | null> {
+  if (!CATALOG_ID_RE.test(id)) return null;
+
   const sql = getSql();
-  let productRows: (CatalogProductRow & { description: string | null; ingredients: StoredIngredientEntry[] })[];
-  try {
-    productRows = (await sql.query(
-      `select id, brand_name, name, description, image_url,
-              concern_tags::text[] as concern_tags, ingredient_count, ingredients
-         from catalog_products where id = $1`,
-      [id],
-    )) as (CatalogProductRow & { description: string | null; ingredients: StoredIngredientEntry[] })[];
-  } catch {
-    return null; // malformed id (not a uuid) — 404, not a 500
-  }
+  const productRows = (await sql.query(
+    `select id, brand_name, name, description, image_url,
+            concern_tags::text[] as concern_tags, ingredient_count, ingredients
+       from catalog_products where id = $1`,
+    [id],
+  )) as (CatalogProductRow & { description: string | null; ingredients: StoredIngredientEntry[] })[];
   const product = productRows[0];
   if (!product) return null;
 
@@ -355,7 +380,7 @@ export async function getCatalogProduct(id: string): Promise<CatalogProductDetai
 }
 
 export async function searchCatalogIngredients(q: string, limit = 8): Promise<CatalogIngredientOption[]> {
-  const trimmed = q.trim();
+  const trimmed = needle(q);
   if (!trimmed) return [];
   const sql = getSql();
   const rows = await sql.query(
@@ -363,7 +388,7 @@ export async function searchCatalogIngredients(q: string, limit = 8): Promise<Ca
       where name ilike $1
       order by similarity(name, $2) desc
       limit $3`,
-    [`%${trimmed}%`, trimmed, limit],
+    [`%${trimmed}%`, trimmed, clampRange(limit, 1, MAX_PAGE_SIZE)],
   );
   return (rows as { slug: string; name: string; functions: string[] }[]).map((r) => ({
     slug: r.slug,
@@ -373,7 +398,7 @@ export async function searchCatalogIngredients(q: string, limit = 8): Promise<Ca
 }
 
 export async function searchCatalogBrands(q: string, limit = 8): Promise<CatalogBrandOption[]> {
-  const trimmed = q.trim();
+  const trimmed = needle(q);
   if (!trimmed) return [];
   const sql = getSql();
   const rows = await sql.query(
@@ -381,7 +406,7 @@ export async function searchCatalogBrands(q: string, limit = 8): Promise<Catalog
       where name ilike $1
       order by similarity(name, $2) desc
       limit $3`,
-    [`%${trimmed}%`, trimmed, limit],
+    [`%${trimmed}%`, trimmed, clampRange(limit, 1, MAX_PAGE_SIZE)],
   );
   return (rows as { slug: string; name: string; product_count: number }[]).map((r) => ({
     slug: r.slug,
@@ -393,7 +418,7 @@ export async function searchCatalogBrands(q: string, limit = 8): Promise<Catalog
 /** Top name/brand matches with their full INCI list attached, for the
  *  trial-creation product picker's autocomplete. */
 export async function searchCatalogForPicker(q: string, limit = 6): Promise<CatalogPickerMatch[]> {
-  const trimmed = q.trim();
+  const trimmed = needle(q);
   if (!trimmed) return [];
   const sql = getSql();
 
@@ -403,7 +428,7 @@ export async function searchCatalogForPicker(q: string, limit = 6): Promise<Cata
       where (coalesce(brand_name, '') || ' ' || name) ilike $1
       order by similarity(coalesce(brand_name, '') || ' ' || name, $2) desc
       limit $3`,
-    [`%${trimmed}%`, trimmed, limit],
+    [`%${trimmed}%`, trimmed, clampRange(limit, 1, MAX_PAGE_SIZE)],
   )) as {
     id: string;
     brand_name: string | null;

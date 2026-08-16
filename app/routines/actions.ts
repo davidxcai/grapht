@@ -9,10 +9,10 @@ import {
   type RoutineItemInput,
   type RoutineVisibility,
 } from '@/lib/routines';
-import { classifyProduct, productIdentity } from '@/lib/product-classifier';
 import { currentUserId } from '@/lib/auth';
 import { causeMessage, failed, type ActionResult } from '@/lib/action-result';
 import { searchCatalogForPicker as searchCatalog, type CatalogPickerMatch } from '@/lib/catalog';
+import { syncMyProductsFromItems } from '@/lib/my-products';
 
 /** Top name/brand matches for the routine editor's product-name autocomplete
  *  — same query as app/trials/actions.ts's wrapper, kept separate because
@@ -59,6 +59,16 @@ export async function saveRoutine(input: SaveRoutineInput): Promise<ActionResult
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath('/routines');
+
+    try {
+      await syncMyProductsFromItems(
+        userId,
+        items.map((i) => ({ catalogProductId: i.catalogProductId, brand: i.brand, name: i.name })),
+      );
+    } catch {
+      // Sync is best-effort; the routine itself has already been saved.
+    }
+
     return { ok: true, data: { id } };
   } catch (error) {
     const code = (error as { code?: string }).code;
@@ -83,76 +93,6 @@ export async function removeRoutine(id: string): Promise<ActionResult> {
     revalidatePath('/dashboard');
     revalidatePath('/routines');
     return { ok: true };
-  } catch (error) {
-    return failed(causeMessage(error));
-  }
-}
-
-export interface Suggestion {
-  targets: string[];
-  suggestions: string[];
-  ranked: { concern: string; confidence: string | null; because: string | null }[];
-  classifier: { model: string; promptVersion: string };
-  productKey: string | null;
-  /** A time-bound claim off the label — "visible results in 4 weeks". Offered as
-   *  a duration on the new-trial screen, where taking it sets
-   *  `endDateSource: 'product-claim'`. Ignored by the routine editor, which has
-   *  no window. */
-  durationClaimDays: number | null;
-}
-
-/**
- * Ask the classifier what a product targets, from its name alone.
- *
- * Name-only is the weakest of the four input paths in docs/product-identity.md
- * — no INCI list, so the identity is a low-confidence `name:` key and the
- * targets are derived from what the model knows of the product rather than from
- * ingredients. That is acceptable *here* and would not be on an intervention:
- * a routine is baseline material, so its targets decide whether a metric reads
- * as `confounded` rather than which product gets credit.
- *
- * Pre-ticking stays capped at three high-confidence concerns by
- * `parseClassification`; everything else comes back as a suggestion the user
- * can add. Broad baselines are the safer error, but an unbounded one would
- * confound every metric and make the distinction useless.
- */
-export async function suggestConcerns(input: {
-  brand?: string | null;
-  name: string;
-  /** From a /catalog match (app/trials/actions.ts's searchCatalogForPicker) —
-   *  the real ingredient list is strictly stronger evidence for targets[]
-   *  than a typed name alone (docs/product-identity.md). */
-  inci?: string[] | null;
-}): Promise<ActionResult<Suggestion>> {
-  const name = input.name?.trim();
-  if (!name) return failed('Enter a product name first.');
-  if (!process.env.GEMINI_API_KEY) {
-    return failed('No GEMINI_API_KEY set — pick the concerns yourself.');
-  }
-
-  const brand = input.brand?.trim() || null;
-  const inci = input.inci?.length ? input.inci : null;
-
-  try {
-    const result = await classifyProduct({ brand, name, inci });
-    let key: string | null = null;
-    try {
-      key = productIdentity({ brand, name, inci }).key;
-    } catch {
-      key = null;
-    }
-
-    return {
-      ok: true,
-      data: {
-        targets: result.targets,
-        suggestions: result.suggestions,
-        ranked: result.ranked,
-        classifier: result.classifier,
-        productKey: key,
-        durationClaimDays: result.durationClaimDays ?? null,
-      },
-    };
   } catch (error) {
     return failed(causeMessage(error));
   }

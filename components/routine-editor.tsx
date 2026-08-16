@@ -62,11 +62,6 @@ function fromRoutine(routine: Routine): ProductDraft[] {
         classifier: i.classifier,
         productKey: i.productKey,
         catalogProductId: i.catalogProductId,
-        // A saved item's targets are already a human's decision; re-deriving the
-        // ladder from a stale `ranked` list would demote an edit back to a confirm.
-        suggested: null,
-        busy: false,
-        note: null,
         inci: null,
         image: i.image,
     }));
@@ -79,12 +74,8 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
     const [visibility, setVisibility] = useState<RoutineVisibility>(
         routine?.visibility ?? "private",
     );
-    const { items, setItems, patch, suggest, applyCatalogMatch } = useProductDrafts(
+    const { items, setItems, patch, applyCatalogMatch } = useProductDrafts(
         () => (routine ? fromRoutine(routine) : [blankProductDraft("draft")]),
-        {
-            emptyNote:
-                "Nothing came back with high confidence — tick what you know it targets.",
-        },
     );
     const [error, setError] = useState<string | null>(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
@@ -106,7 +97,7 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                         name: i.name.trim(),
                         targets: i.targets,
                         ranked: i.ranked,
-                        provenance: provenanceOfDraft(i),
+                        provenance: provenanceOfDraft(),
                         classifier: i.classifier,
                         productKey: i.productKey,
                         catalogProductId: i.catalogProductId,
@@ -208,7 +199,6 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                                         prev.filter((i) => i.key !== item.key),
                                     )
                                 }
-                                onSuggest={() => suggest(item)}
                                 concernLabel="What it targets"
                                 search={{
                                     search: searchCatalogForPicker,

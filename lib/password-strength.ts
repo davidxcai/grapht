@@ -17,11 +17,20 @@ function loadScorer(): Promise<Scorer> {
     scorerPromise = Promise.all([
       import('@zxcvbn-ts/core'),
       import('@zxcvbn-ts/language-common'),
-    ]).then(([{ ZxcvbnFactory }, { dictionary, adjacencyGraphs }]) => {
-      const zxcvbn = new ZxcvbnFactory({ dictionary, graphs: adjacencyGraphs });
-      return (password: string, userInputs?: (string | number)[]) =>
-        zxcvbn.check(password, userInputs);
-    });
+    ])
+      .then(([{ ZxcvbnFactory }, { dictionary, adjacencyGraphs }]) => {
+        const zxcvbn = new ZxcvbnFactory({ dictionary, graphs: adjacencyGraphs });
+        return (password: string, userInputs?: (string | number)[]) =>
+          zxcvbn.check(password, userInputs);
+      })
+      .catch((cause: unknown) => {
+        // The cache must not hold a rejection: the dictionary is a lazy chunk
+        // over the network, and caching the failed load would leave the meter
+        // permanently unable to score for the rest of the page's life, with no
+        // way for the next keystroke to retry.
+        scorerPromise = null;
+        throw cause;
+      });
   }
   return scorerPromise;
 }

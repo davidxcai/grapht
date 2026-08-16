@@ -74,10 +74,12 @@ import { startTrial, searchCatalogForPicker } from "@/app/trials/actions";
 import { RoutineSummary } from "@/components/routine-summary";
 import type { Frequency, TimeOfDay, TrialVisibility } from "@/lib/trials";
 
+const DEFAULT_PHOTOS_VISIBILITY: TrialVisibility = "private";
+
 /** 30 days is the pre-filled default — see docs/app-ui.md §4, "Duration". */
 const DURATIONS = [14, 30, 60];
 
-type DurationMode = "preset" | "claim" | "custom";
+type DurationMode = "preset" | "custom";
 type DurationUnit = "days" | "weeks" | "months" | "years";
 
 const DURATION_UNITS: { id: DurationUnit; label: string; days: number }[] = [
@@ -290,13 +292,8 @@ export function TrialEditorStepper({
     // inside a per-step component — StepperContent unmounts inactive steps
     // (src/components/reui/stepper.tsx), so state that lived there instead
     // would be lost on Back. Hoisting it here is what makes Back non-destructive.
-    const { items, setItems, patch, suggest, applyCatalogMatch } = useProductDrafts(
+    const { items, setItems, patch, applyCatalogMatch } = useProductDrafts(
         () => [blankProductDraft("tracked")],
-        {
-            emptyNote:
-                "Nothing came back with high confidence — tick what you want to watch.",
-            onDurationClaim: (days) => setClaimDays(days),
-        },
     );
     const [name, setName] = useState("");
     const [nameTouched, setNameTouched] = useState(false);
@@ -304,12 +301,12 @@ export function TrialEditorStepper({
     const [routineId, setRoutineId] = useState<string | null>(null);
     const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("am");
     const [visibility, setVisibility] = useState<TrialVisibility>("private");
+    const [photosVisibility, setPhotosVisibility] = useState<TrialVisibility>(DEFAULT_PHOTOS_VISIBILITY);
 
     const [durationMode, setDurationMode] = useState<DurationMode>("preset");
     const [presetDays, setPresetDays] = useState(14);
     const [customDays, setCustomDays] = useState("45");
     const [customUnit, setCustomUnit] = useState<DurationUnit>("days");
-    const [claimDays, setClaimDays] = useState<number | null>(null);
 
     const [frequency, setFrequency] = useState<FrequencyPreset>("daily");
     const [everyN, setEveryN] = useState("3");
@@ -321,8 +318,8 @@ export function TrialEditorStepper({
     const [error, setError] = useState<string | null>(null);
     const [saving, startSaving] = useTransition();
 
-    // The name is a suggestion until the user types one. Silently overwriting an
-    // edited name on the next classifier call would be worse than not helping.
+    // The first product's name stands in until the user types one. Silently
+    // overwriting an edited name would be worse than not helping.
     const firstProduct = items[0]?.name.trim() ?? "";
     useEffect(() => {
         if (!nameTouched) setName(firstProduct);
@@ -344,8 +341,6 @@ export function TrialEditorStepper({
 
     function durationDays(): number | null {
         switch (durationMode) {
-            case "claim":
-                return claimDays;
             case "custom": {
                 const unitDays =
                     DURATION_UNITS.find((u) => u.id === customUnit)?.days ?? 1;
@@ -392,7 +387,7 @@ export function TrialEditorStepper({
                                   dosage: i.dosage.trim() || null,
                                   targets: i.targets,
                                   ranked: i.ranked,
-                                  provenance: provenanceOfDraft(i),
+                                  provenance: provenanceOfDraft(),
                                   classifier: i.classifier,
                                   productKey: i.productKey,
                                   catalogProductId: i.catalogProductId,
@@ -401,12 +396,10 @@ export function TrialEditorStepper({
                     routineId: trackRoutine ? routineId : null,
                     startDate: startDate(),
                     endDate: endDate(),
-                    endDateSource:
-                        durationMode === "claim"
-                            ? "product-claim"
-                            : "user-chosen",
+                    endDateSource: "user-chosen",
                     timeOfDay,
                     visibility,
+                    photosVisibility,
                     frequency: frequencyValue(),
                     device: navigator.userAgent,
                 },
@@ -675,20 +668,6 @@ export function TrialEditorStepper({
                                         {d} days
                                     </Choice>
                                 ))}
-
-                                {claimDays !== null &&
-                                    !DURATIONS.includes(claimDays) && (
-                                        <Choice
-                                            on={durationMode === "claim"}
-                                            onClick={() =>
-                                                setDurationMode("claim")
-                                            }
-                                            className="flex-1 justify-center text-center"
-                                        >
-                                            {claimDays} days — the
-                                            label&rsquo;s claim
-                                        </Choice>
-                                    )}
 
                                 <Choice
                                     on={durationMode === "custom"}

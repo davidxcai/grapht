@@ -23,6 +23,8 @@ import { listPublicRoutines, type PublicRoutine } from '@/lib/routines';
 import { toCardData } from '@/lib/trials';
 import { fuzzyRank } from '@/lib/fuzzy';
 import { formatCount } from '@/lib/format';
+import { currentUserId } from '@/lib/auth';
+import { getProductCollectionStates } from '@/lib/my-products';
 
 /**
  * The one consolidated search surface (replaces the old three-way split of
@@ -257,6 +259,14 @@ export default async function SearchPage({
   });
   const userCounts = await countProductUsersByCatalogId(products.map((p) => p.id));
 
+  const userId = await currentUserId();
+  const collectionStates = userId
+    ? await getProductCollectionStates(
+        userId,
+        products.map((p) => ({ id: p.id, catalogProductId: p.id, brand: p.brand, name: p.name })),
+      )
+    : new Map<string, { saved: boolean; inUse: boolean }>();
+
   function matchesInterventions(items: ProductItem[]): boolean {
     return coversAllConcerns(items, concerns) && hasMatchingItem(items, brandLabel, ingredientMatchIds);
   }
@@ -307,9 +317,17 @@ export default async function SearchPage({
           ) : (
             <>
               <CardGrid>
-                {products.map((p) => (
-                  <CatalogProductCard key={p.id} product={{ ...p, userCount: userCounts.get(p.id) ?? 0 }} />
-                ))}
+                {products.map((p) => {
+                  const state = collectionStates.get(p.id);
+                  return (
+                    <CatalogProductCard
+                      key={p.id}
+                      product={{ ...p, userCount: userCounts.get(p.id) ?? 0 }}
+                      saved={state?.saved}
+                      inUse={state?.inUse}
+                    />
+                  );
+                })}
               </CardGrid>
 
               {lastPage > 1 && (

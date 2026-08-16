@@ -29,6 +29,7 @@ import {
   setSummary,
   setUserReview,
   updateCaptureAnalysis,
+  updateTrialPhotosVisibility,
   updateTrialSettings,
   updateTrialVisibility,
   type InterventionInput,
@@ -37,9 +38,11 @@ import { getRoutine, snapshotRoutine } from '@/lib/routines';
 import { writeSummary } from '@/lib/summary';
 import { currentUserId } from '@/lib/auth';
 import { localDay } from '@/lib/days';
+import { degraded } from '@/lib/log';
 import { isInconclusive, type BaselineEntry, type Frequency, type Trial } from '@/lib/trials';
 import { causeMessage, failed, failedBecause, type ActionResult } from '@/lib/action-result';
 import { searchCatalogForPicker as searchCatalog, type CatalogPickerMatch } from '@/lib/catalog';
+import { syncMyProductsFromItems } from '@/lib/my-products';
 
 /** Catalog matches for the product-name autocomplete in the trial editor
  *  (components/trial-editor.tsx) — each carries its INCI list so "Suggest"
@@ -60,6 +63,7 @@ export interface NewTrialInput {
   endDateSource: Trial['window']['endDateSource'];
   timeOfDay: Trial['timeOfDay'];
   visibility: Trial['visibility'];
+  photosVisibility: Trial['photosVisibility'];
   frequency: Frequency;
   device: string | null;
 }
@@ -145,6 +149,8 @@ export async function startTrial(
       // Anything other than an explicit 'public' is private. Publishing is the
       // one choice here that can't be taken back from whoever already read it.
       visibility: input.visibility === 'public' ? 'public' : 'private',
+      // Photos stay private unless the owner explicitly opts in on a public trial.
+      photosVisibility: input.photosVisibility === 'public' ? 'public' : 'private',
       frequency: input.frequency,
       baseline,
       interventions,
@@ -161,6 +167,21 @@ export async function startTrial(
 
     revalidatePath('/');
     revalidatePath('/dashboard');
+
+    const productsToSync = [
+      ...interventions,
+      ...baseline.flatMap((entry) =>
+        typeof entry === 'string'
+          ? [{ name: entry }]
+          : entry.items.map((i) => ({ catalogProductId: i.catalogProductId, brand: i.brand, name: i.name })),
+      ),
+    ];
+    try {
+      await syncMyProductsFromItems(userId, productsToSync);
+    } catch {
+      // Sync is best-effort; the trial itself has already been saved.
+    }
+
     return { ok: true, data: { id } };
   } catch (error) {
     // The units are already spent at this point, so say so rather than letting
@@ -180,13 +201,19 @@ export async function startTrial(
  * Guards mirror `startTrial()`'s ordering out of habit — refuse what's free to
  * refuse before doing any work — even though there's no unit spend here to
  * protect anymore.
+ *
+ * `noteError` is how the caller learns the note written at upload did not land.
+ * The photo is stored and its row written by the time the note is attempted, so
+ * failing the whole action would lie about the photo; swallowing the note
+ * failure — which is what this used to do — lied about the note instead, and the
+ * user got "Photo logged" over a note that existed nowhere.
  */
 export async function logCapture(
   trialId: string,
   photo: File,
   device: string | null,
   note?: string | null,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<{ id: string; noteError: string | null }>> {
   const userId = await currentUserId();
   if (!userId) return failed('Log in to add a photo.');
 
@@ -229,8 +256,13 @@ export async function logCapture(
 
     // The note rides along when one was written at upload.
     const trimmedNote = note?.trim();
+    let noteError: string | null = null;
     if (id && trimmedNote) {
-      await setCaptureNote(userId, trialId, id, trimmedNote).catch(() => {});
+      try {
+        await setCaptureNote(userId, trialId, id, trimmedNote);
+      } catch (error) {
+        noteError = (error as Error).message;
+      }
     }
 
     // The write is guarded on `status = 'active'`, so no row means the trial was
@@ -242,7 +274,7 @@ export async function logCapture(
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath(`/trials/${trialId}`);
-    return { ok: true, data: { id } };
+    return { ok: true, data: { id, noteError } };
   } catch (error) {
     return failedBecause('That photo could not be saved', error);
   }
@@ -436,6 +468,7 @@ export interface TrialSettingsUpdate {
   endDateSource: Trial['window']['endDateSource'];
   timeOfDay: Trial['timeOfDay'];
   visibility: Trial['visibility'];
+  photosVisibility: Trial['photosVisibility'];
   frequency: Frequency;
   commentsEnabled: boolean;
 }
@@ -520,6 +553,7 @@ export async function saveTrialSettings(
       // Same rule as creation: anything other than an explicit 'public' is
       // private, so a trial is never published by omission.
       visibility: input.visibility === 'public' ? 'public' : 'private',
+      photosVisibility: input.photosVisibility === 'public' ? 'public' : 'private',
       frequency,
       commentsEnabled: input.commentsEnabled !== false,
     });
@@ -565,6 +599,36 @@ export async function setTrialVisibility(
 }
 
 /**
+ * The header's quick photo-visibility toggle — the same one-column shortcut as
+ * `setTrialVisibility`, so the owner can flip photo sharing without opening
+ * the full settings form.
+ */
+export async function setTrialPhotosVisibility(
+  id: string,
+  photosVisibility: Trial['photosVisibility'],
+): Promise<ActionResult<{ photosVisibility: Trial['photosVisibility'] }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to change who can see these photos.' };
+
+  if (isFixtureTrial(id)) {
+    return { ok: false, error: 'This is the built-in sample trial, so its photos are fixed.' };
+  }
+
+  const value = photosVisibility === 'public' ? 'public' : 'private';
+  try {
+    const saved = await updateTrialPhotosVisibility(userId, id, value);
+    if (!saved) return { ok: false, error: 'That trial no longer exists.' };
+
+    revalidatePath('/');
+    revalidatePath('/dashboard');
+    revalidatePath(`/trials/${id}`);
+    return { ok: true, data: { photosVisibility: value } };
+  } catch (error) {
+    return { ok: false, error: `Could not change photo visibility — ${(error as Error).message}` };
+  }
+}
+
+/**
  * Delete a trial outright — its own row and everything under it (products,
  * photos, applications, comments, saves), plus the photos themselves in Blob.
  * There is no undo, and unlike ending a trial, deleting removes it from the
@@ -581,7 +645,13 @@ export async function removeTrial(id: string): Promise<ActionResult> {
   try {
     const pathnames = await deleteTrial(userId, id);
     if (!pathnames) return failed('That trial no longer exists.');
-    await Promise.all(pathnames.map((p) => del(p).catch(() => {})));
+    // The rows are already gone, so a failed blob delete leaks storage rather
+    // than breaking the delete — worth a log line, never worth a refusal.
+    await Promise.all(
+      pathnames.map((p) =>
+        del(p).catch((cause: unknown) => degraded('removeTrial del', cause, `orphaned blob ${p}`)),
+      ),
+    );
 
     revalidatePath('/');
     revalidatePath('/dashboard');
@@ -685,7 +755,11 @@ export async function addCapturePhotos(
         blobPathname: blob.pathname,
       });
       // The capture vanished mid-upload; don't leave the blob orphaned.
-      if (!id) await del(blob.pathname).catch(() => {});
+      if (!id) {
+        await del(blob.pathname).catch((cause: unknown) =>
+          degraded('addCapturePhotos del', cause, `orphaned blob ${blob.pathname}`),
+        );
+      }
     }
 
     revalidatePath(`/trials/${trialId}`);
@@ -705,7 +779,9 @@ export async function removeCapturePhoto(
   try {
     const pathname = await deleteCapturePhoto(userId, photoId);
     if (!pathname) return failed('That photo no longer exists.');
-    await del(pathname).catch(() => {});
+    await del(pathname).catch((cause: unknown) =>
+      degraded('removeCapturePhoto del', cause, `orphaned blob ${pathname}`),
+    );
     revalidatePath(`/trials/${trialId}`);
     return { ok: true, data: null };
   } catch (error) {

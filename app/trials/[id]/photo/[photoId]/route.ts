@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { get } from '@vercel/blob';
 
 import { currentUserId } from '@/lib/auth';
-import { getFixtureTrials, loadTrials } from '@/lib/trial-store';
+import { getFixtureTrials, isFixtureTrial, loadTrials } from '@/lib/trial-store';
 import { getPublicTrial } from '@/lib/community';
 
 /**
@@ -26,11 +26,20 @@ export async function GET(
   const userId = await currentUserId();
   const { trials } = await loadTrials(userId);
 
+  let isOwner = false;
   let trial = trials.find((t) => t.id === id) ?? getFixtureTrials().find((t) => t.id === id);
-  if (!trial) {
+  if (trial) {
+    isOwner = !isFixtureTrial(trial.id);
+  } else {
     const published = await getPublicTrial(id);
     if (!published) return new NextResponse(null, { status: 404 });
     trial = published.trial;
+  }
+
+  // Photos are private by default. Only the owner can see them unless the
+  // owner has explicitly set photos to public.
+  if (!isOwner && trial.photosVisibility !== 'public') {
+    return new NextResponse(null, { status: 404 });
   }
 
   const blobUrl =

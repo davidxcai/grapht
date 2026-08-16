@@ -47,16 +47,32 @@ export function PasswordStrengthInput({
   const descriptionId = useId();
   const [visible, setVisible] = useState(false);
   const [result, setResult] = useState<ZxcvbnResult | null>(null);
+  /** The scorer is a lazily-imported chunk, so it can fail to load. */
+  const [unscorable, setUnscorable] = useState(false);
 
   useEffect(() => {
     if (!value) {
       setResult(null);
+      setUnscorable(false);
       return;
     }
     let cancelled = false;
-    scorePassword(value, userInputs).then((res) => {
-      if (!cancelled) setResult(res);
-    });
+    scorePassword(value, userInputs).then(
+      (res) => {
+        if (cancelled) return;
+        setResult(res);
+        setUnscorable(false);
+      },
+      (cause: unknown) => {
+        // Not silent, and not reported as weakness: an unscored password is a
+        // meter that failed, and calling it "Very weak" would tell the user to
+        // fix a password that may be fine. Clerk still scores it on submit.
+        console.error('password strength unavailable', cause);
+        if (cancelled) return;
+        setResult(null);
+        setUnscorable(true);
+      },
+    );
     return () => {
       cancelled = true;
     };
@@ -120,12 +136,21 @@ export function PasswordStrengthInput({
                 meetsMinimum ? 'text-foreground' : 'text-muted-foreground',
               )}
             >
-              {SCORE_LABEL[score]}
+              {unscorable ? 'Strength unavailable' : SCORE_LABEL[score]}
             </span>
-            {!meetsMinimum && <span className="text-muted-foreground">Needs to be stronger</span>}
+            {!meetsMinimum && !unscorable && (
+              <span className="text-muted-foreground">Needs to be stronger</span>
+            )}
           </div>
 
-          {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+          {unscorable ? (
+            <p className="text-xs text-muted-foreground">
+              The strength meter could not load, so this password is unrated here — it is
+              still checked when you submit.
+            </p>
+          ) : (
+            hint && <p className="text-xs text-muted-foreground">{hint}</p>
+          )}
         </div>
       )}
     </>

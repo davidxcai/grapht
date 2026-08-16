@@ -109,6 +109,8 @@ export interface Trial {
   name: string;
   status: TrialStatus;
   visibility: TrialVisibility;
+  /** Photos are private by default, even when the trial is public. */
+  photosVisibility: TrialVisibility;
   window: {
     startDate: string;
     /** Null is open-ended. A date here is a marker to count toward, never a

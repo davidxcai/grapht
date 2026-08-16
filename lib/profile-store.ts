@@ -2,6 +2,7 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 
 import { getSql } from '@/lib/db';
+import { degraded } from '@/lib/log';
 import { clerkConfigured, requireUserId } from '@/lib/auth';
 import { asDay } from '@/lib/days';
 import type { Profile, ProfileInput, ProfileVisibility, SkinType } from '@/lib/profile';
@@ -14,7 +15,7 @@ import type { Profile, ProfileInput, ProfileVisibility, SkinType } from '@/lib/p
 export async function getProfile(userId: string): Promise<Profile | null> {
   const sql = getSql();
   const rows = (await sql`
-    select user_id, username, skin_type, birthday, visibility
+    select user_id, username, skin_type, birthday, visibility, my_products_seeded
       from profiles where user_id = ${userId}`) as Record<string, unknown>[];
 
   const row = rows[0];
@@ -26,6 +27,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     skinType: row.skin_type as SkinType,
     birthday: asDay(row.birthday),
     visibility: row.visibility as ProfileVisibility,
+    myProductsSeeded: (row.my_products_seeded as boolean) ?? false,
   };
 }
 
@@ -59,10 +61,19 @@ export async function saveProfile(userId: string, input: ProfileInput): Promise<
  * because Neon is unreachable would trap them in a form that cannot save — the
  * same reasoning that makes every other read here degrade rather than throw.
  */
+export async function setMyProductsSeeded(userId: string): Promise<void> {
+  const sql = getSql();
+  await sql`update profiles
+               set my_products_seeded = true,
+                   updated_at = now()
+             where user_id = ${userId}`;
+}
+
 export async function needsOnboarding(userId: string): Promise<boolean> {
   try {
     return (await getProfile(userId)) === null;
-  } catch {
+  } catch (error) {
+    degraded('needsOnboarding', error, 'answering "already onboarded"');
     return false;
   }
 }

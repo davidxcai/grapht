@@ -3,7 +3,7 @@
 /** `nextjs-toploader/app`, not `next/navigation` — see routine-editor.tsx. */
 import { useRouter } from 'nextjs-toploader/app';
 import { useState, useTransition } from 'react';
-import { Loader2, Lock, Moon, Sun, Trash2, Users } from 'lucide-react';
+import { Image, ImageOff, Loader2, Lock, Moon, Sun, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,7 @@ interface Settings {
   endDateSource: Trial['window']['endDateSource'];
   timeOfDay: TimeOfDay;
   visibility: TrialVisibility;
+  photosVisibility: TrialVisibility;
   frequency: Frequency;
   commentsEnabled: boolean;
 }
@@ -95,6 +96,11 @@ const VISIBILITIES: { id: TrialVisibility; label: string; icon: typeof Sun }[] =
   { id: 'public', label: 'Public', icon: Users },
 ];
 
+const PHOTOS_VISIBILITIES: { id: TrialVisibility; label: string; icon: typeof Image }[] = [
+  { id: 'private', label: 'Private', icon: ImageOff },
+  { id: 'public', label: 'Public', icon: Image },
+];
+
 function longDate(value: string): string {
   return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
     day: 'numeric',
@@ -127,6 +133,7 @@ export function TrialSettingsEditor({ trialId, status, startDate, settings }: Pr
   const [name, setName] = useState(settings.name);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(settings.timeOfDay);
   const [visibility, setVisibility] = useState<TrialVisibility>(settings.visibility);
+  const [photosVisibility, setPhotosVisibility] = useState<TrialVisibility>(settings.photosVisibility);
   const [commentsEnabled, setCommentsEnabled] = useState(settings.commentsEnabled);
 
   const [durationMode, setDurationMode] = useState<DurationMode>(
@@ -204,6 +211,7 @@ export function TrialSettingsEditor({ trialId, status, startDate, settings }: Pr
         endDateSource,
         timeOfDay,
         visibility,
+        photosVisibility,
         frequency: frequencyValue(),
         commentsEnabled,
       });
@@ -417,6 +425,33 @@ export function TrialSettingsEditor({ trialId, status, startDate, settings }: Pr
             />
           </div>
         )}
+      </section>
+
+      <Separator />
+
+      {/* ---- photo visibility ---- */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-medium">Who can see your photos?</h2>
+
+        <div className="flex gap-1.5">
+          {PHOTOS_VISIBILITIES.map((v) => (
+            <Choice
+              key={v.id}
+              on={photosVisibility === v.id}
+              onClick={() => setPhotosVisibility(v.id)}
+              className="flex flex-1 items-center justify-center gap-1.5 py-2"
+            >
+              <v.icon className="size-3.5" />
+              {v.label}
+            </Choice>
+          ))}
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          {photosVisibility === 'public'
+            ? 'Face photos are shared along with this trial. You can make them private again at any time.'
+            : 'Face photos stay hidden — only metrics, products and routine are visible to the community.'}
+        </p>
       </section>
 
       <Separator />
