@@ -265,6 +265,49 @@ than one trial references it.
 
 ---
 
+## 3.2 Shared components
+
+**Every product photo renders through one primitive: `Thumbnail`**
+(`components/thumbnail.tsx`, added 2026-08-09) — always `object-contain` on
+white with a package-icon fallback, sized via a `size` prop and boxed via
+`className`. Before it existed, the same `<Image>`-or-`<Package>` snippet had
+been copy-pasted into eleven call sites (`product-card.tsx`,
+`product-draft-card.tsx`, `catalog-product-card.tsx`,
+`trending-product-card.tsx`, `hero-search.tsx`, `search-combobox.tsx`,
+`routine-summary.tsx`, `trial-card.tsx`, `app/catalog/page.tsx`, and
+`app/products/[key]/page.tsx`) and had quietly drifted: four used
+`object-cover` — cropping bottle caps and labels the other seven were careful
+to protect — and the background alternated between white and muted for no
+reason tied to the content. A new need for a product photo should reach for
+`Thumbnail` directly, or for one of the three cards below — never a new
+bespoke `<Image>`/`Package` pair:
+
+- **`ProductCard`** (`components/product-card.tsx`) — read-only row:
+  thumbnail + name/brand/dosage/targets, links to `/products/[id]` when a
+  catalog id exists. A trial's tracked products.
+- **`ProductDraftCard`** (`components/product-draft-card.tsx`) — the editable
+  row, shared verbatim by the routine editor (§3.1) and the trial stepper
+  (§4): inline catalog search, drag-to-reorder (`src/components/reui/sortable.tsx`),
+  the concern picker, dosage. Both editors must stay behaviourally identical
+  here — same inline search, same reserved image slot, same drag handle —
+  not just visually similar. Concern suggestions were removed from this card
+  (`suggestConcerns` / `lib/product-classifier.ts` are gone with it), so
+  neither editor calls Gemini any more: `targets[]` is ticked by hand and a
+  saved draft's provenance is always `user-edited`.
+- **`CatalogProductCard`** (`components/catalog-product-card.tsx`) — grid
+  tile (image on top, text below) for `/search`, `/catalog`, and the
+  homepage's trending rail. `ingredientCount` and `userCount` are both
+  optional: a real `CatalogSearchResult` carries an ingredient count and no
+  user count until the caller looks one up
+  (`countProductUsersByCatalogId()` in `lib/community.ts`); the trending
+  rail's `CommunityProduct` rollup is the reverse. `TrendingProductCard` — its
+  own component, a `ProductCard`-shaped row — existed before 2026-08-10 and
+  is gone: the two surfaces had quietly diverged in layout for no reason tied
+  to the content, the same drift `Thumbnail`'s extraction fixed for the
+  eleven call sites above.
+
+---
+
 ## 4. New trial
 
 **Status: resolved and built, 2026-08-05; a second, stepper-based
@@ -477,9 +520,6 @@ stepper flow.
   the editors no longer classify a product at all. "Add own" is still the
   fallback for anything not in the catalog, and the `src/products.mjs` cache
   (keyed by INCI/barcode/name) stays unwired from the app.
-- **`downloadResult()` shells out to `unzip`** (`src/results.mjs`), which is not
-  present on Vercel's Node runtime. Captures work locally and would fail on a
-  deployment.
 - Whether the first photo can be deferred — "log it whenever they can" conflicts
   with a fixed `startDate`, and a baseline landing three days in would count
   those days as missed.

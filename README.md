@@ -1,320 +1,160 @@
 # Grapht
 
+### 🔗 **[skin-tracker-beige.vercel.app](https://skin-tracker-beige.vercel.app)**
+
 Run a real trial on your own skin. Change one thing in your routine, log a
-standardised selfie each day, and watch your metrics move for as long as you
-want to. End it whenever you've seen enough and get back what measurably
-changed — including, honestly, what was too small to measure.
+standardised selfie daily, and watch what measurably changes — for as long as
+you care to. End it whenever you've seen enough.
 
-**The app knows its own measurement error and says so.** That's the whole
-product. Every number comes with whether the instrument could actually resolve a
-change that size, given how noisy it is and how consistently you logged.
-Anything that didn't clear the bar is reported as *"no measurable change"* — a
-statement about the instrument, not a verdict on the product.
-
-An app that says "I can't tell" reads as instrumentation. An app that always has
-an answer reads as a horoscope.
+**The app knows its own measurement error and says so.** Every metric that
+doesn't clear the detection gate is reported as *"no measurable change"* — a
+statement about the instrument, not a verdict on the product. An app that
+declines to conclude reads as instrumentation; an app that always has an
+answer reads as a horoscope.
 
 See [`PRODUCT.md`](PRODUCT.md) for the product design and [`BRIEF.md`](BRIEF.md)
-for the hackathon requirements.
+for the hackathon requirements this was built against.
 
 ---
 
-## Status
+## What's built
 
-Pipeline and API integration work. In the web app the dashboard, saved routines,
-and trial creation are built.
+The web app is live at the link above, backed by Clerk accounts and Neon
+Postgres:
 
-- [x] Photo ingestion, EXIF/orientation/colour normalisation
-- [x] Face detection and standardised cropping
-- [x] YouCam auth, upload, task, polling, result unpacking
-- [x] Full 20-photo reference dataset analysed and cached
-- [x] Measurement noise floor established
-- [x] Device-offset correction
-- [x] Trend estimation with uncertainty (Kalman + OLS blend)
-- [x] Per-metric attribution — the four-way table from `docs/trial-model.md`
-- [x] Product identity, derived-targets cache, ingredient enrichment
-- [x] Dashboard — trials list, progress rings, seeded fixture trials
-- [x] Saved routines — CRUD, classifier-derived targets, coverage at a glance
-- [x] Trial data model — windows, captures, frozen baseline snapshots
-- [x] New trial — products, routine, duration, frequency, analysed first capture
-- [ ] Product search — targets still come from the product name alone
-- [ ] Detection gate and summary generation
-- [ ] Capture quality gate
-- [ ] Trial detail, daily capture, summary screens
+- Dashboard, saved routines, and trial creation/detail with daily capture
+- Community surfaces: a published-trial index at `/`, `/products`, `/search`,
+  comments, saves, and view counts
+- A Gemini-generated trial summary on trial end
+- Product picking from a 183k-product catalog (`/catalog`, incidecoder-sourced,
+  synced daily) — barcode scan, ingredient-photo, or typed name
+- Live capture guide enforcing framing, face scale, and head pose; uneven
+  lighting is reported but not yet blocking
 
-The project pivoted from forward forecasting to retrospective trials. The
-estimation engine survived with a new job; the Skin Simulation renderer was
-dropped. Rationale in [`PRODUCT.md`](PRODUCT.md) §8, superseded docs in
-[`docs/_archive/`](docs/_archive/).
+**Only the first and last photo of a trial are analysed** — every daily log in
+between is stored and shown in the timeline, but doesn't spend a YouCam unit.
+This keeps a 30-day trial to a flat ~40 units regardless of how often the user
+logs. See "Repository state" in [`CLAUDE.md`](CLAUDE.md) for the full history.
+
+Not yet built: the rest of the capture quality gate (light colour, sharpness,
+clipping, occlusion) and a name→barcode seed table that nothing reads yet.
+
+The app runs end-to-end from a committed fixture (`fixtures/trials.json`) with
+**no API key, no network, and no database** — that's the judging path.
 
 ---
 
 ## Setup
 
-Requires Node 22+ and macOS (ingestion uses `sips` for HEIC decoding and
-Display P3 → sRGB conversion).
+Requires Node 22+ and macOS (`sips` handles HEIC decoding).
 
 ```bash
 npm install
-```
-
-Create `.env` with credentials from the
-[YouCam API console](https://yce.perfectcorp.com/api-console/):
-
-```
-YOUCAM_API_KEY=...
-YOUCAM_SECRET_KEY=...
-
-# Optional. Product lookup only — separate quotas, cannot cost YouCam units.
-INCI_API_KEY=...        # https://inciapi.com  (free tier: 20k req/month)
-GEMINI_API_KEY=...      # target classification from a product name or photo
-```
-
-`.env`, `sample-photos/`, and `data/` are gitignored. Face photos and API
-credentials must never be committed.
-
-The app runs end-to-end from cached fixtures with **no API key** — that's the
-judging path.
-
-### Running the web app
-
-```bash
 npm run dev          # http://localhost:3000
-npm run build
+npm run build        # typechecks and builds
 ```
 
-Next.js 16 (App Router) + Tailwind v4 + shadcn/ui. It reads
-`fixtures/trials.json` and needs no key, no network, and no photos.
-
-**Anything you create yourself** — your account, saved routines and saved trials
-— needs a database, and capture photos need a blob store. Accounts are Clerk,
-also from the Marketplace. All three are Vercel-provisioned:
+Everything you create yourself — accounts, saved routines, saved trials, and
+capture photos — needs Neon, Clerk, and Vercel Blob, all Vercel-provisioned:
 
 ```bash
 vercel link
 vercel integration add neon --plan free_v3
-vercel integration add clerk                             # accounts
-vercel blob create-store <name> --access private --yes   # face photos: private
+vercel integration add clerk
+vercel blob create-store <name> --access private --yes
 vercel env pull .env.local --yes
+
 node --env-file=.env.local scripts/migrate-routines.mjs   # idempotent
 node --env-file=.env.local scripts/migrate-trials.mjs     # idempotent
 node --env-file=.env.local scripts/migrate-profiles.mjs   # idempotent
+node --env-file=.env.local scripts/migrate-catalog.mjs    # idempotent
 ```
 
-Skip this and the demo still works: the 20-photo reference series replays from
-the committed fixture, the routines tab reports itself unavailable, and every
-screen reads signed out. A build with no Clerk keys writes as one implicit local
-owner, exactly as it did before accounts existed, so the demo path stays
-writable rather than read-only.
-Creating a trial needs both the database and `YOUCAM_API_KEY`, since its first
-capture is analysed on save. `GEMINI_API_KEY` is likewise
-optional — without it, you tick a product's concerns yourself instead of asking
-the classifier.
+Skip this and the demo still works from the committed fixture — routines and
+trial creation just report themselves unavailable.
+
+Creating a live trial additionally needs `YOUCAM_API_KEY` (its first capture
+is analysed on save). `GEMINI_API_KEY` and `INCI_API_KEY` are optional —
+without them you tick a product's concerns by hand instead of getting a
+classifier suggestion.
 
 ---
 
 ## Pipeline
 
-Every stage caches, so re-running is cheap and never re-spends units.
-
 ```
-sample-photos/          source HEIC/JPEG, any device, any orientation
-  ↓  scripts/prepare.mjs            HEIC→JPEG, P3→sRGB, EXIF rotation baked in
-data/prepared/          upright sRGB JPEGs + data/manifest.json
-  ↓  quality gate                   block bad captures, warn on drift    [not built]
-  ↓  scripts/normalize-faces.mjs    BlazeFace detect → crop to TARGET_FACE_FRACTION
-data/normalized/        1920×2560, consistent face scale across all devices
-  ↓  scripts/analyze-all.mjs        YouCam HD skin analysis  ← the only step that costs units
-data/analysis/          per-photo scores, masks, raw JSON
-  ↓  scripts/device-offset.mjs      cross-device offsets -> data/device-offsets.json
-  ↓  scripts/summarize.mjs          series (raw + device-corrected), noise floor
-  ↓  detection gate                 MDE from real timestamps; 3-way verdict [not built]
-  ↓  src/attribution.mjs            per-metric: attributed/shared/confounded/unexplained
-  ↓  summary                        gated narration + the user's own note   [not built]
+live camera capture
+  → capture guide       framing, face scale, head pose live; rest [not built]
+  → YouCam HD Skin Analysis   initial + final photo only, 15 concerns
+  → device-offset correction  cross-device, dormant while single-device
+  → detection gate       MDE from real timestamps; 3-way verdict     [not built]
+  → attribution          per-metric, from the trial's frozen targets[]
+  → summary               gated narration + Gemini + the user's note
 ```
 
-Product picking runs alongside, at trial creation rather than per capture:
+Product picking is separate, run once at trial creation: barcode scan,
+ingredient-panel photo, or typed name → the incidecoder catalog / INCI data →
+a frozen `targets[]` on the intervention. It never touches the measurement
+path and cannot spend a YouCam unit.
 
-```
-barcode scan ──┐
-INCI photo ────┤→ src/inci.mjs           ingredient data + deterministic signals
-name / label ──┘   src/product-targets.mjs  ranked classification, top 3 pre-ticked
-                   src/products.mjs         identity, cache, provenance, freeze
-                        ↓
-                   Intervention.targets[]   frozen at trial creation
-```
+### Offline test suites
+
+Deterministic, no key, no network, no database, no YouCam spend. Each runs
+individually:
 
 ```bash
-node scripts/prepare.mjs                 # free
-node scripts/normalize-faces.mjs         # free
-node scripts/analyze-all.mjs --dry-run   # show the plan and cost
-node scripts/analyze-all.mjs --limit 1   # spend 16 units, verify
-node scripts/analyze-all.mjs             # the rest
-node scripts/summarize.mjs               # free
-```
-
-### Tests
-
-Both suites are offline, deterministic, and free — no API key, no network.
-
-```bash
+node scripts/test-capture-guide.mjs      # camera guide geometry
 node scripts/test-attribution.mjs        # the four-way attribution table
-node scripts/test-products.mjs           # identity, cache, pre-tick policy
+node scripts/test-products.mjs           # product identity + cache
+node scripts/test-trial-model.mjs        # lib/trials.ts + lib/trial-detail.ts:
+                                          #   day numbering, what counts as analysed,
+                                          #   the inconclusive verdict, device
+                                          #   correction, the wobble gate
+node scripts/test-search.mjs             # lib/fuzzy.ts, lib/format.ts,
+                                          #   lib/concerns.ts, lib/greeting.ts
+node scripts/test-measurement.mjs        # burst grouping, noise floor,
+                                          #   cross-device offsets, normalizeScores()
 ```
 
-Product classification runs from the command line, for checking that the
-classifier actually biases narrow rather than pre-ticking half the vocabulary:
+A suite that imports a `.ts` module needs `--experimental-strip-types` on Node
+below 23.6, and reaches the app's `@/*` alias (and its extensionless JSON
+imports) through `scripts/alias-hook.mjs` — a test script should not be the
+reason app code changes its import style.
 
-```bash
-node --env-file=.env scripts/classify-product.mjs --name "Paula's Choice 2% BHA Liquid"
-node --env-file=.env scripts/classify-product.mjs --panel ./ingredients.jpg --save
-```
-
-`--panel` reads the ingredient list off a photo of the back label, feeds it to
-the INCI database, and classifies from real ingredients. It is the strongest
-path and the only automatic one on a free Gemini key — `--lookup`, which
-searches the web for a published ingredient list, needs Google Search grounding
-and returns 429 on free tier.
-
-### Diagnostics
-
-`scripts/forecast.mjs` and `scripts/kalman-forecast.mjs` still run, but they
-project *forward*, which is no longer the product. `kalman-forecast.mjs` remains
-the best way to watch the filter absorb the January 8 purge reversal with no
-hardcoded purge logic. Nothing product-facing should call either.
-
-`scripts/test-scenarios.mjs` scores forecast error at 7 days — the wrong
-objective now. See [`docs/trial-analysis.md`](docs/trial-analysis.md), "Open
-items."
-
-### Utilities
-
-| Script | Purpose | Cost |
-|---|---|---|
-| `probe.mjs` | Discover undocumented request schemas from 4xx bodies | free |
-| `repoll.mjs` | Recover a timed-out task's result instead of paying again | free |
-| `test-face-fraction.mjs` | Find the smallest face crop the API accepts | 16 units on first success |
-| `probe-intensity.mjs` | Simulation intensity range and concern names | free (simulation is archived) |
+`scripts/test-scenarios.mjs` still runs but scores the wrong objective now
+that the product doesn't forecast — see
+[`docs/trial-analysis.md`](docs/trial-analysis.md), "Open items."
 
 ---
 
 ## Budget discipline
 
-Units are metered against a limited hackathon quota, and **the analysis pass is
-the single largest spend in the project**. Two facts make it manageable:
+Units are metered against a limited hackathon quota. Roughly **572 of 1040
+consumed** as of this writing (~468 remain) — check the console before any
+batch analysis run.
 
-1. **Failed tasks cost nothing.** Only `task_status: "success"` is billed.
-   Probing, polling, uploading, and authenticating are all free — which makes
-   schema discovery by deliberate 4xx probing a legitimate free tool.
-2. **Everything is cached to disk.** `analyze-all.mjs` skips anything already
-   analysed.
+- Only successful tasks are billed; probing, uploading, and polling are free.
+- Everything is cached to disk — re-running never re-spends units.
+- Since the initial/final-only pivot, a trial costs a flat ~40 units
+  regardless of its length or how often the user logs.
 
-Consumed: **~572 of 1040 units** across 20 photos in HD at 7 concerns, including
-calibration and one superseded pass. Roughly 468 remain. Check the console
-before spending, and confirm before any batch run.
-
-Pricing is **tiered per task, not per metric**: HD is 16 units for up to 7
-concerns, so the 7th was free and an 8th likely crosses into the next tier. This
-is why live captures should request all 15 concerns rather than only what a
-trial targets — narrowing the set saves nothing and throws away side-effect data.
-
-**The reference dataset will not be backfilled to 15 concerns.** At ~20 units per
-photo that's ~400 of the remaining 468, for a demo asset that already works.
-
-Never re-run the analysis pass to "refresh" results. Changing the face crop or
-concern set invalidates the entire cache — face scale is part of the
-measurement, which is why it's in the cache key.
+Full discipline notes in [`CLAUDE.md`](CLAUDE.md), "API budget discipline."
 
 ---
-
-## Architecture
-
-`src/`
-
-| Module | Responsibility |
-|---|---|
-| `youcam.mjs` | Auth handshake, upload, task creation, polling |
-| `concerns.mjs` | Canonical concern vocabulary, SD/HD guard, score bounds |
-| `results.mjs` | ZIP download, extraction, score normalisation |
-| `face.mjs` | BlazeFace detection, standardised crop geometry |
-| `device-offset.mjs` | Cross-device score offsets, derived from cached data |
-| `sessions.mjs` | Group photo records into capture sessions (bursts) |
-| `noise-floor.mjs` | Measurement noise floor from same-session score spread |
-| `kalman.mjs` | Local-linear-trend filter + KF/OLS inverse-variance blend |
-| `regression.mjs` | OLS fit with slope variance; purge-trough detection |
-| `attribution.mjs` | Per-metric: who may be named next to an observed change |
-| `products.mjs` | Product identity, derived-targets cache, provenance, freezing |
-| `inci.mjs` | INCI API client; deterministic ingredient → concern signals |
-| `product-targets.mjs` | Constrained Gemini classification into the 15-concern vocabulary |
-
-Three things are load-bearing and easy to get wrong:
-
-- **Scores run 0–100 where higher is healthier.** "Worse acne" is a *lower*
-  number. Every chart and verdict inverts if this is confused.
-- **Fit on `raw_score`, display `ui_score`.** The UI score is a non-linear
-  consumer-facing compression and corrupts a slope.
-- **Face scale is part of the measurement.** Changing the crop fraction changes
-  pixels-per-cm of skin, which changes texture and pore. It's in the cache key
-  for that reason.
-- **Intervention targets bias narrow.** Over-broad `targets[]` don't add noise,
-  they erase the output: every metric becomes "credit shared, unsplittable" and
-  nothing is attributable to anything. Only high-confidence concerns are
-  pre-ticked, capped at three.
-
-### Web app
-
-| Path | Responsibility |
-|---|---|
-| `app/` | Next.js App Router — `page.tsx` is the dashboard, `routines/` is routine CRUD, `trials/new/` is trial creation |
-| `components/` | `trial-editor.tsx`, `routine-editor.tsx`, the cards and the ring, `concern-picker.tsx`, plus `ui/` from shadcn |
-| `lib/trials.ts` | Trial types, fixture loader, day/streak derivation |
-| `lib/trial-store.ts` | Saved trials in Neon, and the fixture ∪ database union |
-| `lib/routines.ts` | Saved routines — queries, coverage, and the trial snapshot |
-| `lib/auth.ts` | Who is asking. Clerk session → the owner every query is scoped to |
-| `lib/profile-store.ts` | Username, skin type, birthday — and the one-time claim of pre-account rows |
-| `lib/capture.ts` | A live capture: 15 concerns in HD, then private Vercel Blob |
-| `lib/concerns.ts` | Display labels for the 15 concerns. Labels only, never keys |
-| `fixtures/trials.json` | Seeded trials. Committed, and carries no pixels |
-| `scripts/seed-trials.mjs` | Rebuilds that fixture from `data/manifest.json` |
-| `scripts/migrate-routines.mjs` | Creates the routine tables. Idempotent |
-| `scripts/migrate-trials.mjs` | Creates the trial tables. Idempotent |
-| `scripts/migrate-profiles.mjs` | Creates the profile table. Idempotent |
-
-**`src/` is the pipeline library, not the Next.js source directory.** The app
-deliberately lives in `app/` at the repo root so Next never claims `src/`. The
-`@/*` alias resolves from the root, so pipeline modules import as
-`@/src/concerns.mjs`.
-
-`fixtures/` exists because `data/` is gitignored — it holds faces. The fixture
-carries capture timestamps and trial metadata only, which is what makes the
-pre-seeded dataset shippable.
-
-Full rules in [`CLAUDE.md`](CLAUDE.md).
 
 ## Documentation
 
 | Doc | Contents |
 |---|---|
 | [`PRODUCT.md`](PRODUCT.md) | Product design of record |
+| [`CLAUDE.md`](CLAUDE.md) | Triage index — which doc to read for what, plus the rules and commands needed at a glance |
 | [`docs/app-ui.md`](docs/app-ui.md) | Screens and flows, ratified section by section |
 | [`docs/trial-model.md`](docs/trial-model.md) | Trials, interventions, attribution, compliance |
-| [`docs/product-identity.md`](docs/product-identity.md) | Product picking, INCI API, target derivation, caching |
+| [`docs/product-identity.md`](docs/product-identity.md) | Product picking, catalog, INCI, target derivation |
 | [`docs/trial-analysis.md`](docs/trial-analysis.md) | Detection gate, narration rules, engine |
 | [`docs/measurements.md`](docs/measurements.md) | Empirical findings from the reference dataset |
 | [`docs/capture-quality.md`](docs/capture-quality.md) | Pre-analysis quality gate design |
 | [`docs/youcam-api.md`](docs/youcam-api.md) | Full API contract, mostly undocumented publicly |
-| [`docs/_archive/`](docs/_archive/) | The retired forecasting/simulation design |
-
----
-
-## Why BlazeFace and not Vision
-
-Face cropping originally targeted Apple's Vision framework via a small Swift
-helper. The installed Command Line Tools have a broken module map (duplicate
-`SwiftBridging` definitions) that makes any Vision import fail to compile.
-BlazeFace on the pure-JS tfjs backend needs no native build and runs unchanged
-in the browser, so the live capture path can reuse `src/face.mjs` directly.
-`scripts/detect-faces.swift` is kept for reference but is not in the pipeline.
 
 ---
 

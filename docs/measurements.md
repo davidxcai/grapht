@@ -287,6 +287,31 @@ from the cache is an open item.
 
 ---
 
+## Finding 6 — `ui_score` compresses `raw_score` non-linearly, by up to 3×
+
+Measured across all 140 `{raw_score, ui_score}` pairs cached from the
+reference dataset: `d(ui)/d(raw)` is **~0.55** at raw 40–55, **~0.39** at raw
+70–85, and **~1.26** above raw 85. The same real change in `raw_score`
+therefore renders anywhere from 0.39× to 1.26× as large in `ui_score`
+depending on where the score happens to sit — a **3× spread** in apparent
+magnitude for an identical underlying change.
+
+Concretely, the reference series' acne purge (Finding 3) is raw 60.3 → 43.5
+(−16.8) but ui 76 → 66 (−10): 40% of the real change is invisible in
+`ui_score`.
+
+**This is why `raw_score` is used for everything and `ui_score` is not
+displayed anywhere in the product.** Since the app's headline is a *change*,
+not a level, a display value that distorts change magnitude by up to 3× is
+disqualified regardless of how it looks. `ui_score` survives only in the
+fixture, so a synthesised concern stays shaped like a measured one.
+
+(An earlier draft of this guidance said "fit on `raw_score`, display
+`ui_score`" — that was superseded once this measurement was run. If you find
+that phrasing anywhere, it's stale.)
+
+---
+
 ## Reproducing
 
 ```bash

@@ -303,6 +303,17 @@ normalized ingredient list rather than a barcode. Two rules from
 Nothing in [`youcam-api.md`](youcam-api.md) covers product recognition; this is
 outside the YouCam surface entirely, and off the unit budget.
 
+### Reading `targets[]` back out of Postgres
+
+Any read of `routine_items.targets` or `trial_interventions.targets` **must
+cast to `text[]`.** The Neon driver only parses arrays of built-in types, so
+an `analysis_concern[]` column comes back as the raw literal
+`"{acne,texture}"` — a string, not an array. Nothing throws; coverage and
+attribution just silently render empty. `ITEM_COLUMNS` in `lib/routines.ts`
+and `INTERVENTION_COLUMNS` in `lib/trial-store.ts` are the only two places
+this is spelled out — mirror them rather than writing a third raw query
+against either column.
+
 ---
 
 ## The 15 metrics
@@ -312,6 +323,15 @@ Every capture records all of them. Canonical keys and mapping live in
 `dst_actions` value too, but it returns a category (Normal/Oily/Dry/
 Combination/Redness and compounds), not a score — deliberately excluded from
 this table and from `ANALYSIS_CONCERNS` until it has its own path.
+
+**`scripts/migrate-routines.mjs` runs `alter type analysis_concern add value
+if not exists` for every concern on every re-run**, not just the first.
+Postgres's `create type` only fires once; a second run used to silently
+swallow any concern `ANALYSIS_CONCERNS` had gained since the enum was first
+created in a given database — exactly how `tear_trough` almost shipped
+without a database column value able to hold it. If a live capture ever
+writes a concern the schema doesn't have a value for, re-run the migration
+before looking anywhere else.
 
 | Concern | In the reference dataset? |
 |---|---|
@@ -345,6 +365,18 @@ floors per-user (below).
 
 If the 15-concern tier price is needed before committing, one photo at 15
 concerns reveals it for ~20 units.
+
+### The committed fixture synthesises the other eight
+
+`fixtures/trials.json` (rebuilt by `scripts/seed-trials.mjs`, never hand-edited)
+carries scores as well as timestamps, so the trial detail page renders with no
+`data/` directory. The eight concerns above with no reference-series
+measurement are **invented** by `seed-trials.mjs` rather than left blank —
+backfilling them for real costs the ~400 units noted above, for a demo asset
+that already works without it. Every fabricated value carries `synthetic:
+true`. **Never strip that flag or treat a synthetic value as measured** — it
+exists so a consumer of the fixture can tell a demo-only number from the
+seven that came off a real photo.
 
 ---
 

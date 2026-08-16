@@ -125,6 +125,10 @@ it is the only entry, `"9"` when it was the 10th of 14). `hd_dark_circle` (no
 this rename; the canonical analysis name stays `dark_circle_v2` because that is
 what the response echoes (see "Score shape" below). This is the only one of the
 fifteen where the request-side name differs from the response-side name.
+`toRequestAction()` existed before this was caught — `lib/capture.ts` had
+simply never been switched over from a plain `toHd()`, so every live capture
+400'd until the call site was fixed. A helper existing is not the same as
+every caller using it; grep for `toHd(` if this class of bug recurs.
 
 **Two more valid `dst_actions` values were found the same way, by probing a
 real sample payload from Perfect Corp's own docs:** `hd_tear_trough` and
@@ -152,6 +156,19 @@ paying to run it again.
 `results.url` is a presigned S3 link with `X-Amz-Expires=7199` — **about two
 hours**, despite the docs claiming 24-hour retention. Download and unpack
 immediately; letting it expire means paying for the analysis again.
+
+**`downloadResult()` originally unpacked the ZIP by shelling out to the
+system `unzip` binary — present on a macOS dev machine, absent from Vercel's
+function runtime.** Every production analysis 400'd at this last step, as
+`spawnSync unzip ENOENT`, *after* the unit had already been billed (2026-08-09).
+Fixed by replacing the shell-out with a dependency-free reader built on
+`node:zlib`'s `inflateRawSync` over the ZIP's central directory — no
+`unzip`/`node:child_process` involved — verified byte-identical against an
+`unzip`-extracted result already cached in `data/analysis/`. The general
+lesson: anything that works on a laptop and nothing else, on the path of a
+feature that only runs once deployed, is exactly this bug waiting to happen
+again — check any future dependency on a shelled-out system binary against
+Vercel's runtime, not just against `npm run dev`.
 
 ```
 skinanalysisResult/
@@ -183,8 +200,12 @@ your original upload — scale them before overlaying.
 - **Scores run 0–100 where HIGHER IS HEALTHIER.** "Acne got worse" means the
   score went *down*. Get this wrong and every chart and forecast inverts.
 - `raw_score` is the clinical output; `ui_score` is a non-linear consumer-facing
-  compression (it pulls 90.8 down to 81 but pushes 57.6 up to 71). **Fit
-  regressions on `raw_score`, display `ui_score`.**
+  compression (it pulls 90.8 down to 81 but pushes 57.6 up to 71) that distorts
+  a *change* by up to 3× depending on where it sits — see
+  [`measurements.md`, Finding 6](measurements.md#finding-6--ui_score-compresses-raw_score-non-linearly-by-up-to-3).
+  **Use `raw_score` for everything; the app does not display `ui_score`
+  anywhere.** (Superseded guidance you may still see elsewhere: "fit on
+  `raw_score`, display `ui_score`" — that was true before Finding 6 was run.)
 - `skin_age` and `all.score` arrive free whether or not you ask for them.
 
 ### Concerns
