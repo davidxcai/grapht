@@ -133,14 +133,23 @@ export function buildProductRow(p) {
  * One product's ingredients -> the row shape `upsertIngredients()` expects.
  * `functions` comes in as `[{ slug, name }]` from the parser; only the slug
  * is stored, matching what `catalog_ingredients.functions` already holds.
+ * Deduplicates by slug since the same ingredient may appear multiple times
+ * in a product's ingredient list.
  */
 export function collectIngredientRows(ingredients) {
-  return (ingredients ?? []).map((i) => ({
-    slug: i.slug,
-    name: i.name,
-    functions: (i.functions ?? []).map((f) => f.slug),
-    irritancy: i.irritancy ?? null,
-    comedogenicity: i.comedogenicity ?? null,
-    take: i.take ?? null,
-  }));
+  const seen = new Set();
+  const rows = [];
+  for (const i of ingredients ?? []) {
+    if (seen.has(i.slug)) continue;
+    seen.add(i.slug);
+    rows.push({
+      slug: i.slug,
+      name: i.name,
+      functions: (i.functions ?? []).map((f) => f.slug),
+      irritancy: i.irritancy ?? null,
+      comedogenicity: i.comedogenicity ?? null,
+      take: i.take ?? null,
+    });
+  }
+  return rows;
 }

@@ -42,6 +42,8 @@ export interface Profile {
   /** YYYY-MM-DD. A plain calendar date — no instant, no timezone. */
   birthday: string;
   visibility: ProfileVisibility;
+  /** Whether existing routine/trial products have been copied into My Products. */
+  myProductsSeeded: boolean;
 }
 
 export interface ProfileInput {

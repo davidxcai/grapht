@@ -39,6 +39,7 @@ export default async function EditTrial({ params }: { params: Promise<{ id: stri
           endDateSource: trial.window.endDateSource,
           timeOfDay: trial.timeOfDay,
           visibility: trial.visibility,
+          photosVisibility: trial.photosVisibility,
           frequency: trial.frequency,
           commentsEnabled: trial.commentsEnabled !== false,
         }}

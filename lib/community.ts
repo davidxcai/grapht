@@ -44,6 +44,28 @@ function fixturePublicTrials(): PublicTrial[] {
 }
 
 /**
+ * Strip photo URLs from a public trial when the owner has not opted in to
+ * sharing photos. The metrics, routine and calendar stay public; the actual
+ * face images do not. This is for listings and search — `getPublicTrial` keeps
+ * the URLs so the photo route can still decide whether to serve them.
+ */
+function redactPrivatePhotos(entry: PublicTrial): PublicTrial {
+  if (entry.trial.photosVisibility === 'public') return entry;
+  return {
+    ...entry,
+    trial: {
+      ...entry.trial,
+      captures: entry.trial.captures.map((c) => ({
+        ...c,
+        blobUrl: null,
+        photoUrl: null,
+        extraPhotos: [],
+      })),
+    },
+  };
+}
+
+/**
  * Batch-resolves Clerk avatars for a set of owners in one Backend API call
  * rather than one round trip per card. Best-effort: a Clerk outage or missing
  * key degrades to no avatars, never to a failed page (same posture as the rest
@@ -155,7 +177,7 @@ async function storedPublicTrials(where: string, params: unknown[]): Promise<Pub
  */
 export async function listPublicTrials(): Promise<PublicTrial[]> {
   try {
-    const stored = await storedPublicTrials(`t.visibility = 'public'`, []);
+    const stored = (await storedPublicTrials(`t.visibility = 'public'`, [])).map(redactPrivatePhotos);
     return [...stored, ...fixturePublicTrials()];
   } catch (error) {
     degraded('listPublicTrials', error, 'falling back to the fixture sample only');
@@ -185,7 +207,9 @@ export async function listRecentPublicTrials(
        limit ${limit}`) as Record<string, unknown>[];
     const ids = idRows.map((r) => r.id as string);
     if (ids.length === 0) return [];
-    const rows = await storedPublicTrials(`t.visibility = 'public' and t.id = any($1)`, [ids]);
+    const rows = (await storedPublicTrials(`t.visibility = 'public' and t.id = any($1)`, [ids])).map(
+      redactPrivatePhotos,
+    );
     const order = new Map(ids.map((id, i) => [id, i]));
     return rows.sort((a, b) => (order.get(a.trial.id) ?? 0) - (order.get(b.trial.id) ?? 0));
   } catch (error) {
@@ -346,7 +370,7 @@ export async function listSavedTrials(userId: string): Promise<PublicTrial[]> {
        and t.id in (select trial_id from trial_saves where user_id = $1)`,
     [userId],
   );
-  return rows;
+  return rows.map(redactPrivatePhotos);
 }
 
 /* ---------- products ---------- */

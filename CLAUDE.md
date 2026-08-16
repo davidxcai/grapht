@@ -169,6 +169,9 @@ node scripts/summarize.mjs               # series (raw + device-corrected) + noi
 node scripts/test-capture-guide.mjs      # camera guide geometry, offline, free
 node scripts/test-attribution.mjs        # attribution table, offline, free
 node scripts/test-products.mjs           # product identity + cache, offline, free
+node scripts/test-trial-model.mjs        # trial model + detail-page maths, offline, free
+node scripts/test-search.mjs             # search ranking, counts, concern labels, offline, free
+node scripts/test-measurement.mjs        # bursts, noise floor, device offsets, scores, offline, free
 node scripts/probe-catalog.mjs           # harvest product catalog, public web only, free
 
 node scripts/scrape-incidecoder.mjs --report                     # incidecoder cache stats, free
@@ -290,8 +293,10 @@ search) or for one of these existing cards, never a new bespoke one:
   `src/components/reui/sortable.tsx`'s `Sortable`), the concern picker,
   dosage. The routine editor and trial stepper must stay behaviourally
   identical here, not just visually similar — same inline search, same
-  reserved image slot, same drag handle, same "Suggest" is manual, never
-  auto-fired on a catalog pick (that's a paid Gemini call).
+  reserved image slot, same drag handle. Concern suggestions were removed
+  (`suggestConcerns`, and the `lib/product-classifier.ts` wrapper with it), so
+  neither editor ever calls Gemini: `targets[]` is ticked by hand and a saved
+  draft's provenance is always `user-edited`.
 - **`CatalogProductCard`** (`components/catalog-product-card.tsx`) — grid tile
   (image on top, text below) for `/search`, `/catalog`, and the homepage's
   trending rail. `ingredientCount` and `userCount` are both optional: a real
@@ -325,8 +330,20 @@ gate governs what gets *narrated*, never what gets *displayed*.
 browser or take screenshots to check how something looks. Verify by build,
 route status, clean dev-server logs, and rendered markup, then hand over the URL.
 
-`scripts/test-scenarios.mjs` is the only test suite. It scores the forecast
-engine against synthetic series with known ground truth — **which is now the
+**The offline unit suites are `scripts/test-*.mjs`, run individually and
+deterministic.** They need no key, no network, no database and no `data/`
+directory, and none of them can spend a YouCam unit. `test-trial-model.mjs`
+covers `lib/trials.ts` and `lib/trial-detail.ts` — day numbering, what counts as
+analysed, the inconclusive verdict, device correction and the wobble gate;
+`test-search.mjs` covers `lib/fuzzy.ts`, `lib/format.ts`, `lib/concerns.ts` and
+`lib/greeting.ts`; `test-measurement.mjs` covers burst grouping, the noise floor,
+cross-device offsets and `normalizeScores()`. A suite that imports a `.ts` module
+needs `--experimental-strip-types` on Node below 23.6, and reaches the app's `@/`
+alias (and its extensionless JSON imports) through `scripts/alias-hook.mjs` —
+a test script should not be the reason app code changes its import style.
+
+`scripts/test-scenarios.mjs` is a scoring harness rather than a unit suite: it
+grades the forecast engine against synthetic series with known ground truth — **which is now the
 wrong objective**, since the product no longer forecasts. It still runs and its
 scenario taxonomy is still valuable. Read `docs/trial-analysis.md`, "Open
 items," before changing it or `src/kalman.mjs` / `src/regression.mjs`. Several

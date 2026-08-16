@@ -310,9 +310,10 @@ Carried in from the model, non-negotiable:
 
 **Pre-filled at 30 days.** A blank field asks the user to guess at something
 they have no basis for; 30 days is a defensible default and reads as sufficient
-because it usually is. Also offered: 14 and 60 days, and a custom length. If the
-classifier returned a `durationClaimDays` from the label, that length is offered
-too and sets `endDateSource: 'product-claim'`.
+because it usually is. Also offered: 14 and 60 days, and a custom length. Every
+length the editor can set is `endDateSource: 'user-chosen'` — `'product-claim'`
+is still a stored value (`trial-model.md`) but no screen writes one now that
+concern suggestions, which read the label's claim, are gone.
 
 None of these lock anything (`trial-model.md`) — the date is a marker the day
 counter counts toward, and the trial ends when the user ends it.
@@ -426,11 +427,9 @@ declared below the step-render boundary.
   sits under both fields and works from either one, since the query is just
   `` `${brand} ${name}`.trim() `` and the underlying SQL already matches against
   both `brand_name` and `name` (`lib/catalog.ts`). Picking a match fills brand,
-  name, image and the real INCI list — a free catalog read. **It does not call
-  `suggestConcerns()`.** That classifier is a paid Gemini call, and firing it
-  automatically on every catalog pick was the previous behaviour; now it only
-  runs when the user presses "Suggest" in `ConcernPicker`, same as manual entry.
-  Metrics are the one field a catalog pick no longer autofills, on purpose.
+  name, image and the real INCI list — a free catalog read. Metrics are the one
+  field a catalog pick does not autofill: concern suggestions were removed, so
+  every target is ticked by hand in `ConcernPicker`.
   Cards carry a fixed image/placeholder slot on the left (`Package` icon when
   there's no image yet) so a picked photo never reflows the fields beside it,
   and reorder via drag using REUI's `Sortable` / `SortableItem` /
@@ -474,12 +473,10 @@ stepper flow.
   rather than `src/products.mjs`.** `components/product-draft-card.tsx` puts a
   `SearchCombobox` (`components/search-combobox.tsx`) above the tracked-product
   list, backed by `searchCatalogForPicker` (`lib/catalog.ts`); picking a match
-  fills brand, name and the real INCI list, which `suggestConcerns` then
-  classifies into `targets[]`. "Add own" is still the fallback for anything not
-  in the catalog, and stays the only path that reaches the `src/products.mjs`
-  cache (keyed by INCI/barcode/name) — that source is still unwired here, so a
-  typed name with no catalog match is still classified from the name alone,
-  the weakest of the four paths in `product-identity.md`.
+  fills brand, name and the real INCI list. `targets[]` is then ticked by hand —
+  the editors no longer classify a product at all. "Add own" is still the
+  fallback for anything not in the catalog, and the `src/products.mjs` cache
+  (keyed by INCI/barcode/name) stays unwired from the app.
 - **`downloadResult()` shells out to `unzip`** (`src/results.mjs`), which is not
   present on Vercel's Node runtime. Captures work locally and would fail on a
   deployment.

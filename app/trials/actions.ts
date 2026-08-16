@@ -29,6 +29,7 @@ import {
   setSummary,
   setUserReview,
   updateCaptureAnalysis,
+  updateTrialPhotosVisibility,
   updateTrialSettings,
   updateTrialVisibility,
   type InterventionInput,
@@ -40,6 +41,7 @@ import { degraded } from '@/lib/log';
 import { isInconclusive, type BaselineEntry, type Frequency, type Trial } from '@/lib/trials';
 import type { ActionResult } from '@/app/routines/actions';
 import { searchCatalogForPicker as searchCatalog, type CatalogPickerMatch } from '@/lib/catalog';
+import { syncMyProductsFromItems } from '@/lib/my-products';
 
 /** Catalog matches for the product-name autocomplete in the trial editor
  *  (components/trial-editor.tsx) — each carries its INCI list so "Suggest"
@@ -60,6 +62,7 @@ export interface NewTrialInput {
   endDateSource: Trial['window']['endDateSource'];
   timeOfDay: Trial['timeOfDay'];
   visibility: Trial['visibility'];
+  photosVisibility: Trial['photosVisibility'];
   frequency: Frequency;
   device: string | null;
 }
@@ -149,6 +152,8 @@ export async function startTrial(
       // Anything other than an explicit 'public' is private. Publishing is the
       // one choice here that can't be taken back from whoever already read it.
       visibility: input.visibility === 'public' ? 'public' : 'private',
+      // Photos stay private unless the owner explicitly opts in on a public trial.
+      photosVisibility: input.photosVisibility === 'public' ? 'public' : 'private',
       frequency: input.frequency,
       baseline,
       interventions,
@@ -165,6 +170,21 @@ export async function startTrial(
 
     revalidatePath('/');
     revalidatePath('/dashboard');
+
+    const productsToSync = [
+      ...interventions,
+      ...baseline.flatMap((entry) =>
+        typeof entry === 'string'
+          ? [{ name: entry }]
+          : entry.items.map((i) => ({ catalogProductId: i.catalogProductId, brand: i.brand, name: i.name })),
+      ),
+    ];
+    try {
+      await syncMyProductsFromItems(userId, productsToSync);
+    } catch {
+      // Sync is best-effort; the trial itself has already been saved.
+    }
+
     return { ok: true, data: { id } };
   } catch (error) {
     // The units are already spent at this point, so say so rather than letting
@@ -470,6 +490,7 @@ export interface TrialSettingsUpdate {
   endDateSource: Trial['window']['endDateSource'];
   timeOfDay: Trial['timeOfDay'];
   visibility: Trial['visibility'];
+  photosVisibility: Trial['photosVisibility'];
   frequency: Frequency;
   commentsEnabled: boolean;
 }
@@ -554,6 +575,7 @@ export async function saveTrialSettings(
       // Same rule as creation: anything other than an explicit 'public' is
       // private, so a trial is never published by omission.
       visibility: input.visibility === 'public' ? 'public' : 'private',
+      photosVisibility: input.photosVisibility === 'public' ? 'public' : 'private',
       frequency,
       commentsEnabled: input.commentsEnabled !== false,
     });
@@ -595,6 +617,36 @@ export async function setTrialVisibility(
     return { ok: true, data: { visibility: value } };
   } catch (error) {
     return { ok: false, error: `Could not change visibility — ${(error as Error).message}` };
+  }
+}
+
+/**
+ * The header's quick photo-visibility toggle — the same one-column shortcut as
+ * `setTrialVisibility`, so the owner can flip photo sharing without opening
+ * the full settings form.
+ */
+export async function setTrialPhotosVisibility(
+  id: string,
+  photosVisibility: Trial['photosVisibility'],
+): Promise<ActionResult<{ photosVisibility: Trial['photosVisibility'] }>> {
+  const userId = await currentUserId();
+  if (!userId) return { ok: false, error: 'Log in to change who can see these photos.' };
+
+  if (isFixtureTrial(id)) {
+    return { ok: false, error: 'This is the built-in sample trial, so its photos are fixed.' };
+  }
+
+  const value = photosVisibility === 'public' ? 'public' : 'private';
+  try {
+    const saved = await updateTrialPhotosVisibility(userId, id, value);
+    if (!saved) return { ok: false, error: 'That trial no longer exists.' };
+
+    revalidatePath('/');
+    revalidatePath('/dashboard');
+    revalidatePath(`/trials/${id}`);
+    return { ok: true, data: { photosVisibility: value } };
+  } catch (error) {
+    return { ok: false, error: `Could not change photo visibility — ${(error as Error).message}` };
   }
 }
 

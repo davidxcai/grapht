@@ -162,6 +162,17 @@ const STATEMENTS = [
   `alter table trials
      add column if not exists comments_enabled boolean not null default true`,
 
+  // Photo privacy is separate from trial visibility. A public trial shows
+  // metrics and routine by default; photos are shared only when the owner
+  // explicitly opts in. The column default is 'private', then existing public
+  // trials are left public so already-shared records don't silently change.
+  `alter table trials
+     add column if not exists photos_visibility trial_visibility not null default 'private'`,
+
+  `update trials
+      set photos_visibility = 'public'
+    where visibility = 'public'`,
+
   // How many signed-in non-owners have opened a public trial. The only
   // popularity signal the community shows, deliberately (ideas.md): no likes,
   // no hearts, nothing to optimise a feed against the product's premise.

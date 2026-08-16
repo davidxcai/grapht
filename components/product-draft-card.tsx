@@ -30,18 +30,13 @@ export interface ProductDraft {
     dosage: string;
     targets: string[];
     ranked: RankedConcern[];
+    /** Only ever read back from a saved row — nothing in the editor writes
+     *  one now that concern suggestions are gone. */
     classifier: { model: string; promptVersion: string } | null;
     productKey: string | null;
-    /** What the classifier pre-ticked, so an untouched accept can be recorded
-     *  as `user-confirmed` rather than `user-edited`. Null means never
-     *  classified. */
-    suggested: string[] | null;
-    busy: boolean;
-    note: string | null;
-    /** From a /catalog match — the real ingredient list, passed to
-     *  classifyProduct so "Suggest" reasons from evidence instead of the
-     *  typed name alone (docs/product-identity.md). Cleared on manual edit,
-     *  since it no longer describes what's actually typed. */
+    /** From a /catalog match — the real ingredient list, kept so a pick
+     *  records what the catalog says the product contains. Cleared on manual
+     *  edit, since it no longer describes what's actually typed. */
     inci: string[] | null;
     /** FK into catalog_products, set only from a /catalog pick. */
     catalogProductId: string | null;
@@ -51,15 +46,13 @@ export interface ProductDraft {
     image: string | null;
 }
 
-const sameTargetSet = (a: string[], b: string[]) =>
-    a.length === b.length && a.every((x) => b.includes(x));
-
-/** The provenance ladder from src/products.mjs, decided at save time. */
-export function provenanceOfDraft(item: ProductDraft): Provenance {
-    if (item.suggested === null) return "user-edited";
-    return sameTargetSet(item.targets, item.suggested)
-        ? "user-confirmed"
-        : "user-edited";
+/**
+ * The provenance ladder from src/products.mjs, decided at save time. Every
+ * draft is `user-edited`: `user-confirmed` meant accepting a classifier's
+ * pre-ticked targets untouched, and nothing pre-ticks them any more.
+ */
+export function provenanceOfDraft(): Provenance {
+    return "user-edited";
 }
 
 /** True for an untouched blank card — safe to replace outright rather than
@@ -79,9 +72,6 @@ export function blankProductDraft(keyPrefix: string): ProductDraft {
         ranked: [],
         classifier: null,
         productKey: null,
-        suggested: null,
-        busy: false,
-        note: null,
         inci: null,
         catalogProductId: null,
         image: null,
@@ -93,17 +83,14 @@ export function blankProductDraft(keyPrefix: string): ProductDraft {
  * `TrialEditorStepper` (via the `search`/`dragHandle` props below) rather
  * than each owning its own picker. The two callers must stay behaviourally
  * identical: same inline catalog search, same reserved image slot, same
- * `Sortable`/`SortableItemHandle` drag-to-reorder, same manual-only
- * "Suggest" (never auto-fired on a catalog pick — that's a paid Gemini
- * call). For the read-only equivalent see `ProductCard`; for the shared
- * image box see `Thumbnail`. Prefer extending this over building a second
- * product-editing row.
+ * `Sortable`/`SortableItemHandle` drag-to-reorder. For the read-only
+ * equivalent see `ProductCard`; for the shared image box see `Thumbnail`.
+ * Prefer extending this over building a second product-editing row.
  */
 export function ProductDraftCard({
     item,
     onChange,
     onRemove,
-    onSuggest,
     concernLabel,
     dosage = false,
     dragHandle,
@@ -114,7 +101,6 @@ export function ProductDraftCard({
     /** Omit to hide the remove button — the trial editor does this for the
      *  last remaining card so the list can never go empty. */
     onRemove?: () => void;
-    onSuggest?: () => void;
     concernLabel: string;
     /** Shows the "Amount per use" field — trial-only. `true` is a plain
      *  always-visible input (routine style, currently unused); "collapsible"
@@ -252,7 +238,6 @@ export function ProductDraftCard({
     const concernPicker = (
         <ConcernPicker
             targets={item.targets}
-            note={item.note}
             label={concernLabel}
             onChange={(targets) => onChange({ targets })}
         />

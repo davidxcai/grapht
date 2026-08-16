@@ -42,11 +42,9 @@ import {
     removeRoutine,
     saveRoutine,
     searchCatalogForPicker,
-    suggestConcerns,
-    type Suggestion,
 } from "@/app/routines/actions";
 import type { CatalogPickerMatch } from "@/lib/catalog";
-import type { RankedConcern, Routine, RoutineVisibility } from "@/lib/routines";
+import type { Routine, RoutineVisibility } from "@/lib/routines";
 
 const VISIBILITIES: { id: RoutineVisibility; label: string; icon: typeof Lock }[] = [
     { id: "private", label: "Private", icon: Lock },
@@ -64,11 +62,6 @@ function fromRoutine(routine: Routine): ProductDraft[] {
         classifier: i.classifier,
         productKey: i.productKey,
         catalogProductId: i.catalogProductId,
-        // A saved item's targets are already a human's decision; re-deriving the
-        // ladder from a stale `ranked` list would demote an edit back to a confirm.
-        suggested: null,
-        busy: false,
-        note: null,
         inci: null,
         image: i.image,
     }));
@@ -94,46 +87,10 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
             prev.map((i) => (i.key === key ? { ...i, ...change } : i)),
         );
 
-    async function suggest(item: ProductDraft) {
-        if (!item.name.trim()) {
-            patch(item.key, { note: "Enter a product name first." });
-            return;
-        }
-        patch(item.key, { busy: true, note: null });
-
-        const result = await suggestConcerns({
-            brand: item.brand,
-            name: item.name,
-            inci: item.inci,
-        });
-
-        if (!result.ok) {
-            patch(item.key, { busy: false, note: result.error });
-            return;
-        }
-
-        const data: Suggestion = result.data;
-        patch(item.key, {
-            busy: false,
-            targets: orderConcerns(data.targets),
-            suggested: orderConcerns(data.targets),
-            ranked: data.ranked as RankedConcern[],
-            classifier: data.classifier,
-            productKey: data.productKey,
-            note:
-                data.targets.length === 0
-                    ? "Nothing came back with high confidence — tick what you know it targets."
-                    : null,
-        });
-    }
-
     /** A pick from the card's own inline search fills brand, name, image and
-     *  the catalog's real INCI list — no AI call. Metrics still come from the
-     *  "Suggest" button in ConcernPicker, which the user must trigger
-     *  themselves: the classifier is a paid Gemini call and must never fire
-     *  automatically just because a catalog match was picked. Mirrors
-     *  `applyCatalogMatch` in trial-editor-stepper.tsx — the two product
-     *  pickers must behave identically. */
+     *  the catalog's real INCI list; what it targets stays the user's own
+     *  choice. Mirrors `applyCatalogMatch` in trial-editor-stepper.tsx — the
+     *  two product pickers must behave identically. */
     function applyCatalogMatch(item: ProductDraft, match: CatalogPickerMatch) {
         patch(item.key, {
             brand: match.brand ?? "",
@@ -159,7 +116,7 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                         name: i.name.trim(),
                         targets: i.targets,
                         ranked: i.ranked,
-                        provenance: provenanceOfDraft(i),
+                        provenance: provenanceOfDraft(),
                         classifier: i.classifier,
                         productKey: i.productKey,
                         catalogProductId: i.catalogProductId,
@@ -261,7 +218,6 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
                                         prev.filter((i) => i.key !== item.key),
                                     )
                                 }
-                                onSuggest={() => suggest(item)}
                                 concernLabel="What it targets"
                                 search={{
                                     search: searchCatalogForPicker,

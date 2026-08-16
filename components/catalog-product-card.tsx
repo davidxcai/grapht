@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { ConcernChips } from '@/components/concern-chips';
 import { Thumbnail } from '@/components/thumbnail';
+import { ProductCollectionBadges } from '@/components/product-collection-badges';
 import { formatCount } from '@/lib/format';
 
 /**
@@ -18,6 +19,7 @@ import { formatCount } from '@/lib/format';
  * carry no ingredient panel, so it's optional and hidden when absent.
  * `userCount` is likewise optional — omit it rather than pass 0 when the
  * caller hasn't looked it up.
+ * `saved`/`inUse` are optional collection indicators for signed-in viewers.
  */
 export interface CatalogProductCardData {
   id: string;
@@ -30,7 +32,15 @@ export interface CatalogProductCardData {
   userCount?: number;
 }
 
-export function CatalogProductCard({ product }: { product: CatalogProductCardData }) {
+export function CatalogProductCard({
+  product,
+  saved,
+  inUse,
+}: {
+  product: CatalogProductCardData;
+  saved?: boolean;
+  inUse?: boolean;
+}) {
   return (
     <Link href={`/products/${product.id}`} className="group block h-full">
       <Card className="h-full gap-3 overflow-hidden p-0 transition-colors group-hover:bg-slate-100/50">
@@ -40,6 +50,7 @@ export function CatalogProductCard({ product }: { product: CatalogProductCardDat
             <div className="min-w-0">
               {product.brand && <p className="truncate text-xs text-muted-foreground">{product.brand}</p>}
               <h2 className="truncate text-base font-medium">{product.name}</h2>
+              <ProductCollectionBadges saved={saved} inUse={inUse} />
               {Boolean(product.userCount) && (
                 <p className="text-xs text-muted-foreground">
                   Used by {formatCount(product.userCount!)} {product.userCount === 1 ? 'user' : 'users'}

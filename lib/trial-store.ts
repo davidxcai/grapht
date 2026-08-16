@@ -43,6 +43,7 @@ export function getFixtureTrials(): Trial[] {
     timeOfDay: t.timeOfDay ?? 'am',
     // The reference series is a published sample and already reads signed out.
     visibility: t.visibility ?? 'public',
+    photosVisibility: t.photosVisibility ?? 'public',
     window: { ...t.window, endDate: t.window.endDate ?? null },
   }));
 }
@@ -123,6 +124,7 @@ function toTrial(
     name: t.name as string,
     status: t.status as Trial['status'],
     visibility: (t.visibility as Trial['visibility']) ?? 'private',
+    photosVisibility: (t.photos_visibility as Trial['photosVisibility']) ?? 'private',
     window: {
       startDate: asDay(t.start_date),
       endDate: t.end_date ? asDay(t.end_date) : null,
@@ -334,6 +336,7 @@ export interface CreateTrialInput {
   endDateSource: Trial['window']['endDateSource'];
   timeOfDay: Trial['timeOfDay'];
   visibility: Trial['visibility'];
+  photosVisibility: Trial['photosVisibility'];
   frequency: Frequency;
   baseline: BaselineEntry[];
   interventions: InterventionInput[];
@@ -404,6 +407,7 @@ export interface TrialSettingsInput {
   endDateSource: Trial['window']['endDateSource'];
   timeOfDay: Trial['timeOfDay'];
   visibility: Trial['visibility'];
+  photosVisibility: Trial['photosVisibility'];
   frequency: Frequency;
   commentsEnabled: boolean;
 }
@@ -437,6 +441,7 @@ export async function updateTrialSettings(
     update trials
        set name = ${input.name.trim()},
            visibility = ${input.visibility}::trial_visibility,
+           photos_visibility = ${input.photosVisibility}::trial_visibility,
            comments_enabled = ${input.commentsEnabled},
            end_date = case when status = 'active'
                         then ${input.endDate}::date else end_date end,
@@ -469,6 +474,26 @@ export async function updateTrialVisibility(
   const rows = (await sql`
     update trials
        set visibility = ${visibility}::trial_visibility,
+           updated_at = now()
+     where id = ${id} and user_id = ${userId}
+     returning id`) as Record<string, unknown>[];
+  return rows.length > 0;
+}
+
+/**
+ * Flip who can see a trial's photos — the same one-column shortcut as
+ * `updateTrialVisibility`, so the header can offer a quick toggle.
+ */
+export async function updateTrialPhotosVisibility(
+  userId: string,
+  id: string,
+  photosVisibility: Trial['photosVisibility'],
+): Promise<boolean> {
+  if (!UUID.test(id)) return false;
+  const sql = getSql();
+  const rows = (await sql`
+    update trials
+       set photos_visibility = ${photosVisibility}::trial_visibility,
            updated_at = now()
      where id = ${id} and user_id = ${userId}
      returning id`) as Record<string, unknown>[];
@@ -774,7 +799,7 @@ export async function createTrial(userId: string, input: CreateTrialInput): Prom
   await sql.transaction([
     sql`insert into trials
           (id, user_id, name, start_date, end_date, end_date_source, time_of_day,
-           visibility, frequency, baseline)
+           visibility, photos_visibility, frequency, baseline)
         values (
           ${id}, ${userId}, ${input.name.trim()},
           ${input.startDate}::date,
@@ -782,6 +807,7 @@ export async function createTrial(userId: string, input: CreateTrialInput): Prom
           ${input.endDateSource}::end_date_source,
           ${input.timeOfDay}::trial_time_of_day,
           ${input.visibility}::trial_visibility,
+          ${input.photosVisibility}::trial_visibility,
           ${JSON.stringify(input.frequency)}::jsonb,
           ${JSON.stringify(input.baseline)}::jsonb
         )`,
