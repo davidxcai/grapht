@@ -100,4 +100,3 @@ export async function removeRoutine(id: string): Promise<ActionResult> {
     return { ok: false, error: (error as Error).message };
   }
 }
-

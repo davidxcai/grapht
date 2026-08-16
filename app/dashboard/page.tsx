@@ -9,6 +9,7 @@ import { loadTrials } from "@/lib/trial-store";
 import { listSavedTrials } from "@/lib/community";
 import { listRoutines, type Routine } from "@/lib/routines";
 import { clerkConfigured, currentUserId } from "@/lib/auth";
+import { degraded } from "@/lib/log";
 import { getProfile } from "@/lib/profile-store";
 import { Greeting } from "@/components/greeting";
 import { timeGreeting } from "@/lib/greeting";
@@ -41,6 +42,13 @@ function EmptyState({ children }: { children: React.ReactNode }) {
  * two hardcoded reference trials it used to carry were deleted. A missing or
  * unreachable `DATABASE_URL` still fails soft rather than throwing, it just now
  * means an empty dashboard rather than a demo one.
+ *
+ * Failing soft is not the same as failing silently, and every tab says which
+ * happened. "You have no trials" and "we could not read your trials" are
+ * different claims, and the dashboard used to make the first one for both —
+ * `loadTrials()` has always returned a `storeError` and this page dropped it,
+ * so an unreachable Neon rendered an empty Active tab inviting the user to
+ * start the trial they already had.
  */
 async function loadRoutines(userId: string): Promise<{
     routines: Routine[];
@@ -49,6 +57,7 @@ async function loadRoutines(userId: string): Promise<{
     try {
         return { routines: await listRoutines(userId), error: null };
     } catch (error) {
+        degraded("dashboard listRoutines", error);
         return { routines: [], error: (error as Error).message };
     }
 }
@@ -79,18 +88,24 @@ export default async function Dashboard({
     // `undefined` is a failed read and `null` a missing row, and the two must
     // not be conflated: bouncing a signed-in user to /welcome because Neon is
     // unreachable would trap them in a form that cannot save.
-    const profile = await getProfile(userId).catch(() => undefined);
+    const profile = await getProfile(userId).catch((cause: unknown) => {
+        degraded("dashboard getProfile", cause, "greeting renders unnamed");
+        return undefined;
+    });
     if (clerkConfigured && profile === null) {
         redirect("/welcome");
     }
 
-    const { trials: allTrials } = await loadTrials(userId);
+    const { trials: allTrials, storeError } = await loadTrials(userId);
     const trials = allTrials.map((t) => toCardData(t));
     const active = trials.filter((t) => t.trial.status === "active");
     const completed = trials.filter((t) => t.trial.status === "completed");
     const { routines, error } = await loadRoutines(userId);
     const { products: myProducts, error: myProductsError } = await loadMyProducts();
-    const saved = await listSavedTrials(userId).catch(() => []);
+    const saved = await listSavedTrials(userId).catch((cause: unknown) => {
+        degraded("dashboard listSavedTrials", cause);
+        return null;
+    });
     const tab = parseTab((await searchParams).tab);
 
     return (
@@ -113,16 +128,26 @@ export default async function Dashboard({
                 </TabsList>
 
                 <TabsContent value="active" className="mt-5 space-y-3">
-                    <CardGrid>
-                        {active.map((d) => (
-                            <TrialCard key={d.trial.id} data={d} />
-                        ))}
-                        <EmptyCard href="/trials/new" label="New trial" />
-                    </CardGrid>
+                    {storeError ? (
+                        <EmptyState>
+                            Your trials are unavailable — {storeError}
+                        </EmptyState>
+                    ) : (
+                        <CardGrid>
+                            {active.map((d) => (
+                                <TrialCard key={d.trial.id} data={d} />
+                            ))}
+                            <EmptyCard href="/trials/new" label="New trial" />
+                        </CardGrid>
+                    )}
                 </TabsContent>
 
                 <TabsContent value="completed" className="mt-5 space-y-3">
-                    {completed.length === 0 ? (
+                    {storeError ? (
+                        <EmptyState>
+                            Your trials are unavailable — {storeError}
+                        </EmptyState>
+                    ) : completed.length === 0 ? (
                         <EmptyState>
                             Nothing completed yet — finish a trial and it lands
                             here.
@@ -156,7 +181,12 @@ export default async function Dashboard({
                 </TabsContent>
 
                 <TabsContent value="saved" className="mt-5 space-y-3">
-                    {saved.length === 0 ? (
+                    {saved === null ? (
+                        <EmptyState>
+                            Saved trials are unavailable right now — this is a
+                            failed read, not an empty list.
+                        </EmptyState>
+                    ) : saved.length === 0 ? (
                         <EmptyState>
                             Nothing saved yet — bookmark a community trial and
                             it lands here.

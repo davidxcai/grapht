@@ -2,6 +2,7 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 
 import { getSql } from '@/lib/db';
+import { degraded } from '@/lib/log';
 import { clerkConfigured, requireUserId } from '@/lib/auth';
 import type { Profile, ProfileInput, ProfileVisibility, SkinType } from '@/lib/profile';
 
@@ -78,7 +79,8 @@ export async function setMyProductsSeeded(userId: string): Promise<void> {
 export async function needsOnboarding(userId: string): Promise<boolean> {
   try {
     return (await getProfile(userId)) === null;
-  } catch {
+  } catch (error) {
+    degraded('needsOnboarding', error, 'answering "already onboarded"');
     return false;
   }
 }

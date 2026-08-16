@@ -327,19 +327,23 @@ export async function catalogProductImages(ids: string[]): Promise<Map<string, s
   return new Map(rows.map((r) => [r.id, r.image_url]));
 }
 
+/** A catalog id is a uuid; anything else cannot name a row. Checked here rather
+ *  than by catching the query's cast failure, because that catch also absorbed
+ *  every real database error and turned an unreachable Neon into "no such
+ *  product" — a 404 the visitor has no reason to doubt. A malformed id still
+ *  404s; a failed lookup now propagates. */
+const CATALOG_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getCatalogProduct(id: string): Promise<CatalogProductDetail | null> {
+  if (!CATALOG_ID_RE.test(id)) return null;
+
   const sql = getSql();
-  let productRows: (CatalogProductRow & { description: string | null; ingredients: StoredIngredientEntry[] })[];
-  try {
-    productRows = (await sql.query(
-      `select id, brand_name, name, description, image_url,
-              concern_tags::text[] as concern_tags, ingredient_count, ingredients
-         from catalog_products where id = $1`,
-      [id],
-    )) as (CatalogProductRow & { description: string | null; ingredients: StoredIngredientEntry[] })[];
-  } catch {
-    return null; // malformed id (not a uuid) — 404, not a 500
-  }
+  const productRows = (await sql.query(
+    `select id, brand_name, name, description, image_url,
+            concern_tags::text[] as concern_tags, ingredient_count, ingredients
+       from catalog_products where id = $1`,
+    [id],
+  )) as (CatalogProductRow & { description: string | null; ingredients: StoredIngredientEntry[] })[];
   const product = productRows[0];
   if (!product) return null;
 

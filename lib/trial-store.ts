@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { getSql } from '@/lib/db';
+import { degraded } from '@/lib/log';
 import { DEMO_USER } from '@/lib/auth';
 import { validateConcerns } from '@/lib/concerns';
 import type { BaselineEntry, Capture, Frequency, Intervention, Trial } from '@/lib/trials';
@@ -294,6 +295,7 @@ export async function loadTrials(
   try {
     return { trials: [...(await listStoredTrials(userId)), ...sample], storeError: null };
   } catch (error) {
+    degraded('loadTrials', error, 'stored trials omitted; storeError returned');
     return { trials: sample, storeError: (error as Error).message };
   }
 }

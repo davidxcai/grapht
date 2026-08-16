@@ -37,6 +37,7 @@ import {
 import { getRoutine, snapshotRoutine } from '@/lib/routines';
 import { writeSummary } from '@/lib/summary';
 import { currentUserId } from '@/lib/auth';
+import { degraded } from '@/lib/log';
 import { isInconclusive, type BaselineEntry, type Frequency, type Trial } from '@/lib/trials';
 import type { ActionResult } from '@/app/routines/actions';
 import { searchCatalogForPicker as searchCatalog, type CatalogPickerMatch } from '@/lib/catalog';
@@ -206,13 +207,19 @@ export async function startTrial(
  * Guards mirror `startTrial()`'s ordering out of habit — refuse what's free to
  * refuse before doing any work — even though there's no unit spend here to
  * protect anymore.
+ *
+ * `noteError` is how the caller learns the note written at upload did not land.
+ * The photo is stored and its row written by the time the note is attempted, so
+ * failing the whole action would lie about the photo; swallowing the note
+ * failure — which is what this used to do — lied about the note instead, and the
+ * user got "Photo logged" over a note that existed nowhere.
  */
 export async function logCapture(
   trialId: string,
   photo: File,
   device: string | null,
   note?: string | null,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<{ id: string; noteError: string | null }>> {
   const userId = await currentUserId();
   if (!userId) return { ok: false, error: 'Log in to add a photo.' };
 
@@ -255,8 +262,13 @@ export async function logCapture(
 
     // The note rides along when one was written at upload.
     const trimmedNote = note?.trim();
+    let noteError: string | null = null;
     if (id && trimmedNote) {
-      await setCaptureNote(userId, trialId, id, trimmedNote).catch(() => {});
+      try {
+        await setCaptureNote(userId, trialId, id, trimmedNote);
+      } catch (error) {
+        noteError = (error as Error).message;
+      }
     }
 
     // The write is guarded on `status = 'active'`, so no row means the trial was
@@ -271,7 +283,7 @@ export async function logCapture(
     revalidatePath('/');
     revalidatePath('/dashboard');
     revalidatePath(`/trials/${trialId}`);
-    return { ok: true, data: { id } };
+    return { ok: true, data: { id, noteError } };
   } catch (error) {
     return {
       ok: false,
@@ -655,7 +667,13 @@ export async function removeTrial(id: string): Promise<ActionResult> {
   try {
     const pathnames = await deleteTrial(userId, id);
     if (!pathnames) return { ok: false, error: 'That trial no longer exists.' };
-    await Promise.all(pathnames.map((p) => del(p).catch(() => {})));
+    // The rows are already gone, so a failed blob delete leaks storage rather
+    // than breaking the delete — worth a log line, never worth a refusal.
+    await Promise.all(
+      pathnames.map((p) =>
+        del(p).catch((cause: unknown) => degraded('removeTrial del', cause, `orphaned blob ${p}`)),
+      ),
+    );
 
     revalidatePath('/');
     revalidatePath('/dashboard');
@@ -759,7 +777,11 @@ export async function addCapturePhotos(
         blobPathname: blob.pathname,
       });
       // The capture vanished mid-upload; don't leave the blob orphaned.
-      if (!id) await del(blob.pathname).catch(() => {});
+      if (!id) {
+        await del(blob.pathname).catch((cause: unknown) =>
+          degraded('addCapturePhotos del', cause, `orphaned blob ${blob.pathname}`),
+        );
+      }
     }
 
     revalidatePath(`/trials/${trialId}`);
@@ -779,7 +801,9 @@ export async function removeCapturePhoto(
   try {
     const pathname = await deleteCapturePhoto(userId, photoId);
     if (!pathname) return { ok: false, error: 'That photo no longer exists.' };
-    await del(pathname).catch(() => {});
+    await del(pathname).catch((cause: unknown) =>
+      degraded('removeCapturePhoto del', cause, `orphaned blob ${pathname}`),
+    );
     revalidatePath(`/trials/${trialId}`);
     return { ok: true, data: null };
   } catch (error) {
