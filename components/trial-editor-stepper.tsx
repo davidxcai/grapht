@@ -29,6 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CameraCapture } from "@/components/camera-capture";
+import { useObjectUrl } from "@/lib/use-object-url";
 import { Choice } from "@/components/choice";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,6 @@ import {
     ProductDraftCard,
     blankProductDraft,
     provenanceOfDraft,
-    type ProductDraft,
 } from "@/components/product-draft-card";
 import {
     Select,
@@ -68,9 +68,10 @@ import {
     SortableItem,
     SortableItemHandle,
 } from "@/src/components/reui/sortable";
+import { useProductDrafts } from "@/components/use-product-drafts";
+import { localDay } from "@/lib/days";
 import { startTrial, searchCatalogForPicker } from "@/app/trials/actions";
 import { RoutineSummary } from "@/components/routine-summary";
-import type { CatalogPickerMatch } from "@/lib/catalog";
 import type { Frequency, TimeOfDay, TrialVisibility } from "@/lib/trials";
 
 const DEFAULT_PHOTOS_VISIBILITY: TrialVisibility = "private";
@@ -291,9 +292,9 @@ export function TrialEditorStepper({
     // inside a per-step component — StepperContent unmounts inactive steps
     // (src/components/reui/stepper.tsx), so state that lived there instead
     // would be lost on Back. Hoisting it here is what makes Back non-destructive.
-    const [items, setItems] = useState<ProductDraft[]>([
-        blankProductDraft("tracked"),
-    ]);
+    const { items, setItems, patch, applyCatalogMatch } = useProductDrafts(
+        () => [blankProductDraft("tracked")],
+    );
     const [name, setName] = useState("");
     const [nameTouched, setNameTouched] = useState(false);
 
@@ -311,7 +312,7 @@ export function TrialEditorStepper({
     const [everyN, setEveryN] = useState("3");
 
     const [photo, setPhoto] = useState<File | null>(null);
-    const [preview, setPreview] = useState<string | null>(null);
+    const preview = useObjectUrl(photo);
     const [cameraOpen, setCameraOpen] = useState(false);
 
     const [error, setError] = useState<string | null>(null);
@@ -323,31 +324,6 @@ export function TrialEditorStepper({
     useEffect(() => {
         if (!nameTouched) setName(firstProduct);
     }, [firstProduct, nameTouched]);
-
-    useEffect(() => {
-        if (!photo) return;
-        const url = URL.createObjectURL(photo);
-        setPreview(url);
-        return () => URL.revokeObjectURL(url);
-    }, [photo]);
-
-    const patch = (key: string, change: Partial<ProductDraft>) =>
-        setItems((prev) =>
-            prev.map((i) => (i.key === key ? { ...i, ...change } : i)),
-        );
-
-    /** A pick from the card's own inline search fills brand, name, image and
-     *  the catalog's real INCI list; what it targets stays the user's own
-     *  choice. */
-    function applyCatalogMatch(item: ProductDraft, match: CatalogPickerMatch) {
-        patch(item.key, {
-            brand: match.brand ?? "",
-            name: match.name,
-            inci: match.inci,
-            image: match.image,
-            catalogProductId: match.id,
-        });
-    }
 
     function frequencyValue(): Frequency {
         switch (frequency) {
@@ -379,10 +355,7 @@ export function TrialEditorStepper({
      *  the user's own "today" rather than the server's (which runs UTC on
      *  Vercel and can already be tomorrow for anyone west of it). */
     function startDate(): string {
-        const now = new Date();
-        return new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
-            .toISOString()
-            .slice(0, 10);
+        return localDay(new Date());
     }
 
     /** The date is a marker, never a lock — see docs/app-ui.md §4, "Duration". */
@@ -391,9 +364,7 @@ export function TrialEditorStepper({
         if (days === null) return null;
         const end = new Date();
         end.setDate(end.getDate() + days - 1);
-        return new Date(end.getTime() - end.getTimezoneOffset() * 60_000)
-            .toISOString()
-            .slice(0, 10);
+        return localDay(end);
     }
 
     function save() {

@@ -38,12 +38,12 @@ import {
     SortableItemHandle,
 } from "@/src/components/reui/sortable";
 import { orderConcerns } from "@/lib/concerns";
+import { useProductDrafts } from "@/components/use-product-drafts";
 import {
     removeRoutine,
     saveRoutine,
     searchCatalogForPicker,
 } from "@/app/routines/actions";
-import type { CatalogPickerMatch } from "@/lib/catalog";
 import type { Routine, RoutineVisibility } from "@/lib/routines";
 
 const VISIBILITIES: { id: RoutineVisibility; label: string; icon: typeof Lock }[] = [
@@ -74,32 +74,13 @@ export function RoutineEditor({ routine }: { routine?: Routine }) {
     const [visibility, setVisibility] = useState<RoutineVisibility>(
         routine?.visibility ?? "private",
     );
-    const [items, setItems] = useState<ProductDraft[]>(
-        routine ? fromRoutine(routine) : [blankProductDraft("draft")],
+    const { items, setItems, patch, applyCatalogMatch } = useProductDrafts(
+        () => (routine ? fromRoutine(routine) : [blankProductDraft("draft")]),
     );
     const [error, setError] = useState<string | null>(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [saving, startSaving] = useTransition();
     const [deleting, startDeleting] = useTransition();
-
-    const patch = (key: string, change: Partial<ProductDraft>) =>
-        setItems((prev) =>
-            prev.map((i) => (i.key === key ? { ...i, ...change } : i)),
-        );
-
-    /** A pick from the card's own inline search fills brand, name, image and
-     *  the catalog's real INCI list; what it targets stays the user's own
-     *  choice. Mirrors `applyCatalogMatch` in trial-editor-stepper.tsx — the
-     *  two product pickers must behave identically. */
-    function applyCatalogMatch(item: ProductDraft, match: CatalogPickerMatch) {
-        patch(item.key, {
-            brand: match.brand ?? "",
-            name: match.name,
-            inci: match.inci,
-            image: match.image,
-            catalogProductId: match.id,
-        });
-    }
 
     function save() {
         setError(null);

@@ -3,9 +3,10 @@
 import { revalidatePath } from 'next/cache';
 
 import { currentUserId } from '@/lib/auth';
+import { localDay, parseDay } from '@/lib/days';
 import { PROFILE_VISIBILITIES, SKIN_TYPES, type ProfileVisibility, type SkinType } from '@/lib/profile';
 import { saveProfile } from '@/lib/profile-store';
-import type { ActionResult } from '@/app/routines/actions';
+import { causeMessage, failed, type ActionResult } from '@/lib/action-result';
 
 export interface ProfileFormInput {
   username: string;
@@ -30,8 +31,8 @@ const MAX_AGE_YEARS = 120;
 function checkBirthday(value: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'Enter your birthday.';
 
-  const parsed = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsed.getTime()) || value.slice(0, 10) !== toDay(parsed)) {
+  const parsed = parseDay(value);
+  if (Number.isNaN(parsed.getTime()) || value.slice(0, 10) !== localDay(parsed)) {
     return 'That is not a real date.';
   }
 
@@ -45,11 +46,6 @@ function checkBirthday(value: string): string | null {
   return null;
 }
 
-function toDay(date: Date): string {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-
 /**
  * Write the profile, which is also what marks sign-up finished.
  *
@@ -60,27 +56,24 @@ function toDay(date: Date): string {
  */
 export async function saveProfileDetails(input: ProfileFormInput): Promise<ActionResult> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in first.' };
+  if (!userId) return failed('Log in first.');
 
   const username = input.username?.trim() ?? '';
-  if (!username) return { ok: false, error: 'Pick a username.' };
+  if (!username) return failed('Pick a username.');
   if (!USERNAME.test(username)) {
-    return {
-      ok: false,
-      error: 'Usernames are 2–24 characters: letters, digits, hyphens and underscores.',
-    };
+    return failed('Usernames are 2–24 characters: letters, digits, hyphens and underscores.');
   }
 
   if (!SKIN_TYPES.includes(input.skinType as SkinType)) {
-    return { ok: false, error: 'Pick a skin type.' };
+    return failed('Pick a skin type.');
   }
 
   if (!PROFILE_VISIBILITIES.includes(input.visibility as ProfileVisibility)) {
-    return { ok: false, error: 'Pick who can see your profile.' };
+    return failed('Pick who can see your profile.');
   }
 
   const birthdayError = checkBirthday(input.birthday ?? '');
-  if (birthdayError) return { ok: false, error: birthdayError };
+  if (birthdayError) return failed(birthdayError);
 
   try {
     await saveProfile(userId, {
@@ -95,8 +88,8 @@ export async function saveProfileDetails(input: ProfileFormInput): Promise<Actio
     return { ok: true };
   } catch (error) {
     if ((error as { code?: string }).code === UNIQUE_VIOLATION) {
-      return { ok: false, error: `"${username}" is taken.` };
+      return failed(`"${username}" is taken.`);
     }
-    return { ok: false, error: (error as Error).message };
+    return failed(causeMessage(error));
   }
 }

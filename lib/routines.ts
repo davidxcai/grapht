@@ -131,6 +131,31 @@ function toRoutine(row: Record<string, unknown>, items: RoutineItem[]): Routine 
   };
 }
 
+/** One routine's rows, in display order. */
+async function itemsOfRoutine(id: string): Promise<RoutineItem[]> {
+  const rows = await getSql().query(
+    `select ${ITEM_COLUMNS} from routine_items i
+     ${CATALOG_JOIN}
+     where i.routine_id = $1
+     order by i.position asc, i.created_at asc`,
+    [id],
+  );
+  return (rows as Record<string, unknown>[]).map(toItem);
+}
+
+/** Items for many routines at once, keyed by `routine_id` — the list reads
+ *  fetch routines and items in one round trip each rather than per routine. */
+function groupItems(rows: unknown): Map<string, RoutineItem[]> {
+  const byRoutine = new Map<string, RoutineItem[]>();
+  for (const row of rows as Record<string, unknown>[]) {
+    const key = row.routine_id as string;
+    const list = byRoutine.get(key) ?? [];
+    list.push(toItem(row));
+    byRoutine.set(key, list);
+  }
+  return byRoutine;
+}
+
 export async function listRoutines(userId: string): Promise<Routine[]> {
   const sql = getSql();
   const [routineRows, itemRows] = await Promise.all([
@@ -146,13 +171,7 @@ export async function listRoutines(userId: string): Promise<Routine[]> {
     ),
   ]);
 
-  const byRoutine = new Map<string, RoutineItem[]>();
-  for (const row of itemRows as Record<string, unknown>[]) {
-    const key = row.routine_id as string;
-    const list = byRoutine.get(key) ?? [];
-    list.push(toItem(row));
-    byRoutine.set(key, list);
-  }
+  const byRoutine = groupItems(itemRows);
 
   return (routineRows as Record<string, unknown>[]).map((r) =>
     toRoutine(r, byRoutine.get(r.id as string) ?? []),
@@ -168,15 +187,7 @@ export async function getRoutine(userId: string, id: string): Promise<Routine | 
   const row = (rows as Record<string, unknown>[])[0];
   if (!row) return null;
 
-  const itemRows = await sql.query(
-    `select ${ITEM_COLUMNS} from routine_items i
-     ${CATALOG_JOIN}
-     where i.routine_id = $1
-     order by i.position asc, i.created_at asc`,
-    [id],
-  );
-
-  return toRoutine(row, (itemRows as Record<string, unknown>[]).map(toItem));
+  return toRoutine(row, await itemsOfRoutine(id));
 }
 
 /**
@@ -198,16 +209,8 @@ export async function getPublicRoutine(
   const row = (rows as Record<string, unknown>[])[0];
   if (!row) return null;
 
-  const itemRows = await sql.query(
-    `select ${ITEM_COLUMNS} from routine_items i
-     ${CATALOG_JOIN}
-     where i.routine_id = $1
-     order by i.position asc, i.created_at asc`,
-    [id],
-  );
-
   return {
-    routine: toRoutine(row, (itemRows as Record<string, unknown>[]).map(toItem)),
+    routine: toRoutine(row, await itemsOfRoutine(id)),
     handle: (row.owner_handle as string | null) ?? null,
   };
 }
@@ -241,13 +244,7 @@ export async function listPublicRoutines(): Promise<PublicRoutine[]> {
     ),
   ]);
 
-  const byRoutine = new Map<string, RoutineItem[]>();
-  for (const row of itemRows as Record<string, unknown>[]) {
-    const key = row.routine_id as string;
-    const list = byRoutine.get(key) ?? [];
-    list.push(toItem(row));
-    byRoutine.set(key, list);
-  }
+  const byRoutine = groupItems(itemRows);
 
   return (routineRows as Record<string, unknown>[]).map((r) => ({
     routine: toRoutine(r, byRoutine.get(r.id as string) ?? []),

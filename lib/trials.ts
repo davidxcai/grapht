@@ -1,4 +1,5 @@
 import { orderConcerns } from '@/lib/concerns';
+import { daysBetween, localDay } from '@/lib/days';
 import type { RoutineSnapshot } from '@/lib/routines';
 
 /**
@@ -196,18 +197,6 @@ export interface TrialCardData {
   /** Distinct days with at least one capture. Never resets on a miss. */
   daysLogged: number;
   loggedToday: boolean;
-}
-
-const MS_PER_DAY = 86_400_000;
-
-/** Local calendar day as YYYY-MM-DD. Captures are compared by day, not instant. */
-function localDay(date: Date): string {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-
-function daysBetween(from: string, to: string): number {
-  return Math.round((Date.parse(`${to}T00:00:00`) - Date.parse(`${from}T00:00:00`)) / MS_PER_DAY);
 }
 
 export function toCardData(trial: Trial, now = new Date()): TrialCardData {

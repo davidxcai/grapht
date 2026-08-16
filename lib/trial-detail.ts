@@ -1,6 +1,7 @@
 import offsetTable from '@/fixtures/device-offsets.json';
 
 import { CONCERNS, orderConcerns } from '@/lib/concerns';
+import { MS_PER_DAY, localDay, parseDay } from '@/lib/days';
 import type { Capture, Trial } from '@/lib/trials';
 
 /**
@@ -23,8 +24,6 @@ import type { Capture, Trial } from '@/lib/trials';
  */
 
 export type Direction = 'improved' | 'declined' | 'flat';
-
-const MS_PER_DAY = 86_400_000;
 
 /**
  * Imported rather than read off disk on purpose. The metric types in this module
@@ -243,11 +242,6 @@ export interface LogRecord {
   loggedToday: boolean;
 }
 
-function localDay(date: Date): string {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-
 export function logRecord(trial: Trial, now = new Date()): LogRecord {
   const { startDate, endDate } = trial.window;
   const today = localDay(now);
@@ -279,7 +273,7 @@ export function logRecord(trial: Trial, now = new Date()): LogRecord {
 
   const days: LogRecord['days'] = [];
   for (let i = 0; i <= dayIndex(firstDay, finalDay); i++) {
-    const cursor = new Date(`${firstDay}T00:00:00`);
+    const cursor = parseDay(firstDay);
     cursor.setDate(cursor.getDate() + i);
     const date = localDay(cursor);
     days.push({ date, captures: byDay.get(date) ?? [], inWindow: date >= startDate });

@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { addFinalPhoto } from '@/app/trials/actions';
 import { CameraCapture } from '@/components/camera-capture';
+import { useObjectUrl } from '@/lib/use-object-url';
 import { Button } from '@/components/ui/button';
 
 /**
@@ -19,20 +20,10 @@ import { Button } from '@/components/ui/button';
 export function AddFinalPhoto({ trialId }: { trialId: string }) {
   const [mode, setMode] = useState<'button' | 'camera' | 'review'>('button');
   const [photo, setPhoto] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const preview = useObjectUrl(photo);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-
-  useEffect(() => {
-    if (!photo) {
-      setPreview(null);
-      return;
-    }
-    const url = URL.createObjectURL(photo);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [photo]);
 
   const accept = (file: File) => {
     setError(null);

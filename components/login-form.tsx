@@ -3,13 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useSignIn } from '@clerk/nextjs';
-import { Loader2 } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { GoogleButton } from '@/components/google-button';
-import { Divider, FieldError, FormError } from '@/components/auth-parts';
+import { AuthField, AuthSubmit, Divider, FormError } from '@/components/auth-parts';
 
 export function LoginForm() {
   const { signIn, errors, fetchStatus } = useSignIn();
@@ -57,52 +53,39 @@ export function LoginForm() {
       <Divider />
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            name="email"
-            autoComplete="email"
-            required
-            className="h-10"
-            aria-invalid={Boolean(errors.fields.identifier)}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <FieldError error={errors.fields.identifier} />
-        </div>
+        <AuthField
+          id="email"
+          type="email"
+          name="email"
+          label="Email"
+          autoComplete="email"
+          error={errors.fields.identifier}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
+        <AuthField
+          id="password"
+          type="password"
+          name="password"
+          label="Password"
+          autoComplete="current-password"
+          error={errors.fields.password}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          labelSuffix={
             <Link
               href="/forgot-password"
               className="text-sm text-muted-foreground underline underline-offset-4"
             >
               Forgot password?
             </Link>
-          </div>
-          <Input
-            id="password"
-            type="password"
-            name="password"
-            autoComplete="current-password"
-            required
-            className="h-10"
-            aria-invalid={Boolean(errors.fields.password)}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <FieldError error={errors.fields.password} />
-        </div>
+          }
+        />
 
         <FormError message={blocked} errors={errors} />
 
-        <Button type="submit" size="lg" className="w-full" disabled={busy}>
-          {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
-          Log in
-        </Button>
+        <AuthSubmit busy={busy}>Log in</AuthSubmit>
       </form>
 
       <p className="text-center text-sm text-muted-foreground">

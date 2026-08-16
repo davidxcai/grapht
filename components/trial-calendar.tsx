@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
+import { localDay, parseDay } from '@/lib/days';
 import { cn } from '@/lib/utils';
 
 /**
@@ -29,15 +30,6 @@ interface Props {
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-function parseDay(value: string): Date {
-  return new Date(`${value}T00:00:00`);
-}
-
-function iso(date: Date): string {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
-}
-
 function monthValue(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
 }
@@ -54,7 +46,7 @@ export function TrialCalendar({ startDate, loggedDays, endDate }: Props) {
   const firstLogged = loggedDays.length ? loggedDays[0] : startDate;
   const start = parseDay(firstLogged < startDate ? firstLogged : startDate);
   const lastLogged = loggedDays.length ? parseDay(loggedDays[loggedDays.length - 1]) : start;
-  const end = endDate && endDate > iso(lastLogged) ? parseDay(endDate) : lastLogged;
+  const end = endDate && endDate > localDay(lastLogged) ? parseDay(endDate) : lastLogged;
 
   // Open on the month holding the most recent activity, not the first month —
   // on a six-month trial that is the one worth seeing.
@@ -83,8 +75,8 @@ export function TrialCalendar({ startDate, loggedDays, endDate }: Props) {
     ),
   ];
 
-  const today = iso(new Date());
-  const endIso = iso(end);
+  const today = localDay(new Date());
+  const endIso = localDay(end);
 
   return (
     <div>
@@ -146,7 +138,7 @@ export function TrialCalendar({ startDate, loggedDays, endDate }: Props) {
 
           {cells.map((date, i) => {
             if (!date) return <div key={`blank-${i}`} />;
-            const key = iso(date);
+            const key = localDay(date);
             const inTrial = key >= startDate && key <= endIso;
             const hasCapture = logged.has(key);
             const isFinalDay = endDate !== null && key === endDate;

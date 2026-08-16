@@ -10,6 +10,7 @@ import {
   type RoutineVisibility,
 } from '@/lib/routines';
 import { currentUserId } from '@/lib/auth';
+import { causeMessage, failed, type ActionResult } from '@/lib/action-result';
 import { searchCatalogForPicker as searchCatalog, type CatalogPickerMatch } from '@/lib/catalog';
 import { syncMyProductsFromItems } from '@/lib/my-products';
 
@@ -28,10 +29,6 @@ export interface SaveRoutineInput {
   items: RoutineItemInput[];
 }
 
-export type ActionResult<T = undefined> =
-  | ({ ok: true } & (T extends undefined ? object : { data: T }))
-  | { ok: false; error: string };
-
 /** Postgres unique-violation, i.e. a routine of this name already exists. */
 const UNIQUE_VIOLATION = '23505';
 
@@ -42,19 +39,19 @@ const UNIQUE_VIOLATION = '23505';
  */
 export async function saveRoutine(input: SaveRoutineInput): Promise<ActionResult<{ id: string }>> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in to save a routine.' };
+  if (!userId) return failed('Log in to save a routine.');
 
   const name = input.name?.trim();
-  if (!name) return { ok: false, error: 'Give the routine a name.' };
+  if (!name) return failed('Give the routine a name.');
 
   const items = (input.items ?? []).filter((i) => i.name?.trim());
-  if (items.length === 0) return { ok: false, error: 'Add at least one product.' };
+  if (items.length === 0) return failed('Add at least one product.');
 
   try {
     let id = input.id;
     if (id) {
       const updated = await updateRoutine(userId, id, name, items, input.description, input.visibility);
-      if (!updated) return { ok: false, error: 'That routine no longer exists.' };
+      if (!updated) return failed('That routine no longer exists.');
     } else {
       id = await createRoutine(userId, name, items, input.description, input.visibility);
     }
@@ -76,19 +73,19 @@ export async function saveRoutine(input: SaveRoutineInput): Promise<ActionResult
   } catch (error) {
     const code = (error as { code?: string }).code;
     if (code === UNIQUE_VIOLATION) {
-      return { ok: false, error: `You already have a routine called "${name}".` };
+      return failed(`You already have a routine called "${name}".`);
     }
     // `validateConcerns` throws on an unrecognised key, and so does the
     // `analysis_concern` enum behind it. Surfacing the message is right: it
     // names the bad key, and a silent drop is the failure mode rule 5 exists
     // to prevent.
-    return { ok: false, error: (error as Error).message };
+    return failed(causeMessage(error));
   }
 }
 
 export async function removeRoutine(id: string): Promise<ActionResult> {
   const userId = await currentUserId();
-  if (!userId) return { ok: false, error: 'Log in to delete a routine.' };
+  if (!userId) return failed('Log in to delete a routine.');
 
   try {
     await deleteRoutine(userId, id);
@@ -97,6 +94,6 @@ export async function removeRoutine(id: string): Promise<ActionResult> {
     revalidatePath('/routines');
     return { ok: true };
   } catch (error) {
-    return { ok: false, error: (error as Error).message };
+    return failed(causeMessage(error));
   }
 }
